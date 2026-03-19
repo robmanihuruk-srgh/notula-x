@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Notula · Firebase + Role + 3 Tema</title>
+  <title>Notula · Firebase + Role + 3 Tema + Hapus Massal</title>
   <!-- Font & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +18,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <style id="theme-style">
-    /* Default theme (orange & blue) - will be swapped by JS */
     :root {
       --color-primary: #f97316;
       --color-primary-dark: #e05e0f;
@@ -34,7 +33,6 @@
     }
   </style>
   <style>
-    /* ===== CSS (sama seperti sebelumnya) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -79,9 +77,9 @@
       font-size: 1.8rem;
     }
 
-    .btn-new {
+    .btn-new, .btn-delete-selected {
       width: 100%;
-      margin-top: 16px;
+      margin-top: 12px;
       background: var(--color-primary);
       color: white;
       border: none;
@@ -98,8 +96,20 @@
       box-shadow: 0 4px 8px rgba(249, 115, 22, 0.2);
     }
 
-    .btn-new:hover {
+    .btn-new:hover, .btn-delete-selected:hover {
       background: var(--color-primary-dark);
+    }
+
+    .btn-delete-selected {
+      background: #dc3545;
+      box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
+    }
+    .btn-delete-selected:hover {
+      background: #b52b3a;
+    }
+    .btn-delete-selected:disabled {
+      opacity: 0.4;
+      pointer-events: none;
     }
 
     .meeting-list {
@@ -109,9 +119,12 @@
     }
 
     .meeting-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       background: #f9fcff;
       border-radius: 12px;
-      padding: 16px 14px;
+      padding: 12px 14px;
       margin-bottom: 10px;
       border: 1px solid var(--color-border);
       cursor: pointer;
@@ -130,11 +143,27 @@
       border-color: #f9b17a;
     }
 
+    .meeting-checkbox {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: var(--color-primary);
+    }
+
+    .meeting-content {
+      flex: 1;
+      overflow: hidden;
+    }
+
     .meeting-title {
       font-weight: 600;
       font-size: 1rem;
       color: var(--color-secondary);
-      margin-bottom: 6px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .meeting-date {
@@ -673,7 +702,6 @@
       pointer-events: none;
     }
 
-    /* MODAL */
     .modal {
       display: none;
       position: fixed;
@@ -778,7 +806,6 @@
       display: none;
     }
 
-    /* Login overlay */
     #loginOverlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -826,7 +853,6 @@
       margin-top: 10px;
     }
 
-    /* Print */
     @media print {
       .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .btn-delete-meeting, .theme-switcher, .user-info {
         display: none !important;
@@ -847,7 +873,6 @@
   </style>
 </head>
 <body>
-  <!-- Login Overlay -->
   <div id="loginOverlay">
     <div class="login-card">
       <h2><i class="fas fa-book-open" style="color: var(--color-primary);"></i> Notula</h2>
@@ -863,6 +888,7 @@
     <div class="sidebar-header">
       <h1><i class="fas fa-book-open"></i> Notula</h1>
       <button class="btn-new" id="newMeetingBtn" disabled><i class="fas fa-plus-circle"></i> Rapat baru</button>
+      <button class="btn-delete-selected" id="deleteSelectedBtn" disabled><i class="fas fa-trash"></i> Hapus Terpilih</button>
     </div>
     <div class="meeting-list" id="meetingList"></div>
   </div>
@@ -1000,6 +1026,7 @@
       let currentUser = null;
       let userRole = 'member'; // default
       let unsubscribeMeetings = null;
+      let selectedMeetingIds = new Set(); // untuk hapus massal
 
       // ========== DATA DEFAULT UNTUK SEEDING ==========
       const defaultMeetings = [
@@ -1180,7 +1207,7 @@
           if (doc.exists) {
             userRole = doc.data().role || 'member';
           } else {
-            // Create default role
+            // Buat dokumen untuk user baru
             await db.collection('users').doc(uid).set({ role: 'member' });
             userRole = 'member';
           }
@@ -1198,42 +1225,43 @@
           document.getElementById('userInfo').style.display = 'flex';
           hideLogin();
           await fetchUserRole(user.uid);
-          // Start real-time listener for meetings
           if (unsubscribeMeetings) unsubscribeMeetings();
           unsubscribeMeetings = db.collection('meetings').onSnapshot(async (snapshot) => {
             meetings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             meetings.sort((a, b) => (a.date < b.date ? 1 : -1));
 
-            // Jika admin, cek apakah seeding sudah pernah dilakukan
+            // Seeding hanya sekali untuk admin
             if (userRole === 'admin') {
               const seededDoc = await db.collection('_metadata').doc('seeded').get();
               if (!seededDoc.exists) {
-                // Seeding hanya sekali
                 try {
                   for (const m of defaultMeetings) {
-                    const meetingData = {
-                      title: m.title,
-                      date: m.date,
-                      info: m.info,
-                      sections: m.sections.map(section => ({
-                        id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
-                        name: section.name,
-                        tasks: section.tasks.map(task => ({
-                          id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
-                          desc: task.desc,
-                          status: task.status,
-                          progress: task.progress,
-                          pic: task.pic,
-                          notes: task.notes
+                    // Cek apakah rapat dengan judul ini sudah ada (untuk mencegah duplikat)
+                    const existing = meetings.some(meet => meet.title === m.title);
+                    if (!existing) {
+                      const meetingData = {
+                        title: m.title,
+                        date: m.date,
+                        info: m.info,
+                        sections: m.sections.map(section => ({
+                          id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                          name: section.name,
+                          tasks: section.tasks.map(task => ({
+                            id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                            desc: task.desc,
+                            status: task.status,
+                            progress: task.progress,
+                            pic: task.pic,
+                            notes: task.notes
+                          }))
                         }))
-                      }))
-                    };
-                    await db.collection('meetings').add(meetingData);
+                      };
+                      await db.collection('meetings').add(meetingData);
+                    }
                   }
-                  // Tandai sudah seeding
                   await db.collection('_metadata').doc('seeded').set({ seeded: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                  console.log('Data default berhasil ditambahkan');
-                  return; // snapshot akan dipanggil ulang setelah data masuk
+                  console.log('Data default berhasil ditambahkan (jika belum ada)');
+                  return; // snapshot akan dipanggil ulang
                 } catch (error) {
                   console.error('Gagal menambahkan data default:', error);
                 }
@@ -1251,6 +1279,7 @@
               renderDetail();
             }
             updateButtonsByRole();
+            updateDeleteSelectedButton();
           });
         } else {
           currentUser = null;
@@ -1294,6 +1323,7 @@
           document.getElementById('editMeetingBtn'),
           document.getElementById('deleteMeetingBtn'),
           document.getElementById('addSectionBtn'),
+          document.getElementById('deleteSelectedBtn'),
           ...document.querySelectorAll('.btn-add-section'),
           ...document.querySelectorAll('.section-actions button'),
           ...document.querySelectorAll('.task-actions button'),
@@ -1328,7 +1358,45 @@
         document.getElementById('deleteMeetingBtn').disabled = disabled || userRole !== 'admin';
       }
 
-      // ========== RENDER SIDEBAR ==========
+      // ========== HAPUS MASSAL ==========
+      function updateDeleteSelectedButton() {
+        const btn = document.getElementById('deleteSelectedBtn');
+        if (!btn) return;
+        if (userRole === 'admin' && selectedMeetingIds.size > 0) {
+          btn.disabled = false;
+        } else {
+          btn.disabled = true;
+        }
+      }
+
+      async function deleteSelectedMeetings() {
+        if (userRole !== 'admin' || selectedMeetingIds.size === 0) return;
+        if (!confirm(`Hapus ${selectedMeetingIds.size} rapat terpilih? Semua data terkait akan hilang.`)) return;
+        
+        // Hapus satu per satu (bisa juga pakai batch)
+        const promises = [];
+        selectedMeetingIds.forEach(id => {
+          promises.push(db.collection('meetings').doc(id).delete());
+        });
+        await Promise.all(promises);
+        
+        // Reset pilihan
+        selectedMeetingIds.clear();
+        updateDeleteSelectedButton();
+        // Jika rapat yang aktif dihapus, pilih rapat pertama
+        if (!meetings.find(m => m.id === currentMeetingId)) {
+          if (meetings.length > 0) {
+            currentMeetingId = meetings[0].id;
+          } else {
+            currentMeetingId = null;
+          }
+          renderDetail();
+        }
+      }
+
+      document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedMeetings);
+
+      // ========== RENDER SIDEBAR (dengan checkbox) ==========
       function renderSidebar() {
         const container = document.getElementById('meetingList');
         container.innerHTML = '';
@@ -1336,17 +1404,46 @@
           const div = document.createElement('div');
           div.className = `meeting-item ${m.id === currentMeetingId ? 'active' : ''}`;
           div.dataset.id = m.id;
-          div.innerHTML = `
+
+          // Checkbox (hanya untuk admin)
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'meeting-checkbox';
+          checkbox.checked = selectedMeetingIds.has(m.id);
+          if (userRole !== 'admin') {
+            checkbox.disabled = true;
+            checkbox.style.display = 'none';
+          }
+          checkbox.addEventListener('click', (e) => {
+            e.stopPropagation(); // mencegah klik item
+            if (checkbox.checked) {
+              selectedMeetingIds.add(m.id);
+            } else {
+              selectedMeetingIds.delete(m.id);
+            }
+            updateDeleteSelectedButton();
+          });
+
+          const content = document.createElement('div');
+          content.className = 'meeting-content';
+          content.innerHTML = `
             <div class="meeting-title">${escapeHtml(m.title)}</div>
             <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
           `;
-          div.addEventListener('click', () => {
-            currentMeetingId = m.id;
-            selectedSectionFilter = 'ALL';
-            renderSidebar();
-            renderDetail();
-            updateExportButtons();
+
+          div.appendChild(checkbox);
+          div.appendChild(content);
+
+          div.addEventListener('click', (e) => {
+            if (e.target !== checkbox) {
+              currentMeetingId = m.id;
+              selectedSectionFilter = 'ALL';
+              renderSidebar();
+              renderDetail();
+              updateExportButtons();
+            }
           });
+
           container.appendChild(div);
         });
       }
