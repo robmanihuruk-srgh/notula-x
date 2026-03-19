@@ -3,16 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Notula · Dashboard Progress & Export (Orange & Biru)</title>
+  <title>Notula · Firebase + Role + 3 Tema</title>
   <!-- Font & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <!-- Libraries untuk export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style id="theme-style">
+    /* Default theme (orange & blue) - will be swapped by JS */
+    :root {
+      --color-primary: #f97316;
+      --color-primary-dark: #e05e0f;
+      --color-secondary: #1e4a6d;
+      --color-secondary-light: #2b6f9e;
+      --color-bg-light: #f4f7fb;
+      --color-card-bg: #ffffff;
+      --color-sidebar-bg: #ffffff;
+      --color-border: #e2e8f0;
+      --color-text: #1e293b;
+      --color-text-light: #54708f;
+      --color-accent: #f97316;
+    }
+  </style>
   <style>
     * {
       margin: 0;
@@ -22,8 +42,8 @@
 
     body {
       font-family: 'Inter', sans-serif;
-      background: #f4f7fb;
-      color: #1e293b;
+      background: var(--color-bg-light);
+      color: var(--color-text);
       height: 100vh;
       display: flex;
       overflow: hidden;
@@ -32,8 +52,8 @@
     /* SIDEBAR */
     .sidebar {
       width: 280px;
-      background: #ffffff;
-      border-right: 1px solid #e2e8f0;
+      background: var(--color-sidebar-bg);
+      border-right: 1px solid var(--color-border);
       display: flex;
       flex-direction: column;
       box-shadow: 2px 0 12px rgba(0,0,0,0.02);
@@ -41,28 +61,28 @@
 
     .sidebar-header {
       padding: 24px 20px;
-      border-bottom: 1px solid #edf2f7;
+      border-bottom: 1px solid var(--color-border);
     }
 
     .sidebar-header h1 {
       font-size: 1.6rem;
       font-weight: 600;
       letter-spacing: -0.02em;
-      color: #1e4a6d; /* biru tua */
+      color: var(--color-secondary);
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
     .sidebar-header h1 i {
-      color: #f97316; /* orange */
+      color: var(--color-primary);
       font-size: 1.8rem;
     }
 
     .btn-new {
       width: 100%;
       margin-top: 16px;
-      background: #f97316; /* orange */
+      background: var(--color-primary);
       color: white;
       border: none;
       padding: 12px 16px;
@@ -79,7 +99,7 @@
     }
 
     .btn-new:hover {
-      background: #e05e0f;
+      background: var(--color-primary-dark);
     }
 
     .meeting-list {
@@ -93,15 +113,15 @@
       border-radius: 12px;
       padding: 16px 14px;
       margin-bottom: 10px;
-      border: 1px solid #e9edf2;
+      border: 1px solid var(--color-border);
       cursor: pointer;
       transition: all 0.2s;
       box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
 
     .meeting-item.active {
-      background: #fff4e6; /* light orange */
-      border-color: #f97316;
+      background: #fff4e6;
+      border-color: var(--color-primary);
       box-shadow: 0 6px 12px rgba(249, 115, 22, 0.08);
     }
 
@@ -113,13 +133,13 @@
     .meeting-title {
       font-weight: 600;
       font-size: 1rem;
-      color: #0c314a;
+      color: var(--color-secondary);
       margin-bottom: 6px;
     }
 
     .meeting-date {
       font-size: 0.8rem;
-      color: #5f7d9c;
+      color: var(--color-text-light);
       display: flex;
       align-items: center;
       gap: 6px;
@@ -134,14 +154,14 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      background: #f4f7fb;
+      background: var(--color-bg-light);
       overflow: hidden;
     }
 
     .panel-header {
-      background: white;
+      background: var(--color-card-bg);
       padding: 20px 32px;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid var(--color-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -153,12 +173,12 @@
     .header-title h2 {
       font-weight: 600;
       font-size: 1.5rem;
-      color: #0f3b5e;
+      color: var(--color-secondary);
     }
 
     .header-title p {
       font-size: 0.9rem;
-      color: #54708f;
+      color: var(--color-text-light);
       margin-top: 4px;
       display: flex;
       align-items: center;
@@ -169,14 +189,15 @@
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
+      align-items: center;
     }
 
     .btn-header {
       background: none;
-      border: 1px solid #f97316;
+      border: 1px solid var(--color-primary);
       padding: 8px 16px;
       border-radius: 30px;
-      color: #f97316;
+      color: var(--color-primary);
       font-weight: 500;
       cursor: pointer;
       transition: 0.15s;
@@ -186,9 +207,9 @@
     }
 
     .btn-header:hover {
-      background: #f97316;
+      background: var(--color-primary);
       color: white;
-      border-color: #f97316;
+      border-color: var(--color-primary);
     }
 
     .btn-header:disabled {
@@ -200,18 +221,60 @@
 
     .btn-edit-meeting {
       background: none;
-      border: 1px solid #1e4a6d;
+      border: 1px solid var(--color-secondary);
       padding: 8px 16px;
       border-radius: 30px;
-      color: #1e4a6d;
+      color: var(--color-secondary);
       font-weight: 500;
       cursor: pointer;
       transition: 0.15s;
     }
 
     .btn-edit-meeting:hover {
-      background: #1e4a6d;
+      background: var(--color-secondary);
       color: white;
+    }
+
+    .theme-switcher {
+      display: flex;
+      gap: 6px;
+      margin-left: 10px;
+    }
+
+    .theme-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .theme-btn.active {
+      border-color: var(--color-primary);
+      transform: scale(1.1);
+    }
+    .theme-btn.orange { background: linear-gradient(145deg, #f97316, #1e4a6d); }
+    .theme-btn.green { background: linear-gradient(145deg, #16a34a, #1e3a5f); }
+    .theme-btn.purple { background: linear-gradient(145deg, #9333ea, #0f3b5e); }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #eef2f6;
+      padding: 6px 16px;
+      border-radius: 40px;
+    }
+    .user-info span {
+      font-size: 0.9rem;
+      color: var(--color-secondary);
+    }
+    .logout-btn {
+      background: none;
+      border: none;
+      color: var(--color-primary);
+      cursor: pointer;
+      font-size: 1rem;
     }
 
     /* CONTENT */
@@ -222,7 +285,7 @@
     }
 
     .info-card {
-      background: white;
+      background: var(--color-card-bg);
       border-radius: 20px;
       padding: 24px;
       margin-bottom: 28px;
@@ -245,13 +308,13 @@
 
     .info-item i {
       width: 28px;
-      color: #f97316;
+      color: var(--color-primary);
       font-size: 1.2rem;
     }
 
     /* DASHBOARD CARD */
     .dashboard-card {
-      background: white;
+      background: var(--color-card-bg);
       border-radius: 24px;
       padding: 24px 28px;
       margin-bottom: 32px;
@@ -262,7 +325,7 @@
     .dashboard-title {
       font-size: 1.2rem;
       font-weight: 600;
-      color: #f97316;
+      color: var(--color-primary);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -285,7 +348,7 @@
 
     .stat-label {
       font-size: 0.8rem;
-      color: #54708f;
+      color: var(--color-text-light);
       text-transform: uppercase;
       letter-spacing: 0.3px;
     }
@@ -293,7 +356,7 @@
     .stat-value {
       font-size: 1.8rem;
       font-weight: 600;
-      color: #1d4b6e;
+      color: var(--color-secondary);
       line-height: 1.2;
     }
 
@@ -311,7 +374,7 @@
     .section-progress-name {
       width: 150px;
       font-weight: 500;
-      color: #1d4b6e;
+      color: var(--color-secondary);
     }
 
     .section-progress-bar {
@@ -324,7 +387,7 @@
 
     .section-progress-fill {
       height: 100%;
-      background: #f97316;
+      background: var(--color-primary);
       border-radius: 20px;
       width: 0%;
     }
@@ -332,7 +395,7 @@
     .section-progress-percent {
       min-width: 45px;
       font-weight: 600;
-      color: #0f3b5e;
+      color: var(--color-secondary);
     }
 
     .filter-row {
@@ -346,7 +409,7 @@
 
     .filter-label {
       font-weight: 500;
-      color: #f97316;
+      color: var(--color-primary);
     }
 
     .section-filter-select {
@@ -356,7 +419,7 @@
       background: white;
       font-family: 'Inter', sans-serif;
       font-size: 0.95rem;
-      color: #1d3b5c;
+      color: var(--color-secondary);
       cursor: pointer;
       min-width: 220px;
     }
@@ -364,7 +427,7 @@
     .reset-filter {
       background: none;
       border: none;
-      color: #f97316;
+      color: var(--color-primary);
       font-weight: 500;
       cursor: pointer;
       text-decoration: underline dotted;
@@ -380,16 +443,16 @@
     .section-header h3 {
       font-size: 1.2rem;
       font-weight: 600;
-      color: #163a57;
+      color: var(--color-secondary);
       letter-spacing: -0.2px;
     }
 
     .btn-add-section {
       background: #fef2e7;
-      border: 1px solid #f97316;
+      border: 1px solid var(--color-primary);
       padding: 8px 16px;
       border-radius: 30px;
-      color: #f97316;
+      color: var(--color-primary);
       font-weight: 500;
       font-size: 0.9rem;
       cursor: pointer;
@@ -401,13 +464,18 @@
     }
 
     .btn-add-section:hover {
-      background: #f97316;
+      background: var(--color-primary);
       color: white;
+    }
+
+    .btn-add-section.disabled, .btn-edit-meeting.disabled, .btn-new.disabled {
+      opacity: 0.5;
+      pointer-events: none;
     }
 
     /* SECTION CARD */
     .section-card {
-      background: white;
+      background: var(--color-card-bg);
       border-radius: 20px;
       padding: 20px 24px;
       margin-bottom: 24px;
@@ -424,7 +492,7 @@
 
     .section-title h4 {
       font-weight: 600;
-      color: #f97316;
+      color: var(--color-primary);
       font-size: 1.15rem;
     }
 
@@ -438,7 +506,12 @@
     }
 
     .section-actions button:hover {
-      color: #f97316;
+      color: var(--color-primary);
+    }
+
+    .section-actions button.disabled {
+      opacity: 0.3;
+      pointer-events: none;
     }
 
     .task-list {
@@ -488,7 +561,7 @@
     .task-desc {
       flex: 2;
       font-weight: 500;
-      color: #1d3b5c;
+      color: var(--color-secondary);
       min-width: 200px;
     }
 
@@ -506,7 +579,7 @@
 
     .task-pic i {
       font-size: 0.7rem;
-      color: #f97316;
+      color: var(--color-primary);
     }
 
     .progress-container {
@@ -525,7 +598,7 @@
     }
 
     .progress-bar-fill {
-      background: #f97316;
+      background: var(--color-primary);
       height: 8px;
       border-radius: 20px;
       width: 0%;
@@ -534,7 +607,7 @@
     .progress-percent {
       font-size: 0.8rem;
       font-weight: 600;
-      color: #0f3b5e;
+      color: var(--color-secondary);
       min-width: 45px;
     }
 
@@ -553,7 +626,12 @@
     }
 
     .task-actions button:hover {
-      color: #f97316;
+      color: var(--color-primary);
+    }
+
+    .task-actions button.disabled {
+      opacity: 0.3;
+      pointer-events: none;
     }
 
     .add-task-btn {
@@ -562,7 +640,7 @@
       border: 1px dashed #f9b17a;
       border-radius: 40px;
       padding: 10px 16px;
-      color: #f97316;
+      color: var(--color-primary);
       font-weight: 500;
       width: fit-content;
       cursor: pointer;
@@ -575,7 +653,12 @@
 
     .add-task-btn:hover {
       background: #fff0e0;
-      border-color: #f97316;
+      border-color: var(--color-primary);
+    }
+
+    .add-task-btn.disabled {
+      opacity: 0.4;
+      pointer-events: none;
     }
 
     /* MODAL */
@@ -605,7 +688,7 @@
 
     .modal-content h3 {
       margin-bottom: 20px;
-      color: #0f3b5e;
+      color: var(--color-secondary);
       font-weight: 600;
     }
 
@@ -657,7 +740,7 @@
     }
 
     .btn-primary {
-      background: #f97316;
+      background: var(--color-primary);
       border: none;
       padding: 10px 28px;
       border-radius: 40px;
@@ -667,7 +750,7 @@
     }
 
     .btn-primary:hover {
-      background: #e05e0f;
+      background: var(--color-primary-dark);
     }
 
     .btn-danger {
@@ -683,9 +766,57 @@
       display: none;
     }
 
-    /* Print styles */
+    /* Login overlay */
+    #loginOverlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .login-card {
+      background: white;
+      padding: 40px;
+      border-radius: 40px;
+      width: 360px;
+      text-align: center;
+    }
+    .login-card h2 {
+      color: var(--color-secondary);
+      margin-bottom: 20px;
+    }
+    .login-card input {
+      width: 100%;
+      padding: 14px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 40px;
+    }
+    .login-card button {
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      padding: 14px;
+      width: 100%;
+      border-radius: 40px;
+      font-weight: 600;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    .login-card button:hover {
+      background: var(--color-primary-dark);
+    }
+    .login-card .error {
+      color: red;
+      margin-top: 10px;
+    }
+
+    /* Print */
     @media print {
-      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting {
+      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .theme-switcher, .user-info {
         display: none !important;
       }
       body, .main-panel, .content {
@@ -704,10 +835,22 @@
   </style>
 </head>
 <body>
+  <!-- Login Overlay -->
+  <div id="loginOverlay">
+    <div class="login-card">
+      <h2><i class="fas fa-book-open" style="color: var(--color-primary);"></i> Notula</h2>
+      <input type="email" id="loginEmail" placeholder="Email" value="test@example.com">
+      <input type="password" id="loginPassword" placeholder="Password" value="password123">
+      <button id="loginBtn">Login</button>
+      <button id="registerBtn" style="background: #1e4a6d; margin-top: 8px;">Register</button>
+      <p id="loginError" class="error"></p>
+    </div>
+  </div>
+
   <div class="sidebar">
     <div class="sidebar-header">
       <h1><i class="fas fa-book-open"></i> Notula</h1>
-      <button class="btn-new" id="newMeetingBtn"><i class="fas fa-plus-circle"></i> Rapat baru</button>
+      <button class="btn-new" id="newMeetingBtn" disabled><i class="fas fa-plus-circle"></i> Rapat baru</button>
     </div>
     <div class="meeting-list" id="meetingList"></div>
   </div>
@@ -719,10 +862,20 @@
         <p id="meetingDate"><i class="far fa-calendar-alt"></i> </p>
       </div>
       <div class="header-actions">
+        <div class="theme-switcher">
+          <div class="theme-btn orange active" data-theme="orange" title="Tema Oranye/Biru"></div>
+          <div class="theme-btn green" data-theme="green" title="Tema Hijau"></div>
+          <div class="theme-btn purple" data-theme="purple" title="Tema Ungu"></div>
+        </div>
         <button class="btn-header" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Excel</button>
         <button class="btn-header" id="exportPdfBtn" disabled><i class="fas fa-file-pdf"></i> PDF</button>
         <button class="btn-header" id="printBtn" disabled><i class="fas fa-print"></i> Cetak</button>
         <button class="btn-edit-meeting" id="editMeetingBtn" disabled><i class="fas fa-pen"></i> Edit rapat</button>
+        <div class="user-info" id="userInfo" style="display: none;">
+          <span id="userEmail"></span>
+          <span id="userRole" style="background: var(--color-primary); color: white; padding:2px 8px; border-radius:20px; font-size:0.8rem;">admin</span>
+          <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
       </div>
     </div>
 
@@ -810,146 +963,234 @@
 
   <script>
     (function() {
-      const STORAGE_KEY = 'notula_app_data_v4_export';
+      // ========== FIREBASE CONFIG (GANTI DENGAN MILIK ANDA) ==========
+      const firebaseConfig = {
+  apiKey: "AIzaSyAnmuaAc-uBM5hAZGcYsrdyZYUmyTYe3PM",
+  authDomain: "dologmasagaltangerang.firebaseapp.com",
+  databaseURL: "https://dologmasagaltangerang-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dologmasagaltangerang",
+  storageBucket: "dologmasagaltangerang.firebasestorage.app",
+  messagingSenderId: "800663657726",
+  appId: "1:800663657726:web:182efd830d62c8637359af",
+  measurementId: "G-FD0TTQ89WC"
+};
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
 
-      // Data awal (sama dengan sebelumnya)
-      const defaultMeetings = [
-        {
-          id: 'meet1',
-          title: 'Rapat Koordinasi Panitia Pesparawi – 1 Maret 2026',
-          date: '2026-03-01',
-          info: 'Pembahasan RAB & persiapan awal',
-          sections: [
-            { id: 's1', name: 'RAB setiap seksi', tasks: [
-              { id: 't1', desc: 'Seksi Acara mengirim RAB', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '' },
-              { id: 't2', desc: 'Seksi Humpubdok mengirim RAB', status: 'selesai', progress: 100, pic: 'Humas', notes: '' },
-              { id: 't3', desc: 'Seksi Konsumsi mengirim RAB', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '' },
-              { id: 't4', desc: 'Seksi Perlengkapan survey tempat & vendor', status: 'berlangsung', progress: 30, pic: 'Perkap', notes: '' },
-              { id: 't5', desc: 'Seksi Keamanan menunggu tempat', status: 'rencana', progress: 0, pic: 'Keamanan', notes: '' },
-              { id: 't6', desc: 'Seksi kesehatan ditindaklanjuti', status: 'rencana', progress: 0, pic: 'Kesehatan', notes: '' },
-              { id: 't7', desc: 'DD penyerahan RAB ke bendahara (6 Maret)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '' },
-              { id: 't8', desc: 'Bendahara cross-cek RAB dan rapat 9 Maret', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '' }
-            ]},
-            { id: 's2', name: 'Seksi Perkap', tasks: [
-              { id: 't9', desc: 'Survey tempat & vendor', status: 'berlangsung', progress: 40, pic: 'Perkap', notes: '' }
-            ]},
-            { id: 's3', name: 'Seksi Lomba', tasks: [
-              { id: 't10', desc: 'Tanggal pelaksanaan 20 Juni 2026', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
-              { id: 't11', desc: 'Story Telling max 2 orang per-resort', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
-              { id: 't12', desc: 'Story Telling tidak merangkap Koor/Vocal', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
-              { id: 't13', desc: 'Nada dasar lagu koor tidak diganti', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
-              { id: 't14', desc: 'Mencari juri kompeten', status: 'berlangsung', progress: 60, pic: 'Acara', notes: '' },
-              { id: 't15', desc: 'Terjemahkan aturan lomba ke Indonesia (deadline 3 Maret)', status: 'rencana', progress: 0, pic: 'Acara', notes: '' }
-            ]},
-            { id: 's4', name: 'Seksi Humpubdok', tasks: [
-              { id: 't16', desc: 'Koordinasi video teaser tiap resort', status: 'rencana', progress: 0, pic: 'Humas', notes: '' },
-              { id: 't17', desc: 'Upload video teaser di medsos', status: 'rencana', progress: 0, pic: 'Humas', notes: '' },
-              { id: 't18', desc: 'Aktifasi medsos IG & FB', status: 'rencana', progress: 10, pic: 'Humas', notes: '' }
-            ]},
-            { id: 's5', name: 'Seksi Dana', tasks: [
-              { id: 't19', desc: 'Galangan jemaat & hari H', status: 'rencana', progress: 0, pic: 'Dana', notes: '' },
-              { id: 't20', desc: 'Proposal', status: 'rencana', progress: 5, pic: 'Dana', notes: '' },
-              { id: 't21', desc: 'Bazar', status: 'rencana', progress: 0, pic: 'Dana', notes: '' }
-            ]},
-            { id: 's6', name: 'Bendahara', tasks: [
-              { id: 't22', desc: 'Rekening Panitia (OTP)', status: 'berlangsung', progress: 70, pic: 'Bendahara', notes: '' }
-            ]},
-            { id: 's7', name: 'Sekretariat', tasks: [
-              { id: 't23', desc: 'Surat pemberitahuan ke resort', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba' },
-              { id: 't24', desc: 'Flyer Pesparawi', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba' },
-              { id: 't25', desc: 'Proposal (RAB, Norek, ketentuan)', status: 'rencana', progress: 20, pic: 'Sekretariat', notes: '' },
-              { id: 't26', desc: 'Surat permohonan galangan', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'koordinasi praeses' }
-            ]}
-          ]
-        },
-        {
-          id: 'meet2',
-          title: 'Rapat Koordinasi Panitia – 9 Maret 2026',
-          date: '2026-03-09',
-          info: 'Total anggaran ±330jt | SMESCO sewa 61jt | 20 Juni 2026',
-          sections: [
-            { id: 's8', name: 'Seksi Acara', tasks: [
-              { id: 't27', desc: 'RAB acara Rp105,5 jt', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
-              { id: 't28', desc: 'Menentukan juri & hadiah', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
-              { id: 't29', desc: 'Koordinasi panggung dgn perkap', status: 'berlangsung', progress: 50, pic: 'Acara', notes: '' },
-              { id: 't30', desc: 'Koordinasi dengan GKPS TV', status: 'rencana', progress: 10, pic: 'Acara', notes: '' },
-              { id: 't31', desc: 'Artis tamu (Ziva/Bastian/Grace) budget 5jt', status: 'kendala', progress: 20, pic: 'Acara', notes: 'belum final' }
-            ]},
-            { id: 's9', name: 'Koordinator Lomba', tasks: [
-              { id: 't32', desc: 'Aturan teknis lomba', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
-              { id: 't33', desc: 'Formulir pendaftaran detail', status: 'berlangsung', progress: 70, pic: 'Lomba', notes: '' },
-              { id: 't34', desc: 'Follow up Sinode durasi & aturan', status: 'rencana', progress: 0, pic: 'Lomba', notes: 'menunggu info' }
-            ]},
-            { id: 's10', name: 'Seksi Perlengkapan', tasks: [
-              { id: 't35', desc: 'Penawaran SMESCO', status: 'selesai', progress: 100, pic: 'Perkap', notes: '' },
-              { id: 't36', desc: 'Negosiasi harga sewa', status: 'berlangsung', progress: 60, pic: 'Perkap', notes: '' },
-              { id: 't37', desc: 'Survey lokasi 16 April 2026', status: 'rencana', progress: 0, pic: 'Perkap', notes: '' },
-              { id: 't38', desc: 'DP gedung (fu korpel)', status: 'kendala', progress: 10, pic: 'Perkap', notes: '' }
-            ]},
-            { id: 's11', name: 'Seksi Konsumsi', tasks: [
-              { id: 't39', desc: 'RAB Rp56,38 jt', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '' },
-              { id: 't40', desc: 'Revisi jumlah peserta', status: 'berlangsung', progress: 50, pic: 'Konsumsi', notes: '' },
-              { id: 't41', desc: 'Katering & sistem box', status: 'rencana', progress: 20, pic: 'Konsumsi', notes: '' }
-            ]},
-            { id: 's12', name: 'Seksi Humas', tasks: [
-              { id: 't42', desc: 'Konsep banner/backdrop', status: 'selesai', progress: 100, pic: 'Humas', notes: '' },
-              { id: 't43', desc: 'Koordinasi desain (Bang Robert)', status: 'berlangsung', progress: 80, pic: 'Humas', notes: '' },
-              { id: 't44', desc: 'Finalisasi jumlah banner', status: 'rencana', progress: 0, pic: 'Humas', notes: 'budget 37jt' }
-            ]},
-            { id: 's13', name: 'Bendahara', tasks: [
-              { id: 't45', desc: 'Mengumpulkan RAB semua seksi', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '' },
-              { id: 't46', desc: 'Menyusun proposal lengkap', status: 'berlangsung', progress: 65, pic: 'Bendahara', notes: '' },
-              { id: 't47', desc: 'Finalisasi total anggaran', status: 'rencana', progress: 30, pic: 'Bendahara', notes: 'masih ada pos belum final' }
-            ]},
-            { id: 's14', name: 'Sekretariat', tasks: [
-              { id: 't48', desc: 'Surat ke resort', status: 'selesai', progress: 100, pic: 'Sekretariat', notes: '' },
-              { id: 't49', desc: 'Proposal bersama bendahara', status: 'berlangsung', progress: 65, pic: 'Sekretariat', notes: '' },
-              { id: 't50', desc: 'Flyer (no.telp?)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '' }
-            ]}
-          ]
-        }
-      ];
-
+      // ========== GLOBAL STATE ==========
       let meetings = [];
       let currentMeetingId = null;
       let currentSectionId = null;
       let currentTaskId = null;
       let selectedSectionFilter = 'ALL';
+      let currentUser = null;
+      let userRole = 'member'; // default
+      let unsubscribeMeetings = null;
 
-      // Load / init
-      function loadData() {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          try {
-            meetings = JSON.parse(stored);
-            meetings.forEach(meeting => {
-              meeting.sections?.forEach(section => {
-                section.tasks?.forEach(task => {
-                  if (task.progress === undefined) task.progress = 0;
-                  if (task.pic === undefined) task.pic = '';
-                });
-              });
-            });
-          } catch (e) {
-            meetings = defaultMeetings;
+      // ========== THEME MANAGEMENT ==========
+      const themeStyles = document.getElementById('theme-style');
+      const themes = {
+        orange: `
+          :root {
+            --color-primary: #f97316;
+            --color-primary-dark: #e05e0f;
+            --color-secondary: #1e4a6d;
+            --color-secondary-light: #2b6f9e;
+            --color-bg-light: #f4f7fb;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #e2e8f0;
+            --color-text: #1e293b;
+            --color-text-light: #54708f;
+            --color-accent: #f97316;
           }
-        } else {
-          meetings = defaultMeetings;
+        `,
+        green: `
+          :root {
+            --color-primary: #16a34a;
+            --color-primary-dark: #12833a;
+            --color-secondary: #1e3a5f;
+            --color-secondary-light: #2b4f7a;
+            --color-bg-light: #f0f9f0;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #d0e0d0;
+            --color-text: #1e293b;
+            --color-text-light: #4a6f5e;
+            --color-accent: #16a34a;
+          }
+        `,
+        purple: `
+          :root {
+            --color-primary: #9333ea;
+            --color-primary-dark: #7e22ce;
+            --color-secondary: #0f3b5e;
+            --color-secondary-light: #1e4b72;
+            --color-bg-light: #f5f0fa;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #d9d0e8;
+            --color-text: #1e293b;
+            --color-text-light: #6b4f8c;
+            --color-accent: #9333ea;
+          }
+        `
+      };
+      function setTheme(theme) {
+        themeStyles.innerHTML = themes[theme];
+        localStorage.setItem('notula_theme', theme);
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.theme === theme);
+        });
+      }
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => setTheme(btn.dataset.theme));
+      });
+      const savedTheme = localStorage.getItem('notula_theme') || 'orange';
+      setTheme(savedTheme);
+
+      // ========== AUTH & ROLE ==========
+      const loginOverlay = document.getElementById('loginOverlay');
+      const loginBtn = document.getElementById('loginBtn');
+      const registerBtn = document.getElementById('registerBtn');
+      const loginEmail = document.getElementById('loginEmail');
+      const loginPassword = document.getElementById('loginPassword');
+      const loginError = document.getElementById('loginError');
+
+      function showLogin() {
+        loginOverlay.style.display = 'flex';
+      }
+      function hideLogin() {
+        loginOverlay.style.display = 'none';
+      }
+
+      async function fetchUserRole(uid) {
+        try {
+          const doc = await db.collection('users').doc(uid).get();
+          if (doc.exists) {
+            userRole = doc.data().role || 'member';
+          } else {
+            // Create default role
+            await db.collection('users').doc(uid).set({ role: 'member' });
+            userRole = 'member';
+          }
+        } catch (e) {
+          console.error('Error fetching role', e);
+          userRole = 'member';
         }
-        saveData();
-      }
-      function saveData() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(meetings));
+        document.getElementById('userRole').innerText = userRole;
       }
 
-      function genId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 8); }
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          currentUser = user;
+          document.getElementById('userEmail').innerText = user.email;
+          document.getElementById('userInfo').style.display = 'flex';
+          hideLogin();
+          await fetchUserRole(user.uid);
+          // Start real-time listener for meetings
+          if (unsubscribeMeetings) unsubscribeMeetings();
+          unsubscribeMeetings = db.collection('meetings').onSnapshot(snapshot => {
+            meetings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Sort by date maybe
+            meetings.sort((a,b) => (a.date < b.date ? 1 : -1));
+            renderSidebar();
+            if (currentMeetingId && meetings.find(m => m.id === currentMeetingId)) {
+              renderDetail();
+            } else if (meetings.length > 0) {
+              currentMeetingId = meetings[0].id;
+              renderDetail();
+            } else {
+              // No meetings, show empty
+              currentMeetingId = null;
+              renderDetail();
+            }
+            updateButtonsByRole();
+          });
+        } else {
+          currentUser = null;
+          userRole = 'member';
+          document.getElementById('userInfo').style.display = 'none';
+          meetings = [];
+          renderSidebar();
+          renderDetail();
+          showLogin();
+          if (unsubscribeMeetings) unsubscribeMeetings();
+        }
+      });
 
-      // Utility
-      function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
-      function formatDate(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }); }
-      function translateStatus(st) { const map = { selesai:'Selesai', berlangsung:'Berlangsung', rencana:'Rencana', kendala:'Kendala' }; return map[st] || st; }
+      loginBtn.addEventListener('click', async () => {
+        const email = loginEmail.value;
+        const pass = loginPassword.value;
+        try {
+          await auth.signInWithEmailAndPassword(email, pass);
+        } catch (e) {
+          loginError.innerText = e.message;
+        }
+      });
+      registerBtn.addEventListener('click', async () => {
+        const email = loginEmail.value;
+        const pass = loginPassword.value;
+        try {
+          await auth.createUserWithEmailAndPassword(email, pass);
+        } catch (e) {
+          loginError.innerText = e.message;
+        }
+      });
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        auth.signOut();
+      });
 
-      // Render sidebar
+      // ========== ROLE-BASED UI ==========
+      function updateButtonsByRole() {
+        const isAdmin = userRole === 'admin';
+        const editBtns = [
+          document.getElementById('newMeetingBtn'),
+          document.getElementById('editMeetingBtn'),
+          document.getElementById('addSectionBtn'),
+          ...document.querySelectorAll('.btn-add-section'),
+          ...document.querySelectorAll('.section-actions button'),
+          ...document.querySelectorAll('.task-actions button'),
+          ...document.querySelectorAll('.add-task-btn')
+        ].filter(Boolean);
+        editBtns.forEach(btn => {
+          if (isAdmin) {
+            btn.classList.remove('disabled');
+            btn.disabled = false;
+          } else {
+            btn.classList.add('disabled');
+            btn.disabled = true;
+          }
+        });
+      }
+
+      // Override untuk tombol dinamis (dipanggil setelah render)
+      function applyRoleToDynamicButtons() {
+        updateButtonsByRole();
+      }
+
+      // ========== EXISTING FUNCTIONS (dimodifikasi untuk Firestore) ==========
+      function genId() { return doc()?.id; } // not used, Firestore generates id
+
+      async function saveMeetingToFirestore(meeting) {
+        if (!meeting.id) {
+          // new
+          const ref = await db.collection('meetings').add(meeting);
+          return ref.id;
+        } else {
+          await db.collection('meetings').doc(meeting.id).set(meeting, { merge: true });
+          return meeting.id;
+        }
+      }
+
+      async function deleteMeetingFromFirestore(id) {
+        await db.collection('meetings').doc(id).delete();
+      }
+
+      // We'll use snapshot, so no need manual fetch
+
+      // ========== RENDER SIDEBAR ==========
       function renderSidebar() {
         const container = document.getElementById('meetingList');
         container.innerHTML = '';
@@ -972,82 +1213,19 @@
         });
       }
 
+      function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+      function formatDate(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }); }
+      function translateStatus(st) { const map = { selesai:'Selesai', berlangsung:'Berlangsung', rencana:'Rencana', kendala:'Kendala' }; return map[st] || st; }
+
       function updateExportButtons() {
         const disabled = !currentMeetingId;
         document.getElementById('exportExcelBtn').disabled = disabled;
         document.getElementById('exportPdfBtn').disabled = disabled;
         document.getElementById('printBtn').disabled = disabled;
-        document.getElementById('editMeetingBtn').disabled = disabled;
+        document.getElementById('editMeetingBtn').disabled = disabled || userRole !== 'admin';
       }
 
-      // ========== EXPORT FUNCTIONS ==========
-      function getCurrentMeeting() {
-        return meetings.find(m => m.id === currentMeetingId);
-      }
-
-      function exportToExcel() {
-        const meeting = getCurrentMeeting();
-        if (!meeting) return;
-        const data = [];
-        // Header
-        data.push(['Seksi', 'Tugas', 'Status', 'Progress (%)', 'PIC', 'Catatan']);
-        meeting.sections.forEach(section => {
-          section.tasks.forEach(task => {
-            data.push([
-              section.name,
-              task.desc,
-              translateStatus(task.status),
-              task.progress ?? 0,
-              task.pic || '-',
-              task.notes || ''
-            ]);
-          });
-        });
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        XLSX.utils.book_append_sheet(wb, ws, 'Progress');
-        XLSX.writeFile(wb, `notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
-      }
-
-      function exportToPDF() {
-        const meeting = getCurrentMeeting();
-        if (!meeting) return;
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFontSize(16);
-        doc.text(meeting.title, 14, 20);
-        doc.setFontSize(11);
-        doc.text(`Tanggal: ${formatDate(meeting.date)}`, 14, 28);
-        doc.text(`Informasi: ${meeting.info || '-'}`, 14, 35);
-        
-        const tableData = [];
-        meeting.sections.forEach(section => {
-          section.tasks.forEach(task => {
-            tableData.push([
-              section.name,
-              task.desc,
-              translateStatus(task.status),
-              (task.progress ?? 0).toString(),
-              task.pic || '-',
-              task.notes || ''
-            ]);
-          });
-        });
-        doc.autoTable({
-          head: [['Seksi', 'Tugas', 'Status', 'Prog(%)', 'PIC', 'Catatan']],
-          body: tableData,
-          startY: 45,
-          styles: { fontSize: 8 },
-          headStyles: { fillColor: [249, 115, 22] } // orange
-        });
-        doc.save(`notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.pdf`);
-      }
-
-      function printMeeting() {
-        window.print();
-      }
-
-      // ========== RENDER DASHBOARD & DETAIL ==========
+      // ========== RENDER DETAIL (sama seperti sebelumnya, hanya disesuaikan) ==========
       function renderDashboard(meeting) {
         if (!meeting.sections) return '';
         const sections = meeting.sections;
@@ -1143,8 +1321,8 @@
                   <span class="progress-percent">${progress}%</span>
                 </div>
                 <div class="task-actions">
-                  <button id="edit-task-${task.id}" title="Edit"><i class="fas fa-pencil-alt"></i></button>
-                  <button id="del-task-${task.id}" title="Hapus"><i class="fas fa-trash"></i></button>
+                  <button id="edit-task-${task.id}" title="Edit" ${userRole!=='admin'?'disabled':''}><i class="fas fa-pencil-alt"></i></button>
+                  <button id="del-task-${task.id}" title="Hapus" ${userRole!=='admin'?'disabled':''}><i class="fas fa-trash"></i></button>
                 </div>
               </div>
               ${task.notes ? `<div style="font-size:0.8rem; color:#6a7f9b; margin-top:6px; margin-left: 110px;"><i class="fas fa-comment"></i> ${escapeHtml(task.notes)}</div>` : ''}
@@ -1157,14 +1335,14 @@
             <div class="section-title">
               <h4>${escapeHtml(section.name)}</h4>
               <div class="section-actions">
-                <button id="edit-section-${section.id}" title="Edit seksi"><i class="fas fa-edit"></i></button>
-                <button id="del-section-${section.id}" title="Hapus seksi"><i class="fas fa-times-circle"></i></button>
+                <button id="edit-section-${section.id}" title="Edit seksi" ${userRole!=='admin'?'disabled':''}><i class="fas fa-edit"></i></button>
+                <button id="del-section-${section.id}" title="Hapus seksi" ${userRole!=='admin'?'disabled':''}><i class="fas fa-times-circle"></i></button>
               </div>
             </div>
             <div class="task-list">
               ${tasksHtml || '<div style="color:#9fb3cc; padding:8px;">Belum ada tugas</div>'}
             </div>
-            <button class="add-task-btn" id="add-task-${section.id}"><i class="fas fa-plus-circle"></i> Tambah tugas</button>
+            <button class="add-task-btn ${userRole!=='admin'?'disabled':''}" id="add-task-${section.id}" ${userRole!=='admin'?'disabled':''}><i class="fas fa-plus-circle"></i> Tambah tugas</button>
           </div>
         `;
       }
@@ -1174,7 +1352,7 @@
         const headerTitle = document.getElementById('meetingTitle');
         const headerDate = document.getElementById('meetingDate');
 
-        if (!currentMeetingId) {
+        if (!currentMeetingId || !meetings.length) {
           headerTitle.innerText = 'Pilih rapat';
           headerDate.innerHTML = '';
           content.innerHTML = `<div style="text-align: center; color: #778faa; margin-top: 60px;"><i class="fas fa-arrow-left"></i> Pilih rapat dari sidebar atau buat baru</div>`;
@@ -1189,7 +1367,7 @@
 
         let html = `
           <div class="info-card">
-            <div style="font-weight: 600; margin-bottom: 10px; color:#163a57;"><i class="fas fa-info-circle"></i> Informasi rapat</div>
+            <div style="font-weight: 600; margin-bottom: 10px; color: var(--color-secondary);"><i class="fas fa-info-circle"></i> Informasi rapat</div>
             <div class="info-grid">
               <div class="info-item"><i class="fas fa-tag"></i> ${meeting.info || 'Tidak ada catatan'}</div>
             </div>
@@ -1200,7 +1378,7 @@
         html += `
           <div class="section-header">
             <h3><i class="fas fa-layer-group"></i> ${selectedSectionFilter === 'ALL' ? 'Semua Seksi' : 'Detail Seksi'}</h3>
-            <button class="btn-add-section" id="addSectionBtn"><i class="fas fa-plus"></i> Seksi baru</button>
+            <button class="btn-add-section ${userRole!=='admin'?'disabled':''}" id="addSectionBtn" ${userRole!=='admin'?'disabled':''}><i class="fas fa-plus"></i> Seksi baru</button>
           </div>
         `;
         html += renderFilteredSections(meeting);
@@ -1231,9 +1409,72 @@
             document.getElementById(`del-task-${task.id}`)?.addEventListener('click', () => deleteTask(section.id, task.id));
           });
         });
+        updateExportButtons();
+        applyRoleToDynamicButtons();
       }
 
-      // ========== MODAL HANDLING ==========
+      // ========== CRUD Operations with Firestore ==========
+      async function saveMeeting(meetingData) {
+        if (userRole !== 'admin') return;
+        if (meetingData.id) {
+          await db.collection('meetings').doc(meetingData.id).set(meetingData, { merge: true });
+        } else {
+          const ref = await db.collection('meetings').add(meetingData);
+          currentMeetingId = ref.id;
+        }
+      }
+
+      async function saveSection(sectionData, meetingId) {
+        if (userRole !== 'admin') return;
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (!meeting) return;
+        if (!meeting.sections) meeting.sections = [];
+        if (sectionData.id) {
+          const index = meeting.sections.findIndex(s => s.id === sectionData.id);
+          if (index !== -1) meeting.sections[index] = sectionData;
+        } else {
+          sectionData.id = 'sec_' + Date.now() + '_' + Math.random().toString(36);
+          meeting.sections.push(sectionData);
+        }
+        await db.collection('meetings').doc(meetingId).update({ sections: meeting.sections });
+      }
+
+      async function deleteSection(sectionId) {
+        if (userRole !== 'admin') return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+        meeting.sections = meeting.sections.filter(s => s.id !== sectionId);
+        await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+      }
+
+      async function saveTask(taskData, sectionId) {
+        if (userRole !== 'admin') return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+        const section = meeting.sections.find(s => s.id === sectionId);
+        if (!section) return;
+        if (!section.tasks) section.tasks = [];
+        if (taskData.id) {
+          const index = section.tasks.findIndex(t => t.id === taskData.id);
+          if (index !== -1) section.tasks[index] = taskData;
+        } else {
+          taskData.id = 'task_' + Date.now() + '_' + Math.random().toString(36);
+          section.tasks.push(taskData);
+        }
+        await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+      }
+
+      async function deleteTask(sectionId, taskId) {
+        if (userRole !== 'admin') return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+        const section = meeting.sections.find(s => s.id === sectionId);
+        if (!section) return;
+        section.tasks = section.tasks.filter(t => t.id !== taskId);
+        await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+      }
+
+      // ========== MODAL HANDLING (disesuaikan panggil save ke firestore) ==========
       const meetingModal = document.getElementById('meetingModal');
       const sectionModal = document.getElementById('sectionModal');
       const taskModal = document.getElementById('taskModal');
@@ -1245,6 +1486,7 @@
       }
 
       document.getElementById('newMeetingBtn').addEventListener('click', () => {
+        if (userRole !== 'admin') return;
         document.getElementById('modalMeetingTitle').innerText = 'Rapat baru';
         document.getElementById('meetingNameInput').value = '';
         document.getElementById('meetingDateInput').value = '';
@@ -1254,7 +1496,7 @@
       });
 
       document.getElementById('editMeetingBtn').addEventListener('click', () => {
-        if (!currentMeetingId) return;
+        if (!currentMeetingId || userRole !== 'admin') return;
         const m = meetings.find(m => m.id === currentMeetingId);
         if (!m) return;
         document.getElementById('modalMeetingTitle').innerText = 'Edit rapat';
@@ -1266,29 +1508,26 @@
       });
 
       document.getElementById('cancelMeetingModal').addEventListener('click', closeAllModals);
-      document.getElementById('saveMeetingModal').addEventListener('click', () => {
+      document.getElementById('saveMeetingModal').addEventListener('click', async () => {
+        if (userRole !== 'admin') return;
         const title = document.getElementById('meetingNameInput').value.trim();
         const date = document.getElementById('meetingDateInput').value;
         const info = document.getElementById('meetingInfoInput').value.trim();
         if (!title || !date) return alert('Judul dan tanggal harus diisi');
 
         const editId = document.getElementById('saveMeetingModal').dataset.editId;
+        const meetingData = { title, date, info, sections: [] };
         if (editId) {
-          const m = meetings.find(m => m.id === editId);
-          if (m) { m.title = title; m.date = date; m.info = info; }
-        } else {
-          const newMeeting = { id: genId(), title, date, info, sections: [] };
-          meetings.push(newMeeting);
-          currentMeetingId = newMeeting.id;
+          meetingData.id = editId;
+          const existing = meetings.find(m => m.id === editId);
+          if (existing) meetingData.sections = existing.sections;
         }
-        saveData();
+        await saveMeeting(meetingData);
         closeAllModals();
-        renderSidebar();
-        renderDetail();
-        updateExportButtons();
       });
 
       function openSectionModal(sectionId) {
+        if (userRole !== 'admin') return;
         currentSectionId = sectionId;
         const modalTitle = document.getElementById('modalSectionTitle');
         const nameInput = document.getElementById('sectionNameInput');
@@ -1304,36 +1543,27 @@
       }
 
       document.getElementById('cancelSectionModal').addEventListener('click', closeAllModals);
-      document.getElementById('saveSectionModal').addEventListener('click', () => {
+      document.getElementById('saveSectionModal').addEventListener('click', async () => {
+        if (userRole !== 'admin') return;
         if (!currentMeetingId) return;
         const name = document.getElementById('sectionNameInput').value.trim();
         if (!name) return alert('Nama seksi harus diisi');
+
         const meeting = meetings.find(m => m.id === currentMeetingId);
         if (!meeting) return;
 
+        const sectionData = { name, tasks: [] };
         if (currentSectionId) {
-          const sec = meeting.sections.find(s => s.id === currentSectionId);
-          if (sec) sec.name = name;
-        } else {
-          meeting.sections.push({ id: genId(), name, tasks: [] });
+          sectionData.id = currentSectionId;
+          const existing = meeting.sections.find(s => s.id === currentSectionId);
+          if (existing) sectionData.tasks = existing.tasks;
         }
-        saveData();
+        await saveSection(sectionData, currentMeetingId);
         closeAllModals();
-        renderDetail();
       });
 
-      function deleteSection(sectionId) {
-        if (!confirm('Hapus seksi ini?')) return;
-        const meeting = meetings.find(m => m.id === currentMeetingId);
-        if (meeting) {
-          meeting.sections = meeting.sections.filter(s => s.id !== sectionId);
-          if (selectedSectionFilter === sectionId) selectedSectionFilter = 'ALL';
-          saveData();
-          renderDetail();
-        }
-      }
-
       function openTaskModal(sectionId, taskId) {
+        if (userRole !== 'admin') return;
         if (!currentMeetingId) return;
         currentSectionId = sectionId;
         currentTaskId = taskId;
@@ -1352,7 +1582,8 @@
       }
 
       document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
-      document.getElementById('saveTaskModal').addEventListener('click', () => {
+      document.getElementById('saveTaskModal').addEventListener('click', async () => {
+        if (userRole !== 'admin') return;
         if (!currentMeetingId || !currentSectionId) return;
         const desc = document.getElementById('taskDescInput').value.trim();
         if (!desc) return alert('Deskripsi tugas harus diisi');
@@ -1361,66 +1592,89 @@
         const pic = document.getElementById('taskPicInput').value.trim();
         const notes = document.getElementById('taskNotesInput').value.trim();
 
-        const meeting = meetings.find(m => m.id === currentMeetingId);
-        const section = meeting?.sections.find(s => s.id === currentSectionId);
-        if (!section) return;
-
-        if (currentTaskId) {
-          const task = section.tasks.find(t => t.id === currentTaskId);
-          if (task) {
-            task.desc = desc;
-            task.status = status;
-            task.progress = progress;
-            task.pic = pic;
-            task.notes = notes;
-          }
-        } else {
-          section.tasks.push({ id: genId(), desc, status, progress, pic, notes });
-        }
-        saveData();
+        const taskData = { desc, status, progress, pic, notes };
+        if (currentTaskId) taskData.id = currentTaskId;
+        await saveTask(taskData, currentSectionId);
         closeAllModals();
-        renderDetail();
       });
 
-      document.getElementById('deleteTaskBtn').addEventListener('click', () => {
+      document.getElementById('deleteTaskBtn').addEventListener('click', async () => {
+        if (userRole !== 'admin') return;
         if (!currentMeetingId || !currentSectionId || !currentTaskId) return;
         if (!confirm('Hapus tugas ini?')) return;
-        const meeting = meetings.find(m => m.id === currentMeetingId);
-        const section = meeting?.sections.find(s => s.id === currentSectionId);
-        if (section) {
-          section.tasks = section.tasks.filter(t => t.id !== currentTaskId);
-          saveData();
-          closeAllModals();
-          renderDetail();
-        }
+        await deleteTask(currentSectionId, currentTaskId);
+        closeAllModals();
       });
 
-      function deleteTask(sectionId, taskId) {
-        if (!confirm('Hapus tugas?')) return;
-        const meeting = meetings.find(m => m.id === currentMeetingId);
-        const section = meeting?.sections.find(s => s.id === sectionId);
-        if (section) {
-          section.tasks = section.tasks.filter(t => t.id !== taskId);
-          saveData();
-          renderDetail();
-        }
+      // ========== EXPORT (sama seperti sebelumnya) ==========
+      function getCurrentMeeting() {
+        return meetings.find(m => m.id === currentMeetingId);
       }
 
-      window.addEventListener('click', (e) => { if (e.target.classList.contains('modal')) closeAllModals(); });
+      function exportToExcel() {
+        const meeting = getCurrentMeeting();
+        if (!meeting) return;
+        const data = [];
+        data.push(['Seksi', 'Tugas', 'Status', 'Progress (%)', 'PIC', 'Catatan']);
+        meeting.sections.forEach(section => {
+          section.tasks.forEach(task => {
+            data.push([
+              section.name,
+              task.desc,
+              translateStatus(task.status),
+              task.progress ?? 0,
+              task.pic || '-',
+              task.notes || ''
+            ]);
+          });
+        });
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Progress');
+        XLSX.writeFile(wb, `notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
+      }
 
-      // Export buttons
+      function exportToPDF() {
+        const meeting = getCurrentMeeting();
+        if (!meeting) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text(meeting.title, 14, 20);
+        doc.setFontSize(11);
+        doc.text(`Tanggal: ${formatDate(meeting.date)}`, 14, 28);
+        doc.text(`Informasi: ${meeting.info || '-'}`, 14, 35);
+        
+        const tableData = [];
+        meeting.sections.forEach(section => {
+          section.tasks.forEach(task => {
+            tableData.push([
+              section.name,
+              task.desc,
+              translateStatus(task.status),
+              (task.progress ?? 0).toString(),
+              task.pic || '-',
+              task.notes || ''
+            ]);
+          });
+        });
+        doc.autoTable({
+          head: [['Seksi', 'Tugas', 'Status', 'Prog(%)', 'PIC', 'Catatan']],
+          body: tableData,
+          startY: 45,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [249, 115, 22] }
+        });
+        doc.save(`notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+      }
+
+      function printMeeting() {
+        window.print();
+      }
+
       document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
       document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
       document.getElementById('printBtn').addEventListener('click', printMeeting);
-
-      // Init
-      loadData();
-      renderSidebar();
-      if (meetings.length > 0) {
-        currentMeetingId = meetings[0].id;
-        renderDetail();
-        updateExportButtons();
-      }
     })();
   </script>
 </body>
