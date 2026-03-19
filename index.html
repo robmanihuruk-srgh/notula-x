@@ -1,1017 +1,1427 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bonataon Dolog Masagal Tangerang 2026</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Playfair+Display:wght@700;800;900&family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
-      
-    <style>
-        :root {
-            --emerald-900: #064e3b;
-            --emerald-600: #10b981;
-            --emerald-50: #ecfdf5;
-            --emerald-500: #34d399;
-            --amber-500: #f59e0b;
-            --slate-900: #0f172a;
-            --slate-800: #1e293b;
-            --gold-gradient: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-            --royal-gradient: linear-gradient(135deg, #064e3b 0%, #10b981 100%);
-        }
-          
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #0f172a;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.25) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(245, 158, 11, 0.1) 0px, transparent 50%);
-            background-attachment: fixed;
-            min-height: 100vh;
-            color: #1e293b;
-            -webkit-tap-highlight-color: transparent;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notula · Dashboard Progress & Export (Orange & Biru)</title>
+  <!-- Font & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Libraries untuk export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        .royal-font { font-family: 'Cinzel', serif; }
-          
-        /* CLASS KHUSUS UNTUK GAMBAR DOLMAS SESUAI REQUEST */
-        .dolmas-style {
-            width: 60px;
-            height: 60px;
-            border-radius: 16px;
-            object-fit: cover;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border: 2px solid rgba(255, 255, 255, 0.8);
-        }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f4f7fb;
+      color: #1e293b;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
 
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.96);
-            backdrop-filter: blur(25px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.4);
-        }
-          
-        .header-bg {
-            background: var(--royal-gradient);
-            position: relative;
-            overflow: hidden;
-        }
+    /* SIDEBAR */
+    .sidebar {
+      width: 280px;
+      background: #ffffff;
+      border-right: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.02);
+    }
 
-        .header-bg::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image: url('https://www.transparenttextures.com/patterns/cubes.png');
-            opacity: 0.05;
-            pointer-events: none;
-        }
+    .sidebar-header {
+      padding: 24px 20px;
+      border-bottom: 1px solid #edf2f7;
+    }
 
-        .nav-btn {
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            min-height: 85px;
-            border-radius: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 0.6rem;
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            background: white;
-            color: #64748b;
-        }
-        .nav-btn.active {
-            background-color: white;
-            color: var(--emerald-600);
-            border-color: var(--emerald-500);
-            transform: translateY(-6px) scale(1.02);
-            box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.2);
-        }
+    .sidebar-header h1 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #1e4a6d; /* biru tua */
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-        .logo-frame {
-            /* Disesuaikan agar pas dengan ukuran 60px */
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            padding: 4px;
-            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.2);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: transform 0.3s;
-            backdrop-filter: blur(5px);
-        }
-        
-        .form-input {
-            background-color: #f1f5f9;
-            border: 2px solid transparent;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        .form-input:focus {
-            background-color: #ffffff;
-            border-color: var(--emerald-600);
-            outline: none;
-            transform: translateY(-2px);
-        }
-        .form-input.valid {
-            border-color: var(--emerald-500);
-            background-color: #f0fdf4;
-        }
+    .sidebar-header h1 i {
+      color: #f97316; /* orange */
+      font-size: 1.8rem;
+    }
 
-        @keyframes modalUp { 
-            from { opacity: 0; transform: translateY(40px) scale(0.9); } 
-            to { opacity: 1; transform: translateY(0) scale(1); } 
-        }
+    .btn-new {
+      width: 100%;
+      margin-top: 16px;
+      background: #f97316; /* orange */
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 8px rgba(249, 115, 22, 0.2);
+    }
 
-        .vip-ticket {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .gold-text {
-            background: var(--gold-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 900;
-        }
-        .ticket-perforation::before, .ticket-perforation::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 30px;
-            height: 30px;
-            background: #0f172a;
-            border-radius: 50%;
-            z-index: 10;
-        }
-        .ticket-perforation::before { left: -15px; }
-        .ticket-perforation::after { right: -15px; }
+    .btn-new:hover {
+      background: #e05e0f;
+    }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+    .meeting-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 12px;
+    }
 
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            background: #ef4444;
-            border-radius: 50%;
-            display: inline-block;
-            animation: pulse-red 2s infinite;
-        }
+    .meeting-item {
+      background: #f9fcff;
+      border-radius: 12px;
+      padding: 16px 14px;
+      margin-bottom: 10px;
+      border: 1px solid #e9edf2;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
 
-        @keyframes pulse-red {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
+    .meeting-item.active {
+      background: #fff4e6; /* light orange */
+      border-color: #f97316;
+      box-shadow: 0 6px 12px rgba(249, 115, 22, 0.08);
+    }
 
-        #notification-container {
-            position: fixed;
-            top: 2rem;
-            right: 2rem;
-            z-index: 10000;
-            pointer-events: none;
-        }
-        
-        #qrReader {
-            width: 100% !important;
-            height: 100% !important;
-            border-radius: 2rem;
-        }
-        
-        #qrReader video {
-            object-fit: cover !important;
-            border-radius: 2rem;
-        }
-    </style>
+    .meeting-item:hover {
+      background: #fef2e7;
+      border-color: #f9b17a;
+    }
+
+    .meeting-title {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #0c314a;
+      margin-bottom: 6px;
+    }
+
+    .meeting-date {
+      font-size: 0.8rem;
+      color: #5f7d9c;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .meeting-date i {
+      font-size: 0.7rem;
+    }
+
+    /* MAIN PANEL */
+    .main-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #f4f7fb;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      background: white;
+      padding: 20px 32px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.02);
+    }
+
+    .header-title h2 {
+      font-weight: 600;
+      font-size: 1.5rem;
+      color: #0f3b5e;
+    }
+
+    .header-title p {
+      font-size: 0.9rem;
+      color: #54708f;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-header {
+      background: none;
+      border: 1px solid #f97316;
+      padding: 8px 16px;
+      border-radius: 30px;
+      color: #f97316;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-header:hover {
+      background: #f97316;
+      color: white;
+      border-color: #f97316;
+    }
+
+    .btn-header:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+      border-color: #aaa;
+      color: #888;
+    }
+
+    .btn-edit-meeting {
+      background: none;
+      border: 1px solid #1e4a6d;
+      padding: 8px 16px;
+      border-radius: 30px;
+      color: #1e4a6d;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+
+    .btn-edit-meeting:hover {
+      background: #1e4a6d;
+      color: white;
+    }
+
+    /* CONTENT */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px;
+    }
+
+    .info-card {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 8px 20px -6px rgba(0, 32, 64, 0.08);
+      border: 1px solid #eaf0f6;
+    }
+
+    .info-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px 40px;
+      margin-top: 12px;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .info-item i {
+      width: 28px;
+      color: #f97316;
+      font-size: 1.2rem;
+    }
+
+    /* DASHBOARD CARD */
+    .dashboard-card {
+      background: white;
+      border-radius: 24px;
+      padding: 24px 28px;
+      margin-bottom: 32px;
+      box-shadow: 0 12px 30px -12px rgba(249, 115, 22, 0.2);
+      border: 1px solid #ffddc4;
+    }
+
+    .dashboard-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #f97316;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .stats-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px 40px;
+      margin-bottom: 28px;
+      background: #fff7ed;
+      padding: 16px 20px;
+      border-radius: 20px;
+    }
+
+    .stat-item {
+      min-width: 100px;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: #54708f;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #1d4b6e;
+      line-height: 1.2;
+    }
+
+    .progress-section-list {
+      margin: 20px 0 16px;
+    }
+
+    .section-progress-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-progress-name {
+      width: 150px;
+      font-weight: 500;
+      color: #1d4b6e;
+    }
+
+    .section-progress-bar {
+      flex: 1;
+      background: #e3eaf2;
+      height: 10px;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .section-progress-fill {
+      height: 100%;
+      background: #f97316;
+      border-radius: 20px;
+      width: 0%;
+    }
+
+    .section-progress-percent {
+      min-width: 45px;
+      font-weight: 600;
+      color: #0f3b5e;
+    }
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-top: 25px;
+      padding-top: 16px;
+      border-top: 2px dashed #f9b17a;
+    }
+
+    .filter-label {
+      font-weight: 500;
+      color: #f97316;
+    }
+
+    .section-filter-select {
+      padding: 8px 20px;
+      border-radius: 40px;
+      border: 1px solid #f9b17a;
+      background: white;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      color: #1d3b5c;
+      cursor: pointer;
+      min-width: 220px;
+    }
+
+    .reset-filter {
+      background: none;
+      border: none;
+      color: #f97316;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: underline dotted;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 32px 0 20px 0;
+    }
+
+    .section-header h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #163a57;
+      letter-spacing: -0.2px;
+    }
+
+    .btn-add-section {
+      background: #fef2e7;
+      border: 1px solid #f97316;
+      padding: 8px 16px;
+      border-radius: 30px;
+      color: #f97316;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+
+    .btn-add-section i {
+      margin-right: 6px;
+    }
+
+    .btn-add-section:hover {
+      background: #f97316;
+      color: white;
+    }
+
+    /* SECTION CARD */
+    .section-card {
+      background: white;
+      border-radius: 20px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 6px 14px rgba(0, 32, 64, 0.04);
+      border: 1px solid #f9d5b6;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .section-title h4 {
+      font-weight: 600;
+      color: #f97316;
+      font-size: 1.15rem;
+    }
+
+    .section-actions button {
+      background: none;
+      border: none;
+      color: #778faa;
+      margin-left: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    .section-actions button:hover {
+      color: #f97316;
+    }
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .task-item {
+      background: #f9fdff;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid #e4ecf5;
+      transition: 0.1s;
+    }
+
+    .task-item:hover {
+      background: #fff7ed;
+    }
+
+    .task-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+    }
+
+    .task-status {
+      min-width: 100px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 40px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+
+    .status-selesai { background: #d2f0d2; color: #14633b; }
+    .status-berlangsung { background: #fff4d6; color: #9e5e04; }
+    .status-rencana { background: #d9eafb; color: #0a5585; }
+    .status-kendala { background: #ffe2dd; color: #b13e2d; }
+
+    .task-desc {
+      flex: 2;
+      font-weight: 500;
+      color: #1d3b5c;
+      min-width: 200px;
+    }
+
+    .task-pic {
+      background: #e4edf5;
+      padding: 4px 12px;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #1a4b6d;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .task-pic i {
+      font-size: 0.7rem;
+      color: #f97316;
+    }
+
+    .progress-container {
+      flex: 1;
+      min-width: 150px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .progress-bar-bg {
+      background: #e0e8f0;
+      height: 8px;
+      border-radius: 20px;
+      flex: 1;
+    }
+
+    .progress-bar-fill {
+      background: #f97316;
+      height: 8px;
+      border-radius: 20px;
+      width: 0%;
+    }
+
+    .progress-percent {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #0f3b5e;
+      min-width: 45px;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .task-actions button {
+      background: none;
+      border: none;
+      color: #8ba0bb;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    .task-actions button:hover {
+      color: #f97316;
+    }
+
+    .add-task-btn {
+      margin-top: 20px;
+      background: none;
+      border: 1px dashed #f9b17a;
+      border-radius: 40px;
+      padding: 10px 16px;
+      color: #f97316;
+      font-weight: 500;
+      width: fit-content;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+
+    .add-task-btn i {
+      margin-right: 6px;
+    }
+
+    .add-task-btn:hover {
+      background: #fff0e0;
+      border-color: #f97316;
+    }
+
+    /* MODAL */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(3px);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      width: 520px;
+      max-width: 90%;
+      border-radius: 28px;
+      padding: 28px 32px;
+      box-shadow: 0 30px 50px rgba(0, 25, 50, 0.3);
+    }
+
+    .modal-content h3 {
+      margin-bottom: 20px;
+      color: #0f3b5e;
+      font-weight: 600;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #365f81;
+    }
+
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #dbe2ec;
+      border-radius: 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      background: #fbfdff;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .btn-secondary {
+      background: #ecf3fa;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 40px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: #f97316;
+      border: none;
+      padding: 10px 28px;
+      border-radius: 40px;
+      font-weight: 500;
+      color: white;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      background: #e05e0f;
+    }
+
+    .btn-danger {
+      background: #fce4e0;
+      color: #ac3b2b;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 40px;
+      font-weight: 500;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Print styles */
+    @media print {
+      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting {
+        display: none !important;
+      }
+      body, .main-panel, .content {
+        background: white;
+        overflow: visible;
+        height: auto;
+      }
+      .content {
+        padding: 0.5in;
+      }
+      .section-card {
+        break-inside: avoid;
+        border: 1px solid #ccc;
+      }
+    }
+  </style>
 </head>
-<body class="antialiased">
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h1><i class="fas fa-book-open"></i> Notula</h1>
+      <button class="btn-new" id="newMeetingBtn"><i class="fas fa-plus-circle"></i> Rapat baru</button>
+    </div>
+    <div class="meeting-list" id="meetingList"></div>
+  </div>
 
-    <div id="notification-container" class="flex flex-col gap-4"></div>
-
-    <div id="app" class="relative z-10 w-full max-w-4xl mx-auto min-h-screen md:my-10 md:rounded-[3rem] overflow-hidden flex flex-col glass-panel shadow-2xl">
-          
-        <div id="loading" class="absolute inset-0 z-[9999] bg-slate-50 flex flex-col justify-center items-center px-6 text-center">
-            <img src="Dolmas.jpg" alt="Logo" class="dolmas-style animate-bounce mb-8">
-            <h2 class="text-3xl font-black text-emerald-900 mb-2 royal-font uppercase">BONATAON 2026</h2>
-            <div class="flex items-center gap-3 text-emerald-600 font-bold mt-4 bg-emerald-50 px-6 py-3 rounded-full shadow-sm">
-                <i class="fas fa-circle-notch fa-spin"></i> Menyiapkan Sistem...
-            </div>
-        </div>
-
-        <header class="header-bg p-10 pb-24 shadow-2xl relative z-20">
-            <div class="flex justify-between items-start relative z-10">
-                <div class="flex items-center gap-6">
-                    <div id="adminTrigger" class="logo-frame">
-                        <img src="Dolmas.jpg" alt="Logo" class="dolmas-style">
-                    </div>
-                    <div>
-                        <h1 class="text-lg md:text-2xl font-black text-white royal-font tracking-wide uppercase leading-tight">
-                            BONATAON<br>DOLOG MASAGAL TANGERANG<br><span class="text-emerald-300">2026</span>
-                        </h1>
-                        <div id="roleBadge" class="hidden inline-block mt-3 px-4 py-1.5 bg-amber-400 text-amber-900 text-[10px] font-black rounded-full uppercase tracking-widest shadow-xl border border-amber-300"></div>
-                    </div>
-                </div>
-                <div id="liveClock" class="text-right text-white hidden md:block backdrop-blur-md bg-white/10 p-3 rounded-2xl border border-white/10"></div>
-            </div>
-              
-            <div class="grid grid-cols-3 gap-6 mt-10 relative z-10">
-                <div class="bg-white/10 backdrop-blur-xl rounded-[2rem] p-4 border border-white/20 text-center shadow-lg">
-                    <div class="text-2xl md:text-4xl font-black text-white" id="statRegistered">0</div>
-                    <div class="text-[10px] font-extrabold text-emerald-200 uppercase tracking-widest mt-1">Peserta</div>
-                </div>
-                <div class="bg-white/10 backdrop-blur-xl rounded-[2rem] p-4 border border-white/20 text-center shadow-lg">
-                    <div class="text-2xl md:text-4xl font-black text-white" id="statPresent">0</div>
-                    <div class="text-[10px] font-extrabold text-emerald-200 uppercase tracking-widest mt-1">Hadir</div>
-                </div>
-                <div class="bg-white/10 backdrop-blur-xl rounded-[2rem] p-4 border border-white/20 text-center shadow-lg">
-                    <div class="text-2xl md:text-4xl font-black text-white" id="statGifts">0</div>
-                    <div class="text-[10px] font-extrabold text-amber-100 uppercase tracking-widest mt-1">Berkat</div>
-                </div>
-            </div>
-        </header>
-
-        <nav id="mainNav" class="flex px-6 -mt-12 relative z-30 gap-3 overflow-x-auto pb-6 no-scrollbar">
-            <button id="nav-register" class="nav-btn public-tab flex-1 min-w-[110px] shadow-2xl">
-                <i class="fas fa-user-plus text-emerald-600"></i><span class="text-[10px] font-black uppercase tracking-widest">Daftar</span>
-            </button>
-            <button id="nav-find" class="nav-btn public-tab flex-1 min-w-[110px] shadow-2xl">
-                <i class="fas fa-search text-emerald-600"></i><span class="text-[10px] font-black uppercase tracking-widest">Undangan</span>
-            </button>
-            <button id="nav-scan" class="nav-btn admin-tab staff-tab hidden flex-1 min-w-[110px] shadow-2xl">
-                <i class="fas fa-qrcode text-emerald-600"></i><span class="text-[10px] font-black uppercase tracking-widest">Absensi</span>
-            </button>
-            <button id="nav-gift" class="nav-btn admin-tab staff-tab hidden flex-1 min-w-[110px] shadow-2xl">
-                <i class="fas fa-gift text-emerald-600"></i><span class="text-[10px] font-black uppercase tracking-widest">Berkat</span>
-            </button>
-            <button id="nav-report" class="nav-btn admin-tab hidden flex-1 min-w-[110px] shadow-2xl">
-                <i class="fas fa-chart-line text-emerald-600"></i><span class="text-[10px] font-black uppercase tracking-widest">Report</span>
-            </button>
-            <button id="nav-data" class="nav-btn admin-tab hidden flex-1 min-w-[110px] shadow-2xl">
-                <i class="fas fa-shield-halved text-emerald-600"></i><span class="text-[10px] font-black uppercase tracking-widest">Admin</span>
-            </button>
-            <button id="nav-logout" class="hidden min-w-[110px] bg-red-50 text-red-600 border border-red-100 shadow-xl nav-btn">
-                <i class="fas fa-power-off"></i><span class="text-[10px] font-black uppercase tracking-widest">Keluar</span>
-            </button>
-        </nav>
-
-        <main class="flex-1 p-6 md:p-12 overflow-y-auto bg-slate-50/50 pb-28">
-            <div id="content-area"></div>
-        </main>
-          
-        <footer class="py-6 px-10 border-t border-slate-200 bg-white absolute bottom-0 w-full z-20">
-            <div class="flex justify-between items-center text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">
-                <div>© 2026 PANITIA BONATAON</div>
-                <div class="text-emerald-900">DOLOG MASAGAL TANGERANG</div>
-            </div>
-        </footer>
+  <div class="main-panel">
+    <div class="panel-header">
+      <div class="header-title">
+        <h2 id="meetingTitle">Pilih rapat</h2>
+        <p id="meetingDate"><i class="far fa-calendar-alt"></i> </p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-header" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn-header" id="exportPdfBtn" disabled><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn-header" id="printBtn" disabled><i class="fas fa-print"></i> Cetak</button>
+        <button class="btn-edit-meeting" id="editMeetingBtn" disabled><i class="fas fa-pen"></i> Edit rapat</button>
+      </div>
     </div>
 
-    <div id="modal-container"></div>
+    <div class="content" id="contentArea">
+      <!-- akan diisi oleh js -->
+    </div>
+  </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
-        import { getDatabase, ref, push, onValue, set, update, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  <!-- MODAL RAPAT -->
+  <div class="modal" id="meetingModal">
+    <div class="modal-content">
+      <h3 id="modalMeetingTitle">Rapat baru</h3>
+      <div class="form-group">
+        <label>Judul rapat</label>
+        <input type="text" id="meetingNameInput" placeholder="contoh: Rapat Koordinasi 1 Maret 2026">
+      </div>
+      <div class="form-group">
+        <label>Tanggal</label>
+        <input type="date" id="meetingDateInput">
+      </div>
+      <div class="form-group">
+        <label>Informasi tambahan (opsional)</label>
+        <textarea id="meetingInfoInput" rows="2" placeholder="anggaran, tempat, dll"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelMeetingModal">Batal</button>
+        <button class="btn-primary" id="saveMeetingModal">Simpan</button>
+      </div>
+    </div>
+  </div>
 
-        // --- FIREBASE INITIALIZATION ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyA5XFf_99EsYUVRyV0GnGSm1QzSm0rVWhk",
-            authDomain: "dologmasagaltangerang.firebaseapp.com",
-            databaseURL: "https://dologmasagaltangerang-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "dologmasagaltangerang",
-            storageBucket: "dologmasagaltangerang.firebasestorage.app",
-            messagingSenderId: "800663657726",
-            appId: "1:800663657726:web:041ff53a2d11614d7359af",
-            measurementId: "G-BLE1W54C50"
-        };
-        
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const db = getDatabase(app);
+  <!-- MODAL SEKSI -->
+  <div class="modal" id="sectionModal">
+    <div class="modal-content">
+      <h3 id="modalSectionTitle">Tambah seksi</h3>
+      <div class="form-group">
+        <label>Nama seksi / topik</label>
+        <input type="text" id="sectionNameInput" placeholder="contoh: Seksi Acara">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelSectionModal">Batal</button>
+        <button class="btn-primary" id="saveSectionModal">Simpan</button>
+      </div>
+    </div>
+  </div>
 
-        // --- GLOBAL STATE ---
-        let state = {
-            participants: [],
-            attendance: [],
-            gifts: [],
-            staff: [],
-            tab: 'register',
-            scanner: null,
-            isAdmin: false,
-            isStaff: false,
-            adminPass: "123456",
-            recoveryKey: "BONA2026",
-            activeUser: null,
-            tempUser: null,
-            reportSearch: "",
-            adminSearch: "",
-            filterStatus: "Semua",
-            charts: {},
-            isProcessingScan: false
-        };
+  <!-- MODAL TASK -->
+  <div class="modal" id="taskModal">
+    <div class="modal-content">
+      <h3 id="modalTaskTitle">Tugas / item</h3>
+      <div class="form-group">
+        <label>Deskripsi tugas</label>
+        <input type="text" id="taskDescInput" placeholder="contoh: Survey tempat">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="taskStatusInput">
+            <option value="rencana">Rencana</option>
+            <option value="berlangsung">Sedang berlangsung</option>
+            <option value="selesai">Selesai</option>
+            <option value="kendala">Kendala</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Progress (%)</label>
+          <input type="number" id="taskProgressInput" min="0" max="100" value="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Penanggung Jawab (PIC)</label>
+        <input type="text" id="taskPicInput" placeholder="Nama / seksi">
+      </div>
+      <div class="form-group">
+        <label>Catatan (opsional)</label>
+        <textarea id="taskNotesInput" rows="2"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelTaskModal">Batal</button>
+        <button class="btn-primary" id="saveTaskModal">Simpan</button>
+        <button class="btn-danger hidden" id="deleteTaskBtn">Hapus</button>
+      </div>
+    </div>
+  </div>
 
-        // --- CORE UI UTILS ---
-        const showToast = (title, body, type = 'success') => {
-            const container = document.getElementById('notification-container');
-            if(!container) return;
-            const toast = document.createElement('div');
-            const borderColor = type === 'error' ? 'border-red-500' : 'border-emerald-500';
-            const iconBg = type === 'error' ? 'bg-red-500' : 'bg-emerald-500';
-            const icon = type === 'error' ? 'fa-triangle-exclamation' : 'fa-bell';
-            
-            toast.className = `glass-panel p-5 rounded-3xl shadow-2xl border-l-4 ${borderColor} flex items-center gap-4 animate-[modalUp_0.4s]`;
-            toast.innerHTML = `
-                <div class="w-12 h-12 ${iconBg} text-white rounded-2xl flex items-center justify-center text-xl flex-shrink-0 shadow-lg"><i class="fas ${icon}"></i></div>
-                <div>
-                    <div class="text-xs font-black text-slate-800 uppercase tracking-tight">${title}</div>
-                    <div class="text-[10px] text-slate-500 font-bold uppercase mt-1 opacity-70">${body}</div>
-                </div>
-            `;
-            container.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(20px)'; toast.style.transition = '0.5s ease'; setTimeout(() => toast.remove(), 500); }, 5000);
-        };
+  <script>
+    (function() {
+      const STORAGE_KEY = 'notula_app_data_v4_export';
 
-        const openModal = (html, id = 'dynamicModal') => {
-            const container = document.getElementById('modal-container');
-            if(!container) return;
-            container.innerHTML = `
-                <div id="${id}" class="fixed inset-0 z-[9000] flex items-center justify-center p-6 overflow-y-auto">
-                    <div class="absolute inset-0 bg-slate-900/90 backdrop-blur-xl" onclick="document.getElementById('${id}').classList.add('hidden')"></div>
-                    <div class="bg-white rounded-[3rem] w-full max-w-md relative z-10 p-10 shadow-2xl animate-[modalUp_0.4s]">
-                        ${html}
-                    </div>
-                </div>
-            `;
-        };
+      // Data awal (sama dengan sebelumnya)
+      const defaultMeetings = [
+        {
+          id: 'meet1',
+          title: 'Rapat Koordinasi Panitia Pesparawi – 1 Maret 2026',
+          date: '2026-03-01',
+          info: 'Pembahasan RAB & persiapan awal',
+          sections: [
+            { id: 's1', name: 'RAB setiap seksi', tasks: [
+              { id: 't1', desc: 'Seksi Acara mengirim RAB', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '' },
+              { id: 't2', desc: 'Seksi Humpubdok mengirim RAB', status: 'selesai', progress: 100, pic: 'Humas', notes: '' },
+              { id: 't3', desc: 'Seksi Konsumsi mengirim RAB', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '' },
+              { id: 't4', desc: 'Seksi Perlengkapan survey tempat & vendor', status: 'berlangsung', progress: 30, pic: 'Perkap', notes: '' },
+              { id: 't5', desc: 'Seksi Keamanan menunggu tempat', status: 'rencana', progress: 0, pic: 'Keamanan', notes: '' },
+              { id: 't6', desc: 'Seksi kesehatan ditindaklanjuti', status: 'rencana', progress: 0, pic: 'Kesehatan', notes: '' },
+              { id: 't7', desc: 'DD penyerahan RAB ke bendahara (6 Maret)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '' },
+              { id: 't8', desc: 'Bendahara cross-cek RAB dan rapat 9 Maret', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '' }
+            ]},
+            { id: 's2', name: 'Seksi Perkap', tasks: [
+              { id: 't9', desc: 'Survey tempat & vendor', status: 'berlangsung', progress: 40, pic: 'Perkap', notes: '' }
+            ]},
+            { id: 's3', name: 'Seksi Lomba', tasks: [
+              { id: 't10', desc: 'Tanggal pelaksanaan 20 Juni 2026', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
+              { id: 't11', desc: 'Story Telling max 2 orang per-resort', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
+              { id: 't12', desc: 'Story Telling tidak merangkap Koor/Vocal', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
+              { id: 't13', desc: 'Nada dasar lagu koor tidak diganti', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
+              { id: 't14', desc: 'Mencari juri kompeten', status: 'berlangsung', progress: 60, pic: 'Acara', notes: '' },
+              { id: 't15', desc: 'Terjemahkan aturan lomba ke Indonesia (deadline 3 Maret)', status: 'rencana', progress: 0, pic: 'Acara', notes: '' }
+            ]},
+            { id: 's4', name: 'Seksi Humpubdok', tasks: [
+              { id: 't16', desc: 'Koordinasi video teaser tiap resort', status: 'rencana', progress: 0, pic: 'Humas', notes: '' },
+              { id: 't17', desc: 'Upload video teaser di medsos', status: 'rencana', progress: 0, pic: 'Humas', notes: '' },
+              { id: 't18', desc: 'Aktifasi medsos IG & FB', status: 'rencana', progress: 10, pic: 'Humas', notes: '' }
+            ]},
+            { id: 's5', name: 'Seksi Dana', tasks: [
+              { id: 't19', desc: 'Galangan jemaat & hari H', status: 'rencana', progress: 0, pic: 'Dana', notes: '' },
+              { id: 't20', desc: 'Proposal', status: 'rencana', progress: 5, pic: 'Dana', notes: '' },
+              { id: 't21', desc: 'Bazar', status: 'rencana', progress: 0, pic: 'Dana', notes: '' }
+            ]},
+            { id: 's6', name: 'Bendahara', tasks: [
+              { id: 't22', desc: 'Rekening Panitia (OTP)', status: 'berlangsung', progress: 70, pic: 'Bendahara', notes: '' }
+            ]},
+            { id: 's7', name: 'Sekretariat', tasks: [
+              { id: 't23', desc: 'Surat pemberitahuan ke resort', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba' },
+              { id: 't24', desc: 'Flyer Pesparawi', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba' },
+              { id: 't25', desc: 'Proposal (RAB, Norek, ketentuan)', status: 'rencana', progress: 20, pic: 'Sekretariat', notes: '' },
+              { id: 't26', desc: 'Surat permohonan galangan', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'koordinasi praeses' }
+            ]}
+          ]
+        },
+        {
+          id: 'meet2',
+          title: 'Rapat Koordinasi Panitia – 9 Maret 2026',
+          date: '2026-03-09',
+          info: 'Total anggaran ±330jt | SMESCO sewa 61jt | 20 Juni 2026',
+          sections: [
+            { id: 's8', name: 'Seksi Acara', tasks: [
+              { id: 't27', desc: 'RAB acara Rp105,5 jt', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
+              { id: 't28', desc: 'Menentukan juri & hadiah', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
+              { id: 't29', desc: 'Koordinasi panggung dgn perkap', status: 'berlangsung', progress: 50, pic: 'Acara', notes: '' },
+              { id: 't30', desc: 'Koordinasi dengan GKPS TV', status: 'rencana', progress: 10, pic: 'Acara', notes: '' },
+              { id: 't31', desc: 'Artis tamu (Ziva/Bastian/Grace) budget 5jt', status: 'kendala', progress: 20, pic: 'Acara', notes: 'belum final' }
+            ]},
+            { id: 's9', name: 'Koordinator Lomba', tasks: [
+              { id: 't32', desc: 'Aturan teknis lomba', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
+              { id: 't33', desc: 'Formulir pendaftaran detail', status: 'berlangsung', progress: 70, pic: 'Lomba', notes: '' },
+              { id: 't34', desc: 'Follow up Sinode durasi & aturan', status: 'rencana', progress: 0, pic: 'Lomba', notes: 'menunggu info' }
+            ]},
+            { id: 's10', name: 'Seksi Perlengkapan', tasks: [
+              { id: 't35', desc: 'Penawaran SMESCO', status: 'selesai', progress: 100, pic: 'Perkap', notes: '' },
+              { id: 't36', desc: 'Negosiasi harga sewa', status: 'berlangsung', progress: 60, pic: 'Perkap', notes: '' },
+              { id: 't37', desc: 'Survey lokasi 16 April 2026', status: 'rencana', progress: 0, pic: 'Perkap', notes: '' },
+              { id: 't38', desc: 'DP gedung (fu korpel)', status: 'kendala', progress: 10, pic: 'Perkap', notes: '' }
+            ]},
+            { id: 's11', name: 'Seksi Konsumsi', tasks: [
+              { id: 't39', desc: 'RAB Rp56,38 jt', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '' },
+              { id: 't40', desc: 'Revisi jumlah peserta', status: 'berlangsung', progress: 50, pic: 'Konsumsi', notes: '' },
+              { id: 't41', desc: 'Katering & sistem box', status: 'rencana', progress: 20, pic: 'Konsumsi', notes: '' }
+            ]},
+            { id: 's12', name: 'Seksi Humas', tasks: [
+              { id: 't42', desc: 'Konsep banner/backdrop', status: 'selesai', progress: 100, pic: 'Humas', notes: '' },
+              { id: 't43', desc: 'Koordinasi desain (Bang Robert)', status: 'berlangsung', progress: 80, pic: 'Humas', notes: '' },
+              { id: 't44', desc: 'Finalisasi jumlah banner', status: 'rencana', progress: 0, pic: 'Humas', notes: 'budget 37jt' }
+            ]},
+            { id: 's13', name: 'Bendahara', tasks: [
+              { id: 't45', desc: 'Mengumpulkan RAB semua seksi', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '' },
+              { id: 't46', desc: 'Menyusun proposal lengkap', status: 'berlangsung', progress: 65, pic: 'Bendahara', notes: '' },
+              { id: 't47', desc: 'Finalisasi total anggaran', status: 'rencana', progress: 30, pic: 'Bendahara', notes: 'masih ada pos belum final' }
+            ]},
+            { id: 's14', name: 'Sekretariat', tasks: [
+              { id: 't48', desc: 'Surat ke resort', status: 'selesai', progress: 100, pic: 'Sekretariat', notes: '' },
+              { id: 't49', desc: 'Proposal bersama bendahara', status: 'berlangsung', progress: 65, pic: 'Sekretariat', notes: '' },
+              { id: 't50', desc: 'Flyer (no.telp?)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '' }
+            ]}
+          ]
+        }
+      ];
 
-        const closeModal = (id) => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); };
+      let meetings = [];
+      let currentMeetingId = null;
+      let currentSectionId = null;
+      let currentTaskId = null;
+      let selectedSectionFilter = 'ALL';
 
-        // --- DATA BINDING ---
-        const updateDashboard = () => {
-            const sr = document.getElementById('statRegistered');
-            const sp = document.getElementById('statPresent');
-            const sg = document.getElementById('statGifts');
-            if(sr) sr.innerText = state.participants.length;
-            if(sp) sp.innerText = state.attendance.length;
-            if(sg) sg.innerText = state.gifts.length;
-            
-            if (state.tab === 'register') renderRegister();
-            if (state.tab === 'report') renderReport();
-            if (state.tab === 'data') renderAdmin();
-            
-            const loader = document.getElementById('loading');
-            if (loader) setTimeout(() => loader.classList.add('hidden'), 500);
-        };
-
-        // --- VALIDATION HELPERS ---
-        const setupPinValidation = (inputId, hintId) => {
-            const input = document.getElementById(inputId);
-            const hint = document.getElementById(hintId);
-            if (!input || !hint) return;
-
-            input.oninput = (e) => {
-                let val = e.target.value;
-                val = val.replace(/\D/g, '');
-                e.target.value = val;
-
-                if (val.length >= 6) {
-                    hint.innerText = "PIN Valid ✓";
-                    hint.classList.remove('text-slate-400', 'text-red-500');
-                    hint.classList.add('text-emerald-500');
-                    input.classList.add('valid');
-                } else if (val.length > 0) {
-                    hint.innerText = `Kurang ${6 - val.length} digit lagi...`;
-                    hint.classList.remove('text-emerald-500', 'text-slate-400');
-                    hint.classList.add('text-red-500');
-                    input.classList.remove('valid');
-                } else {
-                    hint.innerText = "Min. 6 Digit Angka";
-                    hint.classList.remove('text-emerald-500', 'text-red-500');
-                    hint.classList.add('text-slate-400');
-                    input.classList.remove('valid');
-                }
-            };
-        };
-
-        // --- VIEWS RENDERING ---
-        const renderRegister = () => {
-            const area = document.getElementById('content-area');
-            if(!area) return;
-            const recent = state.participants.slice(-10).reverse();
-            area.innerHTML = `
-                <div class="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl mb-10 border border-slate-100 animate-[modalUp_0.5s]">
-                    <div class="flex items-center gap-4 mb-10">
-                        <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 text-xl shadow-inner"><i class="fas fa-id-card"></i></div>
-                        <div><h3 class="text-xl font-black text-slate-800 uppercase royal-font tracking-tight">Form Pendaftaran</h3><p class="text-[10px] text-slate-400 font-black uppercase mt-2 tracking-widest">Silakan lengkapi data di bawah ini</p></div>
-                    </div>
-                    <div class="space-y-6">
-                        <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block pl-2">Nama Lengkap</label><input id="inName" type="text" class="form-input w-full rounded-2xl p-5 font-black uppercase" placeholder="Masukkan Nama Anda"></div>
-                        <div class="grid grid-cols-2 gap-5">
-                            <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block pl-2">Kategori</label><select id="inStatus" class="form-input w-full rounded-2xl p-5 font-black uppercase"><option value="Orangtua">Orangtua</option><option value="Pemuda">Pemuda</option><option value="Sekolah Minggu">Sekolah Minggu</option><option value="Tamu">Tamu</option></select></div>
-                            <div>
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block pl-2">Marga</label>
-                                <select id="inMarga" class="form-input w-full rounded-2xl p-5 font-black uppercase">
-                                    <option value="Purba Sidadolog">Purba Sidadolog</option>
-                                    <option value="Purba Sidagambir">Purba Sidagambir</option>
-                                    <option value="Boru">Boru</option>
-                                    <option value="Panagolan">Panagolan</option>
-                                    <option value="Tamu Undangan">Tamu Undangan</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block pl-2">PIN Keamanan (6-8 Digit)</label>
-                            <input id="inPass" type="password" inputmode="numeric" maxlength="8" class="form-input w-full rounded-2xl p-5 font-black text-center text-3xl tracking-[0.5em]" placeholder="••••••••">
-                            <div id="pinHint" class="text-[9px] font-bold mt-2 pl-2 text-slate-400 uppercase tracking-widest transition-colors">Min. 6 Digit Angka</div>
-                        </div>
-                        <button id="btnReg" class="w-full bg-emerald-600 text-white rounded-[1.5rem] py-5 font-black shadow-xl hover:bg-emerald-700 transition-all uppercase tracking-[0.2em] mt-4 flex items-center justify-center gap-3"><i class="fas fa-paper-plane text-sm"></i> DAFTARKAN SAYA</button>
-                    </div>
-                </div>
-                <div class="px-2">
-                    <div class="flex justify-between items-center mb-6 px-4"><h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pendaftar Terkini</h5><div class="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">Total: ${state.participants.length}</div></div>
-                    <div class="space-y-3">
-                        ${recent.map(p => `<div class="bg-white p-5 rounded-[1.5rem] flex justify-between items-center shadow-lg border border-slate-100 animate-[modalUp_0.3s]"><div><div class="font-black text-sm text-slate-800 uppercase leading-tight">${p.name}</div><div class="flex items-center gap-2 mt-1"><span class="text-[8px] font-bold text-slate-400 uppercase tracking-wider">${p.marga}</span><span class="text-[8px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">${p.qrCode}</span></div></div><div class="text-[9px] font-black bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full uppercase border border-emerald-100 shadow-sm">${p.status}</div></div>`).join('') || '<div class="text-center py-16 text-slate-300 font-black text-xs uppercase tracking-widest border-2 border-dashed border-slate-100 rounded-[2.5rem]">Belum Ada Pendaftar</div>'}
-                    </div>
-                </div>
-            `;
-            const btnReg = document.getElementById('btnReg');
-            if(btnReg) btnReg.onclick = handleRegistration;
-            setupPinValidation('inPass', 'pinHint');
-        };
-
-        const handleRegistration = () => {
-            const nameEl = document.getElementById('inName'), passEl = document.getElementById('inPass'), statEl = document.getElementById('inStatus'), margaEl = document.getElementById('inMarga');
-            const n = nameEl.value.trim().toUpperCase(), p = passEl.value, s = statEl.value, m = margaEl.value;
-            
-            if (!n) {
-                showToast("Nama Kosong", "Harap masukkan nama lengkap Anda.", "error");
-                nameEl.focus();
-                return;
-            }
-            if (p.length < 6) {
-                showToast("PIN Tidak Valid", "PIN harus terdiri dari minimal 6 digit angka.", "error");
-                passEl.focus();
-                return;
-            }
-
-            const code = `MN-${Date.now().toString().slice(-8)}`;
-            const data = { name: n, status: s, marga: m, password: p, qrCode: code, registeredAt: new Date().toLocaleString() };
-            push(ref(db, 'participants'), data).then(() => { 
-                showToast("Pendaftaran Berhasil!", `${n} telah resmi terdaftar.`); 
-                showTicket(data); 
-                nameEl.value = ''; 
-                passEl.value = ''; 
-            });
-        };
-
-        const setTab = async (t) => {
-            if (state.scanner) { try { await state.scanner.stop(); } catch (e) {} state.scanner = null; }
-            state.tab = t;
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.id === `nav-${t}`));
-            if (t === 'register') renderRegister();
-            else if (t === 'find') {
-                const area = document.getElementById('content-area');
-                if(!area) return;
-                area.innerHTML = `
-                    <div class="bg-white rounded-[2.5rem] p-10 md:p-16 shadow-2xl text-center border border-slate-100 animate-[modalUp_0.4s]">
-                        <div class="w-24 h-24 bg-emerald-50 rounded-[2rem] flex items-center justify-center mx-auto mb-10 text-emerald-600 text-4xl shadow-inner"><i class="fas fa-magnifying-glass"></i></div>
-                        <h3 class="font-black text-2xl mb-10 text-slate-800 uppercase royal-font tracking-tight">Temukan Undangan</h3>
-                        <div class="space-y-6"><input id="findIn" type="text" placeholder="Masukkan Nama Lengkap Anda" class="form-input w-full rounded-2xl p-6 text-center font-black uppercase text-lg shadow-inner"><button id="btnFind" class="w-full bg-emerald-700 text-white rounded-[1.5rem] py-6 font-black hover:bg-emerald-800 transition-all shadow-2xl uppercase tracking-[0.2em]">CARI TIKET</button></div>
-                    </div>
-                `;
-                const findBtn = document.getElementById('btnFind');
-                if(findBtn) {
-                    findBtn.onclick = () => {
-                        const q = document.getElementById('findIn').value.trim().toLowerCase();
-                        if (!q) return alert("Masukkan nama!");
-                        const found = state.participants.filter(p => p.name.toLowerCase().includes(q));
-                        if (!found.length) return alert("Data tidak ditemukan!");
-                        
-                        if (found.length === 1) {
-                            handleTicketAuth(found[0]); 
-                        } else {
-                            handleMultipleFound(found);
-                        }
-                    };
-                }
-            }
-            else if (t === 'scan' || t === 'gift') renderScan(t);
-            else if (t === 'report') renderReport();
-            else if (t === 'data') renderAdmin();
-        };
-
-        const handleTicketAuth = (user) => {
-            const html = `<h3 class="text-2xl font-black text-slate-800 text-center uppercase royal-font mb-4 tracking-tight">Verifikasi</h3><p class="text-[10px] text-slate-400 font-black text-center mb-8 uppercase tracking-widest">Masukkan PIN untuk <span class="text-emerald-600">${user.name}</span></p><input type="password" id="pinAuth" inputmode="numeric" maxlength="8" class="form-input w-full rounded-2xl p-6 text-center text-4xl font-black mb-8 tracking-[0.5em] shadow-inner" placeholder="••••••••"><div class="grid grid-cols-2 gap-4"><button onclick="document.getElementById('authModal').classList.add('hidden')" class="py-5 border-2 border-slate-100 rounded-2xl font-black text-slate-400 uppercase tracking-widest text-xs">Batal</button><button id="btnVerify" class="py-5 bg-emerald-600 text-white rounded-2xl font-black shadow-xl uppercase tracking-widest text-xs">KONFIRMASI</button></div>`;
-            openModal(html, 'authModal');
-            const verifyBtn = document.getElementById('btnVerify');
-            if(verifyBtn) {
-                verifyBtn.onclick = () => { 
-                    const pin = document.getElementById('pinAuth').value; 
-                    if (pin === user.password) { closeModal('authModal'); window.showTicket(user); } else alert("PIN Salah!"); 
-                };
-            }
-        };
-
-        // --- TICKET VIEW (MENGGUNAKAN GAMBAR DOLMAS) ---
-        window.showTicket = async (user) => {
-            state.activeUser = user;
-            const html = `
-                <div id="vipTicketCard" class="vip-ticket rounded-[3rem] p-10 shadow-2xl border border-white/10 relative overflow-hidden">
-                    <div class="relative z-10 text-center">
-                        <div class="mx-auto mb-6 flex justify-center">
-                            <img src="Dolmas.jpg" class="dolmas-style" alt="Ticket Logo">
-                        </div>
-                        <div class="inline-block bg-white/10 backdrop-blur-md border border-white/20 text-white text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest mb-2">OFFICIAL INVITATION</div>
-                        <h2 class="royal-font text-3xl font-black gold-text uppercase leading-none mt-2">BONATAON 2026</h2>
-                        <div class="my-10">
-                            <p class="text-slate-500 text-[10px] font-black uppercase mb-2 tracking-[0.3em]">Tamu Kehormatan</p>
-                            <h1 class="text-2xl font-black text-white leading-tight uppercase mb-4">${user.name}</h1>
-                            <div class="inline-flex gap-2 text-[9px] text-emerald-400 font-black uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full border border-white/5">${user.marga} • ${user.status}</div>
-                        </div>
-                        <div class="ticket-perforation bg-white p-8 rounded-[2.5rem] shadow-2xl relative">
-                            <div id="qrLoading" class="w-48 h-48 mx-auto flex items-center justify-center bg-slate-50 rounded-2xl"><i class="fas fa-circle-notch fa-spin text-emerald-600 text-2xl"></i></div>
-                            <img id="ticQR" src="" class="w-52 h-52 object-contain mx-auto hidden rounded-xl">
-                            <div class="text-center mt-6"><div class="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Registration Code</div><div class="text-xl font-mono font-black text-slate-900 bg-slate-50 py-2 rounded-xl">${user.qrCode}</div></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-8 flex flex-col gap-4">
-                    <button id="btnEditSelf" class="w-full py-5 rounded-[1.5rem] bg-amber-500 text-white font-black text-sm shadow-xl flex items-center justify-center gap-3 hover:bg-amber-600 transition-all uppercase tracking-widest"><i class="fas fa-user-edit"></i> PERBAIKI PROFIL</button>
-                    <button id="btnDlTicket" class="w-full py-5 rounded-[1.5rem] bg-slate-900 text-white font-black text-sm shadow-xl flex items-center justify-center gap-3 hover:bg-black transition-all uppercase tracking-widest"><i class="fas fa-download"></i> SIMPAN TIKET</button>
-                    <button onclick="document.getElementById('ticketModal').classList.add('hidden')" class="text-slate-400 text-[10px] font-black py-2 uppercase tracking-[0.4em]">Tutup</button>
-                </div>
-            `;
-            openModal(html, 'ticketModal');
-            const qrImg = document.getElementById('ticQR'), qrLoader = document.getElementById('qrLoading');
-            try { 
-                const url = await QRCode.toDataURL(user.qrCode, { errorCorrectionLevel: 'H', margin: 2, width: 800, color: { dark: "#064e3b", light: "#ffffff" } }); 
-                if(qrImg) qrImg.src = url; 
-                if(qrImg) qrImg.onload = () => { if (qrLoader) qrLoader.classList.add('hidden'); qrImg.classList.remove('hidden'); }; 
-            } catch (e) { console.error(e); }
-            const editBtn = document.getElementById('btnEditSelf');
-            const dlBtn = document.getElementById('btnDlTicket');
-            if(editBtn) editBtn.onclick = () => openEditUserModal(user);
-            if(dlBtn) dlBtn.onclick = handleDownloadTicket;
-        };
-
-        const handleMultipleFound = (list) => {
-            const html = `
-                <h3 class="text-xl font-black text-slate-800 text-center uppercase royal-font mb-2">Pilih Data Anda</h3>
-                <p class="text-[10px] text-slate-400 font-black text-center mb-6 uppercase tracking-widest">Ditemukan ${list.length} nama serupa</p>
-                <div class="space-y-3 max-h-[50vh] overflow-y-auto pr-1 no-scrollbar">
-                    ${list.map(p => `
-                        <button onclick="window.selectDuplicate('${p.firebaseId}')" class="w-full bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:bg-emerald-50 hover:border-emerald-200 transition-all text-left group relative overflow-hidden">
-                            <div class="flex justify-between items-start mb-2">
-                                <div class="font-black text-slate-800 text-sm uppercase group-hover:text-emerald-700 relative z-10">${p.name}</div>
-                                <div class="text-[10px] font-mono font-bold text-slate-400 bg-white border border-slate-200 px-2 py-1 rounded-lg group-hover:text-emerald-600 group-hover:border-emerald-200 shadow-sm">${p.qrCode}</div>
-                            </div>
-                            <div class="flex items-center gap-2 relative z-10">
-                                <span class="text-[9px] font-black text-white bg-slate-400 px-3 py-1 rounded-full uppercase group-hover:bg-emerald-500 transition-colors">${p.marga}</span>
-                                <span class="text-[9px] font-bold text-slate-500 uppercase group-hover:text-emerald-600 transition-colors">${p.status}</span>
-                            </div>
-                        </button>
-                    `).join('')}
-                </div>
-                <div class="mt-6">
-                    <button onclick="document.getElementById('duplicateModal').classList.add('hidden')" class="w-full py-4 border-2 border-slate-100 rounded-2xl font-black text-slate-400 uppercase tracking-widest text-xs hover:bg-slate-50">Batal</button>
-                </div>
-            `;
-            openModal(html, 'duplicateModal');
-        };
-
-        window.selectDuplicate = (id) => {
-            closeModal('duplicateModal');
-            const user = state.participants.find(p => p.firebaseId === id);
-            if(user) handleTicketAuth(user);
-        };
-
-        const openEditUserModal = (user) => {
-            closeModal('ticketModal');
-            const html = `
-                <h3 class="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3 royal-font uppercase tracking-tight"><i class="fas fa-user-pen text-emerald-600"></i> Perbarui Profil</h3>
-                <div class="space-y-6">
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block pl-2">Nama Lengkap</label><input id="editName" type="text" value="${user.name}" class="form-input w-full rounded-2xl p-4 font-black uppercase"></div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block pl-2">Kategori</label><select id="editStatus" class="form-input w-full rounded-2xl p-4 font-black"><option value="Orangtua" ${user.status==='Orangtua'?'selected':''}>Orangtua</option><option value="Pemuda" ${user.status==='Pemuda'?'selected':''}>Pemuda</option><option value="Sekolah Minggu" ${user.status==='Sekolah Minggu'?'selected':''}>Sekolah Minggu</option><option value="Tamu" ${user.status==='Tamu'?'selected':''}>Tamu</option></select></div>
-                        <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block pl-2">Marga</label>
-                            <select id="editMarga" class="form-input w-full rounded-2xl p-4 font-black">
-                                <option value="Purba Sidadolog" ${user.marga==='Purba Sidadolog'?'selected':''}>Purba Sidadolog</option>
-                                <option value="Purba Sidagambir" ${user.marga==='Purba Sidagambir'?'selected':''}>Purba Sidagambir</option>
-                                <option value="Boru" ${user.marga==='Boru'?'selected':''}>Boru</option>
-                                <option value="Panagolan" ${user.marga==='Panagolan'?'selected':''}>Panagolan</option>
-                                <option value="Tamu Undangan" ${user.marga==='Tamu Undangan'?'selected':''}>Tamu Undangan</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block pl-2">PIN Keamanan</label>
-                        <input id="editPass" type="password" inputmode="numeric" maxlength="8" value="${user.password}" class="form-input w-full rounded-2xl p-4 font-black text-center text-3xl tracking-[0.5em]">
-                        <div id="editPinHint" class="text-[9px] font-bold mt-2 pl-2 text-emerald-500 uppercase tracking-widest transition-colors">PIN Valid ✓</div>
-                    </div>
-                    <div class="pt-6 grid grid-cols-2 gap-4"><button onclick="document.getElementById('editUserModal').classList.add('hidden')" class="py-4 border-2 border-slate-100 rounded-2xl font-black text-slate-400 text-xs uppercase">Batal</button><button id="btnSaveEdit" class="py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-xl text-xs uppercase">Simpan</button></div>
-                </div>
-            `;
-            openModal(html, 'editUserModal');
-            setupPinValidation('editPass', 'editPinHint');
-            
-            const saveBtn = document.getElementById('btnSaveEdit');
-            if(saveBtn) {
-                saveBtn.onclick = () => {
-                    const n = document.getElementById('editName').value.trim().toUpperCase(), s = document.getElementById('editStatus').value, m = document.getElementById('editMarga').value, p = document.getElementById('editPass').value;
-                    if (!n) return showToast("Nama Kosong", "Gagal menyimpan: Nama tidak boleh kosong.", "error");
-                    if (p.length < 6) return showToast("PIN Invalid", "Gagal menyimpan: PIN minimal 6 digit.", "error");
-                    
-                    const uId = user.firebaseId || state.participants.find(x => x.qrCode === user.qrCode)?.firebaseId;
-                    if(!uId) return alert("Data tidak ditemukan");
-                    update(ref(db, 'participants/' + uId), { name: n, status: s, marga: m, password: p }).then(() => { 
-                        showToast("Profil Diperbarui", `Data untuk ${n} berhasil disimpan.`); 
-                        closeModal('editUserModal'); 
-                        if(state.tab !== 'data') window.showTicket({...user, name: n, status: s, marga: m, password: p, firebaseId: uId}); 
-                    });
-                };
-            }
-        };
-
-        const handleDownloadTicket = () => {
-            const card = document.getElementById('vipTicketCard');
-            if(!card) return;
-            html2canvas(card, { scale: 3, backgroundColor: '#0f172a' }).then(canvas => {
-                const link = document.createElement('a'); link.download = `Tiket_Bonataon_${state.activeUser.name}.png`; link.href = canvas.toDataURL(); link.click();
-            });
-        };
-
-        // --- ADMIN LOGIN & UI ---
-        const renderAdminLogin = () => {
-            const html = `
-                <div class="text-center mb-8"><div class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner transform rotate-12"><i class="fas fa-lock text-3xl"></i></div><h3 class="text-2xl font-black text-slate-800 tracking-tight uppercase royal-font">Akses Panitia</h3><p class="text-[10px] text-slate-400 font-black uppercase mt-2 tracking-[0.2em]">Verifikasi Keamanan</p></div>
-                <input type="password" id="adminPassword" placeholder="••••••••" maxlength="12" class="form-input w-full rounded-2xl p-5 text-center text-4xl font-black mb-6 tracking-[0.5em] shadow-inner">
-                <button id="btnLoginAdmin" class="w-full py-5 bg-emerald-600 text-white rounded-[1.5rem] font-black hover:bg-emerald-700 transition-all shadow-xl uppercase tracking-widest">MASUK</button>
-                <div class="mt-6 text-center"><button id="btnForgotAdmin" class="text-xs font-black text-emerald-600 uppercase tracking-widest underline underline-offset-8">Lupa PIN Admin?</button></div>
-            `;
-            openModal(html, 'adminModal');
-            const loginBtn = document.getElementById('btnLoginAdmin');
-            if(loginBtn) {
-                loginBtn.onclick = () => {
-                    const pin = document.getElementById('adminPassword').value;
-                    if (pin === state.adminPass) { state.isAdmin = true; state.isStaff = false; closeModal('adminModal'); refreshUI(); setTab('report'); } 
-                    else { const staff = state.staff.find(s => s.pin === pin); if (staff) { state.isStaff = true; state.isAdmin = false; closeModal('adminModal'); refreshUI(); setTab('scan'); } else { alert("PIN Salah!"); } }
-                };
-            }
-            const forgotBtn = document.getElementById('btnForgotAdmin');
-            if(forgotBtn) forgotBtn.onclick = renderAdminRecovery;
-        };
-
-        const renderAdminRecovery = () => {
-            closeModal('adminModal');
-            const html = `
-                <div class="text-center mb-8">
-                    <div class="w-20 h-20 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner"><i class="fas fa-shield-halved text-3xl"></i></div>
-                    <h3 class="text-2xl font-black text-slate-800 uppercase royal-font tracking-tight">Recovery Admin</h3>
-                    <p class="text-[10px] text-slate-400 font-black uppercase mt-2 tracking-widest">Gunakan Kode Pemulihan Anda</p>
-                </div>
-                <div class="space-y-6">
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block pl-2">Kode Pemulihan</label>
-                        <input id="recKey" type="password" placeholder="Kode Pemulihan" class="form-input w-full rounded-2xl p-4 font-black uppercase tracking-widest text-center border-slate-200">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block pl-2">PIN Admin Baru</label>
-                        <input id="recNewPin" type="password" inputmode="numeric" maxlength="12" placeholder="••••••••" class="form-input w-full rounded-2xl p-4 font-black text-center text-2xl tracking-[0.5em]">
-                        <div id="recPinHint" class="text-[9px] font-bold mt-2 pl-2 text-slate-400 uppercase tracking-widest">Min. 6 Digit Angka</div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 pt-4">
-                        <button onclick="closeModal('recoveryModal'); renderAdminLogin();" class="py-5 border-2 border-slate-100 rounded-2xl font-black text-slate-400 text-xs uppercase tracking-widest">Batal</button>
-                        <button id="btnSubmitRecovery" class="py-5 bg-emerald-600 text-white rounded-2xl font-black shadow-xl text-xs uppercase tracking-widest">Reset PIN</button>
-                    </div>
-                </div>
-            `;
-            openModal(html, 'recoveryModal');
-            setupPinValidation('recNewPin', 'recPinHint');
-            
-            document.getElementById('btnSubmitRecovery').onclick = () => {
-                const key = document.getElementById('recKey').value.trim();
-                const newPin = document.getElementById('recNewPin').value;
-                
-                if (key !== state.recoveryKey) {
-                    showToast("Recovery Gagal", "Kode Pemulihan Salah!", "error");
-                    return;
-                }
-                
-                if (newPin.length < 6) {
-                    showToast("Input Invalid", "PIN Baru minimal 6 digit!", "error");
-                    return;
-                }
-                
-                set(ref(db, 'settings/adminPin'), newPin).then(() => {
-                    showToast("PIN Berhasil Diperbarui", "Gunakan PIN baru untuk akses admin.");
-                    closeModal('recoveryModal');
-                    renderAdminLogin();
-                }).catch(err => {
-                    alert("Gagal memperbarui PIN: " + err.message);
+      // Load / init
+      function loadData() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          try {
+            meetings = JSON.parse(stored);
+            meetings.forEach(meeting => {
+              meeting.sections?.forEach(section => {
+                section.tasks?.forEach(task => {
+                  if (task.progress === undefined) task.progress = 0;
+                  if (task.pic === undefined) task.pic = '';
                 });
-            };
-        };
-
-        const refreshUI = () => {
-            const roleBadge = document.getElementById('roleBadge'), logoutBtn = document.getElementById('nav-logout'), navItems = document.querySelectorAll('.nav-btn');
-            if (state.isAdmin || state.isStaff) { if(roleBadge) { roleBadge.classList.remove('hidden'); roleBadge.innerText = state.isAdmin ? "Mode Administrator" : "Petugas Lapangan"; } if(logoutBtn) logoutBtn.classList.remove('hidden'); } 
-            else { if(roleBadge) roleBadge.classList.add('hidden'); if(logoutBtn) logoutBtn.classList.add('hidden'); }
-            navItems.forEach(btn => {
-                const isStaffT = btn.classList.contains('staff-tab'), isAdminT = btn.classList.contains('admin-tab'), isPublicT = btn.classList.contains('public-tab');
-                if (state.isAdmin) btn.classList.remove('hidden');
-                else if (state.isStaff) { if (isStaffT || isPublicT) btn.classList.remove('hidden'); else btn.classList.add('hidden'); }
-                else { if (isPublicT) btn.classList.remove('hidden'); else btn.classList.add('hidden'); }
+              });
             });
-        };
+          } catch (e) {
+            meetings = defaultMeetings;
+          }
+        } else {
+          meetings = defaultMeetings;
+        }
+        saveData();
+      }
+      function saveData() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(meetings));
+      }
 
-        // --- REPORT & CHARTS ---
-        const renderReport = () => {
-            const area = document.getElementById('content-area'), recentL = state.attendance.slice(-10).reverse();
-            if(!area) return;
-            area.innerHTML = `
-                <div class="space-y-8 animate-[modalUp_0.5s]">
-                    <div class="flex justify-between items-center px-4"><h3 class="text-2xl font-black text-slate-800 royal-font uppercase tracking-tight flex items-center gap-3"><span class="live-dot"></span> Live Monitoring</h3></div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100"><h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Demografi Peserta</h4><div class="relative aspect-square"><canvas id="catChart"></canvas></div></div>
-                        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col max-h-[400px]"><h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Log Kehadiran</h4><div class="flex-1 overflow-y-auto pr-2 space-y-3 no-scrollbar">${recentL.map(l => `<div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-lg"><i class="fas fa-check text-xs"></i></div><div><div class="font-black text-slate-800 text-xs uppercase">${l.name}</div><div class="text-[9px] text-slate-400 font-bold mt-1">${l.timestamp}</div></div></div>`).join('') || '<div class="text-center py-20 text-slate-300 font-black text-[10px] uppercase">Belum Ada Data</div>'}</div></div>
-                    </div>
-                    <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
-                        <div class="flex flex-wrap justify-between items-center gap-5 mb-8"><h4 class="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3"><i class="fas fa-list-check text-emerald-600"></i> Detail Kehadiran</h4><div class="relative w-full md:w-64"><input type="text" id="repSearch" value="${state.reportSearch}" placeholder="CARI PESERTA..." class="form-input w-full rounded-2xl py-3 px-10 text-[10px] font-black uppercase shadow-sm"><i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-[10px]"></i></div></div>
-                        <div class="overflow-x-auto"><table class="w-full text-left text-[10px]"><thead class="bg-slate-50 text-slate-400 font-black uppercase tracking-widest border-b border-slate-100"><tr><th class="p-4">Peserta</th><th class="p-4">Kategori</th><th class="p-4">Status</th><th class="p-4">Waktu</th></tr></thead><tbody class="divide-y divide-slate-50">${state.participants.filter(p => p.name.toLowerCase().includes(state.reportSearch.toLowerCase())).map(p => { const log = state.attendance.find(a => a.qrCode === p.qrCode); return `<tr><td class="p-4"><div class="font-black text-slate-800 text-[11px] uppercase">${p.name}</div><div class="text-[8px] font-bold text-slate-400 mt-0.5">${p.marga}</div></td><td class="p-4 font-bold text-slate-500 uppercase">${p.status}</td><td class="p-4">${log ? '<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-wider">HADIR</span>' : '<span class="bg-slate-100 text-slate-300 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-wider">BELUM</span>'}</td><td class="p-4 font-mono font-bold text-slate-400">${log ? log.timestamp.split(',')[1] : '-'}</td></tr>`; }).join('')}</tbody></table></div>
-                    </div>
-                </div>
-            `;
-            const searchIn = document.getElementById('repSearch');
-            if(searchIn) searchIn.onkeyup = (e) => { state.reportSearch = e.target.value; renderReport(); };
-            
-            const chartCanvas = document.getElementById('catChart');
-            if(chartCanvas) {
-                const ctx = chartCanvas.getContext('2d');
-                const labels = ['Orangtua', 'Pemuda', 'Sekolah Minggu', 'Tamu'], data = labels.map(l => state.participants.filter(p => p.status === l).length);
-                if (state.charts.catChart) state.charts.catChart.destroy();
-                state.charts.catChart = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: ['#064e3b', '#10b981', '#34d399', '#f59e0b'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { weight: '800', size: 10 }, padding: 20 } } }, cutout: '70%' } });
-            }
-        };
+      function genId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 8); }
 
-        // --- ADMIN PANEL ---
-        const renderAdmin = () => {
-            const area = document.getElementById('content-area');
-            if(!area) return;
+      // Utility
+      function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+      function formatDate(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }); }
+      function translateStatus(st) { const map = { selesai:'Selesai', berlangsung:'Berlangsung', rencana:'Rencana', kendala:'Kendala' }; return map[st] || st; }
 
-            const generateRows = () => {
-                return state.participants.filter(p => p.name.toLowerCase().includes(state.adminSearch.toLowerCase()) && (state.filterStatus==='Semua' || p.status===state.filterStatus)).map(p => `<tr><td class="p-6"><div class="font-black text-slate-800 text-sm uppercase">${p.name}</div><div class="text-[9px] font-mono text-emerald-500 mt-1 font-bold">${p.qrCode}</div></td><td class="p-6"><span class="bg-slate-100 px-3 py-1 rounded-full font-black text-slate-500">${p.status}</span></td><td class="p-6 text-center flex justify-center gap-2">
-                            <button onclick="window.adminEditPart('${p.firebaseId}')" class="text-blue-500 hover:text-blue-600 w-9 h-9 flex items-center justify-center bg-blue-50 rounded-xl shadow-sm border border-blue-100" title="Edit Data"><i class="fas fa-pen text-xs"></i></button>
-                            <button onclick="window.adminResetPIN('${p.firebaseId}', '${p.name}')" class="text-amber-500 hover:text-amber-600 w-9 h-9 flex items-center justify-center bg-amber-50 rounded-xl shadow-sm border border-amber-100" title="Reset PIN"><i class="fas fa-key text-xs"></i></button>
-                            <button onclick="window.adminDeletePart('${p.firebaseId}')" class="text-red-400 hover:text-red-600 w-9 h-9 flex items-center justify-center bg-red-50 rounded-xl shadow-sm border border-red-100" title="Hapus"><i class="fas fa-trash text-xs"></i></button>
-                        </td></tr>`).join('');
-            };
+      // Render sidebar
+      function renderSidebar() {
+        const container = document.getElementById('meetingList');
+        container.innerHTML = '';
+        meetings.forEach(m => {
+          const div = document.createElement('div');
+          div.className = `meeting-item ${m.id === currentMeetingId ? 'active' : ''}`;
+          div.dataset.id = m.id;
+          div.innerHTML = `
+            <div class="meeting-title">${escapeHtml(m.title)}</div>
+            <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
+          `;
+          div.addEventListener('click', () => {
+            currentMeetingId = m.id;
+            selectedSectionFilter = 'ALL';
+            renderSidebar();
+            renderDetail();
+            updateExportButtons();
+          });
+          container.appendChild(div);
+        });
+      }
 
-            const activeEl = document.activeElement;
-            const isSearchFocused = activeEl && activeEl.id === 'admSearch';
-            const cursorStart = isSearchFocused ? activeEl.selectionStart : 0;
-            const cursorEnd = isSearchFocused ? activeEl.selectionEnd : 0;
+      function updateExportButtons() {
+        const disabled = !currentMeetingId;
+        document.getElementById('exportExcelBtn').disabled = disabled;
+        document.getElementById('exportPdfBtn').disabled = disabled;
+        document.getElementById('printBtn').disabled = disabled;
+        document.getElementById('editMeetingBtn').disabled = disabled;
+      }
 
-            area.innerHTML = `
-                <div class="space-y-8 animate-[modalUp_0.5s]">
-                    <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100">
-                        <div class="flex flex-wrap justify-between items-center gap-5 mb-10">
-                            <h3 class="text-xl font-black text-slate-800 flex items-center gap-3 tracking-tight uppercase royal-font"><i class="fas fa-crown text-emerald-600"></i> Admin Panel</h3>
-                            <div class="flex flex-wrap gap-3">
-                                <button id="btnExpAll" class="bg-amber-100 px-5 py-3 rounded-2xl text-amber-900 text-[10px] font-black uppercase tracking-widest shadow-md flex items-center gap-2 border border-amber-200">
-                                    <i class="fas fa-file-export"></i> EKSPOR SEMUA DATA
-                                </button>
-                                <button id="btnExpPart" class="bg-emerald-50 px-5 py-3 rounded-2xl text-emerald-700 text-[10px] font-black uppercase tracking-widest shadow-sm">PENDAFTAR</button>
-                                <button id="btnExpAtt" class="bg-emerald-50 px-5 py-3 rounded-2xl text-emerald-700 text-[10px] font-black uppercase tracking-widest shadow-sm">ABSENSI</button>
-                                <button id="btnExpGift" class="bg-emerald-50 px-5 py-3 rounded-2xl text-emerald-700 text-[10px] font-black uppercase tracking-widest shadow-sm">BERKAT</button>
-                                <button id="btnResetAll" class="bg-red-50 px-5 py-3 rounded-2xl text-red-700 text-[10px] font-black uppercase tracking-widest shadow-sm">RESET SISTEM</button>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10"><div class="relative"><input type="text" id="admSearch" value="${state.adminSearch}" placeholder="CARI PESERTA..." class="form-input w-full rounded-2xl py-4 px-12 text-xs font-black uppercase"><i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"></i></div><select id="admFilter" class="form-input rounded-2xl px-5 py-4 text-xs font-black bg-slate-50 border-slate-200"><option value="Semua">SEMUA KATEGORI</option><option value="Orangtua" ${state.filterStatus==='Orangtua'?'selected':''}>ORANGTUA</option><option value="Pemuda" ${state.filterStatus==='Pemuda'?'selected':''}>PEMUDA</option><option value="Sekolah Minggu" ${state.filterStatus==='Sekolah Minggu'?'selected':''}>SEKOLAH MINGGU</option><option value="Tamu" ${state.filterStatus==='Tamu'?'selected':''}>TAMU</option></select></div>
-                        <div class="overflow-x-auto rounded-3xl border border-slate-100 mb-12"><table class="w-full text-left text-[11px]"><thead class="bg-slate-50 text-slate-400 font-black uppercase tracking-widest border-b border-slate-100"><tr><th class="p-6">Informasi</th><th class="p-6">Kategori</th><th class="p-6 text-center">Aksi</th></tr></thead>
-                        <tbody id="admTableBody" class="divide-y divide-slate-50">${generateRows()}</tbody></table></div>
-                        <div class="border-t border-slate-100 pt-12"><div class="flex items-center gap-3 mb-8"><div class="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-users-gear"></i></div><h4 class="text-xs font-black text-slate-800 uppercase tracking-widest">Manajemen Staff</h4></div><div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8"><div class="md:col-span-5"><input id="stfName" type="text" placeholder="NAMA LENGKAP" class="form-input w-full rounded-2xl p-4 text-[11px] font-black uppercase shadow-inner"></div><div class="md:col-span-3"><input id="stfPin" type="password" maxlength="6" placeholder="PIN (6 DIG)" class="form-input w-full rounded-2xl p-4 text-[11px] font-black text-center shadow-inner"></div><div class="md:col-span-4"><button id="btnAddStaff" class="w-full h-full bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-black transition-all shadow-xl py-4 md:py-0">TAMBAH</button></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">${state.staff.map(s => `<div class="bg-slate-50 p-5 rounded-[1.5rem] border border-slate-100 flex justify-between items-center shadow-sm"><div><div class="font-black text-slate-800 text-[11px] uppercase tracking-wide">${s.name}</div><div class="text-[9px] text-emerald-600 font-black uppercase mt-1 bg-emerald-50 px-2 py-0.5 rounded-full inline-block border border-emerald-100">PIN: ${s.pin}</div></div><button onclick="window.adminRemoveStaff('${s.firebaseId}')" class="text-red-400 hover:text-red-600 w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-inner border border-slate-100"><i class="fas fa-trash-can text-xs"></i></button></div>`).join('') || '<div class="col-span-full text-center py-10 text-slate-300 font-black text-[10px] uppercase">Belum Ada Petugas</div>'}</div></div>
-                    </div>
-                </div>
-            `;
-            
-            if (isSearchFocused) {
-                const newSearch = document.getElementById('admSearch');
-                if (newSearch) {
-                    newSearch.focus();
-                    newSearch.setSelectionRange(cursorStart, cursorEnd);
-                }
-            }
+      // ========== EXPORT FUNCTIONS ==========
+      function getCurrentMeeting() {
+        return meetings.find(m => m.id === currentMeetingId);
+      }
 
-            const searchIn = document.getElementById('admSearch');
-            const filterIn = document.getElementById('admFilter');
-            const staffAdd = document.getElementById('btnAddStaff');
-            const expAllBtn = document.getElementById('btnExpAll');
-            const expBtn = document.getElementById('btnExpPart');
-            const expAttBtn = document.getElementById('btnExpAtt');
-            const expGiftBtn = document.getElementById('btnExpGift');
-            const resetBtn = document.getElementById('btnResetAll');
-            
-            if(searchIn) searchIn.onkeyup = (e) => { 
-                state.adminSearch = e.target.value; 
-                const tbody = document.getElementById('admTableBody');
-                if (tbody) tbody.innerHTML = generateRows();
-            };
-            
-            if(filterIn) filterIn.onchange = (e) => { 
-                state.filterStatus = e.target.value; 
-                const tbody = document.getElementById('admTableBody');
-                if (tbody) tbody.innerHTML = generateRows();
-            };
-            
-            if(staffAdd) staffAdd.onclick = handleAddStaff;
-            
-            if(expAllBtn) expAllBtn.onclick = () => {
-                if(!state.participants.length && !state.attendance.length && !state.gifts.length) {
-                    return alert("Tidak ada data untuk diekspor.");
-                }
-                exportToCSV(state.participants, "01_Data_Pendaftar_Lengkap");
-                setTimeout(() => exportToCSV(state.attendance, "02_Data_Absensi_Hadir"), 500);
-                setTimeout(() => exportToCSV(state.gifts, "03_Data_Penerima_Berkat"), 1000);
-                showToast("Ekspor Massal", "Ketiga file sedang diunduh secara berurutan.");
-            };
+      function exportToExcel() {
+        const meeting = getCurrentMeeting();
+        if (!meeting) return;
+        const data = [];
+        // Header
+        data.push(['Seksi', 'Tugas', 'Status', 'Progress (%)', 'PIC', 'Catatan']);
+        meeting.sections.forEach(section => {
+          section.tasks.forEach(task => {
+            data.push([
+              section.name,
+              task.desc,
+              translateStatus(task.status),
+              task.progress ?? 0,
+              task.pic || '-',
+              task.notes || ''
+            ]);
+          });
+        });
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Progress');
+        XLSX.writeFile(wb, `notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
+      }
 
-            if(expBtn) expBtn.onclick = () => exportToCSV(state.participants, "Pendaftar");
-            if(expAttBtn) expAttBtn.onclick = () => exportToCSV(state.attendance, "Absensi_Kehadiran");
-            if(expGiftBtn) expGiftBtn.onclick = () => exportToCSV(state.gifts, "Berkat_Diterima");
-            
-            if(resetBtn) resetBtn.onclick = () => { if (confirm("Ketik 'RESET' untuk menghapus data?")) { const v = prompt("Ketik RESET:"); if (v === 'RESET') { Promise.all([set(ref(db, 'participants'), null), set(ref(db, 'attendance'), null), set(ref(db, 'gifts'), null)]).then(() => alert("Bersih!")); } } };
-        };
-
-        const handleAddStaff = () => {
-            const nameEl = document.getElementById('stfName');
-            const pinEl = document.getElementById('stfPin');
-            const n = nameEl.value.trim().toUpperCase(), p = pinEl.value;
-            if (!n || p.length < 6) return alert("Validasi Gagal!");
-            push(ref(db, 'staff'), { name: n, pin: p }).then(() => { 
-                showToast("Staff Ditambah", n); 
-                nameEl.value = ''; 
-                pinEl.value = ''; 
-            });
-        };
-
-        const exportToCSV = (data, name) => {
-            if(!data.length) return; 
-            const cleanData = data.map(({ firebaseId, password, ...rest }) => rest);
-            const headers = Object.keys(cleanData[0] || {}), rows = cleanData.map(o => headers.map(h => `"${o[h]}"`).join(","));
-            const content = "\ufeff" + headers.join(",") + "\n" + rows.join("\n"), blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${name}_Bonataon2026.csv`; link.click();
-        };
-
-        window.adminEditPart = (id) => {
-            const user = state.participants.find(p => p.firebaseId === id);
-            if(user) openEditUserModal(user);
-        };
-
-        window.adminResetPIN = (id, name) => {
-            const html = `
-                <div class="text-center mb-8">
-                    <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6"><i class="fas fa-key text-2xl"></i></div>
-                    <h3 class="text-xl font-black text-slate-800 uppercase royal-font">Reset PIN Peserta</h3>
-                    <p class="text-[10px] text-slate-400 font-black uppercase mt-2 tracking-widest">${name}</p>
-                </div>
-                <div class="space-y-6">
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block pl-2">PIN Baru (6-8 Digit)</label>
-                        <input id="newPartPin" type="password" inputmode="numeric" maxlength="8" placeholder="••••••••" class="form-input w-full rounded-2xl p-4 font-black text-center text-3xl tracking-[0.5em] shadow-inner">
-                        <div id="resetPinHint" class="text-[9px] font-bold mt-2 pl-2 text-slate-400 uppercase tracking-widest">Min. 6 Digit Angka</div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 pt-4">
-                        <button onclick="closeModal('resetPinModal')" class="py-4 border-2 border-slate-100 rounded-2xl font-black text-slate-400 text-[10px] uppercase tracking-widest">Batal</button>
-                        <button id="btnConfirmReset" class="py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-xl text-[10px] uppercase tracking-widest">Simpan</button>
-                    </div>
-                </div>
-            `;
-            openModal(html, 'resetPinModal');
-            setupPinValidation('newPartPin', 'resetPinHint');
-            
-            document.getElementById('btnConfirmReset').onclick = () => {
-                const pin = document.getElementById('newPartPin').value;
-                if (pin.length < 6) {
-                    showToast("Input Invalid", "PIN minimal 6 digit!", "error");
-                    return;
-                }
-                update(ref(db, 'participants/' + id), { password: pin }).then(() => {
-                    showToast("PIN Berhasil Direset", `PIN untuk ${name} telah diperbarui.`);
-                    closeModal('resetPinModal');
-                }).catch(err => alert("Gagal: " + err.message));
-            };
-        };
-
-        window.adminDeletePart = (id) => { if (confirm("Hapus?")) remove(ref(db, 'participants/' + id)); };
-        window.adminRemoveStaff = (id) => { if (confirm("Hapus Staff?")) remove(ref(db, 'staff/' + id)); };
-
-        // --- SCANNER LOGIC ---
-        const renderScan = (type) => {
-            const area = document.getElementById('content-area');
-            if(!area) return;
-            area.innerHTML = `
-                <div class="bg-white rounded-[2.5rem] p-10 shadow-2xl text-center border border-slate-100 animate-[modalUp_0.5s]">
-                    <h3 class="font-black mb-8 text-slate-800 tracking-tight uppercase royal-font text-2xl">SCAN ${type === 'scan' ? 'KEHADIRAN' : 'BERKAT'}</h3>
-                    <div id="scanMsg" class="hidden p-5 rounded-2xl mb-8 text-white font-black shadow-xl animate-bounce"></div>
-                    <div class="relative rounded-[2.5rem] overflow-hidden bg-black aspect-square max-w-sm mx-auto mb-10 shadow-2xl border-4 border-emerald-500/20"><div id="qrReader"></div></div>
-                    <button id="btnManual" class="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-xs shadow-2xl flex items-center justify-center gap-4 hover:bg-black transition-all uppercase tracking-widest"><i class="fas fa-keyboard"></i> INPUT MANUAL</button>
-                </div>
-            `;
-            
-            state.scanner = new Html5Qrcode("qrReader");
-            
-            const scanConfig = { 
-                fps: 30,
-                qrbox: (viewfinderWidth, viewfinderHeight) => {
-                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                    return { width: Math.floor(minEdge * 0.7), height: Math.floor(minEdge * 0.7) };
-                },
-                aspectRatio: 1.0,
-                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
-                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-            };
-
-            state.scanner.start(
-                { facingMode: "environment" }, 
-                scanConfig, 
-                (text) => handleScanProcess(text.trim().toUpperCase(), type)
-            ).catch(e => {
-                console.error("Scanner Error:", e);
-            });
-
-            const manualBtn = document.getElementById('btnManual');
-            if(manualBtn) manualBtn.onclick = () => { const code = prompt("Masukkan Kode (MN-XXXX):"); if (code) handleScanProcess(code.trim().toUpperCase(), type); };
-        };
-
-        const handleScanProcess = (code, type) => {
-            if (state.isProcessingScan) return; state.isProcessingScan = true;
-            const msg = document.getElementById('scanMsg'), p = state.participants.find(x => x.qrCode === code);
-            if (!p) { 
-                if(msg) {
-                    msg.innerText = "TIDAK TERDAFTAR!"; 
-                    msg.className = "p-5 rounded-2xl mb-8 bg-red-600 text-white font-black block"; 
-                    setTimeout(() => { if(msg) msg.classList.add('hidden'); state.isProcessingScan = false; }, 3000); 
-                } else { state.isProcessingScan = false; }
-                return; 
-            }
-            const path = type === 'scan' ? 'attendance' : 'gifts', list = type === 'scan' ? state.attendance : state.gifts;
-            if (list.some(l => l.qrCode === code)) { 
-                if(msg) {
-                    msg.innerText = "SUDAH TERDATA!"; 
-                    msg.className = "p-5 rounded-2xl mb-8 bg-amber-500 text-white font-black block"; 
-                    setTimeout(() => { if(msg) msg.classList.add('hidden'); state.isProcessingScan = false; }, 3000); 
-                } else { state.isProcessingScan = false; }
-                return; 
-            }
-            push(ref(db, path), { name: p.name, qrCode: code, timestamp: new Date().toLocaleString() }).then(() => { 
-                if(msg) {
-                    msg.innerText = `SUKSES: ${p.name}!`; 
-                    msg.className = "p-5 rounded-2xl mb-8 bg-emerald-600 text-white font-black block"; 
-                    showToast("Berhasil!", p.name); 
-                    setTimeout(() => { if(msg) msg.classList.add('hidden'); state.isProcessingScan = false; }, 3000); 
-                } else { state.isProcessingScan = false; }
-            });
-        };
-
-        // --- DATA LISTENERS ---
-        onValue(ref(db, 'participants'), s => { state.participants = s.val() ? Object.keys(s.val()).map(k => ({...s.val()[k], firebaseId: k})) : []; updateDashboard(); });
-        onValue(ref(db, 'attendance'), s => { state.attendance = s.val() ? Object.values(s.val()) : []; updateDashboard(); });
-        onValue(ref(db, 'gifts'), s => { state.gifts = s.val() ? Object.values(s.val()) : []; updateDashboard(); });
-        onValue(ref(db, 'staff'), s => { state.staff = s.val() ? Object.keys(s.val()).map(k => ({...s.val()[k], firebaseId: k})) : []; updateDashboard(); });
-        onValue(ref(db, 'settings/adminPin'), s => { if (s.val()) state.adminPass = s.val(); });
-
-        // Clock
-        setInterval(() => { const el = document.getElementById('liveClock'); if (!el) return; const now = new Date(); el.innerHTML = `<div class="text-[10px] font-black opacity-60 uppercase tracking-widest mb-1">${now.toLocaleDateString('id-ID', {day:'numeric', month:'short'})}</div><div class="text-2xl font-black">${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}</div>`; }, 1000);
-
-        // Events
-        const trigger = document.getElementById('adminTrigger');
-        if(trigger) trigger.onclick = renderAdminLogin;
+      function exportToPDF() {
+        const meeting = getCurrentMeeting();
+        if (!meeting) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text(meeting.title, 14, 20);
+        doc.setFontSize(11);
+        doc.text(`Tanggal: ${formatDate(meeting.date)}`, 14, 28);
+        doc.text(`Informasi: ${meeting.info || '-'}`, 14, 35);
         
-        const navReg = document.getElementById('nav-register'),
-              navFind = document.getElementById('nav-find'),
-              navScan = document.getElementById('nav-scan'),
-              navGift = document.getElementById('nav-gift'),
-              navRep = document.getElementById('nav-report'),
-              navData = document.getElementById('nav-data'),
-              navLogout = document.getElementById('nav-logout');
+        const tableData = [];
+        meeting.sections.forEach(section => {
+          section.tasks.forEach(task => {
+            tableData.push([
+              section.name,
+              task.desc,
+              translateStatus(task.status),
+              (task.progress ?? 0).toString(),
+              task.pic || '-',
+              task.notes || ''
+            ]);
+          });
+        });
+        doc.autoTable({
+          head: [['Seksi', 'Tugas', 'Status', 'Prog(%)', 'PIC', 'Catatan']],
+          body: tableData,
+          startY: 45,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [249, 115, 22] } // orange
+        });
+        doc.save(`notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+      }
 
-        if(navReg) navReg.onclick = () => setTab('register');
-        if(navFind) navFind.onclick = () => setTab('find');
-        if(navScan) navScan.onclick = () => setTab('scan');
-        if(navGift) navGift.onclick = () => setTab('gift');
-        if(navRep) navRep.onclick = () => setTab('report');
-        if(navData) navData.onclick = () => setTab('data');
-        if(navLogout) navLogout.onclick = () => { if (confirm("Keluar?")) { state.isAdmin = false; state.isStaff = false; refreshUI(); setTab('register'); } };
+      function printMeeting() {
+        window.print();
+      }
 
-        setTab('register'); refreshUI();
-        window.closeModal = closeModal;
-        window.renderAdminLogin = renderAdminLogin;
-    </script>
+      // ========== RENDER DASHBOARD & DETAIL ==========
+      function renderDashboard(meeting) {
+        if (!meeting.sections) return '';
+        const sections = meeting.sections;
+        let totalTasks = 0, totalProgress = 0, taskCountByStatus = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
+        const sectionProgress = [];
+
+        sections.forEach(sec => {
+          let secTotal = 0, secSum = 0;
+          sec.tasks.forEach(task => {
+            totalTasks++;
+            secSum += task.progress || 0;
+            taskCountByStatus[task.status] = (taskCountByStatus[task.status] || 0) + 1;
+          });
+          const avg = sec.tasks.length ? (secSum / sec.tasks.length) : 0;
+          sectionProgress.push({ id: sec.id, name: sec.name, progress: avg, taskCount: sec.tasks.length });
+          totalProgress += secSum;
+        });
+
+        const overallAvg = totalTasks ? (totalProgress / totalTasks) : 0;
+
+        let html = `
+          <div class="dashboard-card">
+            <div class="dashboard-title"><i class="fas fa-chart-pie"></i> Dashboard Progress</div>
+            <div class="stats-grid">
+              <div class="stat-item"><span class="stat-label">Total Tugas</span><div class="stat-value">${totalTasks}</div></div>
+              <div class="stat-item"><span class="stat-label">Rata-rata Progress</span><div class="stat-value">${Math.round(overallAvg)}%</div></div>
+              <div class="stat-item"><span class="stat-label">Selesai</span><div class="stat-value" style="color:#14633b;">${taskCountByStatus.selesai || 0}</div></div>
+              <div class="stat-item"><span class="stat-label">Berlangsung</span><div class="stat-value" style="color:#9e5e04;">${taskCountByStatus.berlangsung || 0}</div></div>
+              <div class="stat-item"><span class="stat-label">Rencana</span><div class="stat-value" style="color:#0a5585;">${taskCountByStatus.rencana || 0}</div></div>
+              <div class="stat-item"><span class="stat-label">Kendala</span><div class="stat-value" style="color:#b13e2d;">${taskCountByStatus.kendala || 0}</div></div>
+            </div>
+            <div class="progress-section-list">
+        `;
+
+        sectionProgress.forEach(sp => {
+          html += `
+            <div class="section-progress-item">
+              <span class="section-progress-name">${escapeHtml(sp.name)}</span>
+              <div class="section-progress-bar"><div class="section-progress-fill" style="width: ${sp.progress}%;"></div></div>
+              <span class="section-progress-percent">${Math.round(sp.progress)}%</span>
+            </div>
+          `;
+        });
+
+        html += `
+            </div>
+            <div class="filter-row">
+              <span class="filter-label"><i class="fas fa-filter"></i> Tampilkan seksi:</span>
+              <select id="sectionFilterSelect" class="section-filter-select">
+                <option value="ALL">Semua Seksi</option>
+        `;
+        sections.forEach(sec => {
+          html += `<option value="${sec.id}" ${selectedSectionFilter === sec.id ? 'selected' : ''}>${escapeHtml(sec.name)}</option>`;
+        });
+        html += `
+              </select>
+              <button class="reset-filter" id="resetFilterBtn">Reset</button>
+            </div>
+          </div>
+        `;
+        return html;
+      }
+
+      function renderFilteredSections(meeting) {
+        if (!meeting.sections) return '';
+        let sectionsToRender = meeting.sections;
+        if (selectedSectionFilter !== 'ALL') {
+          sectionsToRender = meeting.sections.filter(s => s.id === selectedSectionFilter);
+        }
+        if (sectionsToRender.length === 0) return '<p>Tidak ada seksi.</p>';
+
+        let html = '';
+        sectionsToRender.forEach(section => {
+          html += renderSectionCard(meeting.id, section);
+        });
+        return html;
+      }
+
+      function renderSectionCard(meetingId, section) {
+        let tasksHtml = '';
+        section.tasks?.forEach(task => {
+          const statusClass = `status-${task.status}`;
+          const progress = task.progress ?? 0;
+          const pic = task.pic || '—';
+          tasksHtml += `
+            <div class="task-item">
+              <div class="task-row">
+                <div class="task-status"><span class="status-badge ${statusClass}">${translateStatus(task.status)}</span></div>
+                <div class="task-desc">${escapeHtml(task.desc)}</div>
+                <div class="task-pic"><i class="fas fa-user"></i> ${escapeHtml(pic)}</div>
+                <div class="progress-container">
+                  <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${progress}%;"></div></div>
+                  <span class="progress-percent">${progress}%</span>
+                </div>
+                <div class="task-actions">
+                  <button id="edit-task-${task.id}" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                  <button id="del-task-${task.id}" title="Hapus"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+              ${task.notes ? `<div style="font-size:0.8rem; color:#6a7f9b; margin-top:6px; margin-left: 110px;"><i class="fas fa-comment"></i> ${escapeHtml(task.notes)}</div>` : ''}
+            </div>
+          `;
+        });
+
+        return `
+          <div class="section-card">
+            <div class="section-title">
+              <h4>${escapeHtml(section.name)}</h4>
+              <div class="section-actions">
+                <button id="edit-section-${section.id}" title="Edit seksi"><i class="fas fa-edit"></i></button>
+                <button id="del-section-${section.id}" title="Hapus seksi"><i class="fas fa-times-circle"></i></button>
+              </div>
+            </div>
+            <div class="task-list">
+              ${tasksHtml || '<div style="color:#9fb3cc; padding:8px;">Belum ada tugas</div>'}
+            </div>
+            <button class="add-task-btn" id="add-task-${section.id}"><i class="fas fa-plus-circle"></i> Tambah tugas</button>
+          </div>
+        `;
+      }
+
+      function renderDetail() {
+        const content = document.getElementById('contentArea');
+        const headerTitle = document.getElementById('meetingTitle');
+        const headerDate = document.getElementById('meetingDate');
+
+        if (!currentMeetingId) {
+          headerTitle.innerText = 'Pilih rapat';
+          headerDate.innerHTML = '';
+          content.innerHTML = `<div style="text-align: center; color: #778faa; margin-top: 60px;"><i class="fas fa-arrow-left"></i> Pilih rapat dari sidebar atau buat baru</div>`;
+          return;
+        }
+
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+
+        headerTitle.innerText = meeting.title;
+        headerDate.innerHTML = `<i class="far fa-calendar-alt"></i> ${formatDate(meeting.date)}`;
+
+        let html = `
+          <div class="info-card">
+            <div style="font-weight: 600; margin-bottom: 10px; color:#163a57;"><i class="fas fa-info-circle"></i> Informasi rapat</div>
+            <div class="info-grid">
+              <div class="info-item"><i class="fas fa-tag"></i> ${meeting.info || 'Tidak ada catatan'}</div>
+            </div>
+          </div>
+        `;
+
+        html += renderDashboard(meeting);
+        html += `
+          <div class="section-header">
+            <h3><i class="fas fa-layer-group"></i> ${selectedSectionFilter === 'ALL' ? 'Semua Seksi' : 'Detail Seksi'}</h3>
+            <button class="btn-add-section" id="addSectionBtn"><i class="fas fa-plus"></i> Seksi baru</button>
+          </div>
+        `;
+        html += renderFilteredSections(meeting);
+
+        content.innerHTML = html;
+
+        // Event listeners
+        document.getElementById('addSectionBtn')?.addEventListener('click', () => openSectionModal(null));
+
+        const filterSelect = document.getElementById('sectionFilterSelect');
+        if (filterSelect) {
+          filterSelect.addEventListener('change', (e) => {
+            selectedSectionFilter = e.target.value;
+            renderDetail();
+          });
+        }
+        document.getElementById('resetFilterBtn')?.addEventListener('click', () => {
+          selectedSectionFilter = 'ALL';
+          renderDetail();
+        });
+
+        meeting.sections?.forEach(section => {
+          document.getElementById(`edit-section-${section.id}`)?.addEventListener('click', () => openSectionModal(section.id));
+          document.getElementById(`del-section-${section.id}`)?.addEventListener('click', () => deleteSection(section.id));
+          document.getElementById(`add-task-${section.id}`)?.addEventListener('click', () => openTaskModal(section.id, null));
+          section.tasks?.forEach(task => {
+            document.getElementById(`edit-task-${task.id}`)?.addEventListener('click', () => openTaskModal(section.id, task.id));
+            document.getElementById(`del-task-${task.id}`)?.addEventListener('click', () => deleteTask(section.id, task.id));
+          });
+        });
+      }
+
+      // ========== MODAL HANDLING ==========
+      const meetingModal = document.getElementById('meetingModal');
+      const sectionModal = document.getElementById('sectionModal');
+      const taskModal = document.getElementById('taskModal');
+
+      function closeAllModals() { 
+        meetingModal.classList.remove('active');
+        sectionModal.classList.remove('active');
+        taskModal.classList.remove('active');
+      }
+
+      document.getElementById('newMeetingBtn').addEventListener('click', () => {
+        document.getElementById('modalMeetingTitle').innerText = 'Rapat baru';
+        document.getElementById('meetingNameInput').value = '';
+        document.getElementById('meetingDateInput').value = '';
+        document.getElementById('meetingInfoInput').value = '';
+        delete document.getElementById('saveMeetingModal').dataset.editId;
+        meetingModal.classList.add('active');
+      });
+
+      document.getElementById('editMeetingBtn').addEventListener('click', () => {
+        if (!currentMeetingId) return;
+        const m = meetings.find(m => m.id === currentMeetingId);
+        if (!m) return;
+        document.getElementById('modalMeetingTitle').innerText = 'Edit rapat';
+        document.getElementById('meetingNameInput').value = m.title;
+        document.getElementById('meetingDateInput').value = m.date;
+        document.getElementById('meetingInfoInput').value = m.info || '';
+        document.getElementById('saveMeetingModal').dataset.editId = m.id;
+        meetingModal.classList.add('active');
+      });
+
+      document.getElementById('cancelMeetingModal').addEventListener('click', closeAllModals);
+      document.getElementById('saveMeetingModal').addEventListener('click', () => {
+        const title = document.getElementById('meetingNameInput').value.trim();
+        const date = document.getElementById('meetingDateInput').value;
+        const info = document.getElementById('meetingInfoInput').value.trim();
+        if (!title || !date) return alert('Judul dan tanggal harus diisi');
+
+        const editId = document.getElementById('saveMeetingModal').dataset.editId;
+        if (editId) {
+          const m = meetings.find(m => m.id === editId);
+          if (m) { m.title = title; m.date = date; m.info = info; }
+        } else {
+          const newMeeting = { id: genId(), title, date, info, sections: [] };
+          meetings.push(newMeeting);
+          currentMeetingId = newMeeting.id;
+        }
+        saveData();
+        closeAllModals();
+        renderSidebar();
+        renderDetail();
+        updateExportButtons();
+      });
+
+      function openSectionModal(sectionId) {
+        currentSectionId = sectionId;
+        const modalTitle = document.getElementById('modalSectionTitle');
+        const nameInput = document.getElementById('sectionNameInput');
+        if (sectionId) {
+          const meeting = meetings.find(m => m.id === currentMeetingId);
+          const sec = meeting?.sections.find(s => s.id === sectionId);
+          if (sec) { nameInput.value = sec.name; modalTitle.innerText = 'Edit seksi'; }
+        } else {
+          nameInput.value = '';
+          modalTitle.innerText = 'Tambah seksi';
+        }
+        sectionModal.classList.add('active');
+      }
+
+      document.getElementById('cancelSectionModal').addEventListener('click', closeAllModals);
+      document.getElementById('saveSectionModal').addEventListener('click', () => {
+        if (!currentMeetingId) return;
+        const name = document.getElementById('sectionNameInput').value.trim();
+        if (!name) return alert('Nama seksi harus diisi');
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+
+        if (currentSectionId) {
+          const sec = meeting.sections.find(s => s.id === currentSectionId);
+          if (sec) sec.name = name;
+        } else {
+          meeting.sections.push({ id: genId(), name, tasks: [] });
+        }
+        saveData();
+        closeAllModals();
+        renderDetail();
+      });
+
+      function deleteSection(sectionId) {
+        if (!confirm('Hapus seksi ini?')) return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (meeting) {
+          meeting.sections = meeting.sections.filter(s => s.id !== sectionId);
+          if (selectedSectionFilter === sectionId) selectedSectionFilter = 'ALL';
+          saveData();
+          renderDetail();
+        }
+      }
+
+      function openTaskModal(sectionId, taskId) {
+        if (!currentMeetingId) return;
+        currentSectionId = sectionId;
+        currentTaskId = taskId;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const section = meeting?.sections.find(s => s.id === sectionId);
+        const task = taskId ? section?.tasks.find(t => t.id === taskId) : null;
+
+        document.getElementById('taskDescInput').value = task ? task.desc : '';
+        document.getElementById('taskStatusInput').value = task ? task.status : 'rencana';
+        document.getElementById('taskProgressInput').value = task ? (task.progress ?? 0) : 0;
+        document.getElementById('taskPicInput').value = task ? (task.pic || '') : '';
+        document.getElementById('taskNotesInput').value = task ? (task.notes || '') : '';
+        document.getElementById('modalTaskTitle').innerText = task ? 'Edit tugas' : 'Tugas baru';
+        document.getElementById('deleteTaskBtn').classList.toggle('hidden', !task);
+        taskModal.classList.add('active');
+      }
+
+      document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
+      document.getElementById('saveTaskModal').addEventListener('click', () => {
+        if (!currentMeetingId || !currentSectionId) return;
+        const desc = document.getElementById('taskDescInput').value.trim();
+        if (!desc) return alert('Deskripsi tugas harus diisi');
+        const status = document.getElementById('taskStatusInput').value;
+        const progress = parseInt(document.getElementById('taskProgressInput').value, 10) || 0;
+        const pic = document.getElementById('taskPicInput').value.trim();
+        const notes = document.getElementById('taskNotesInput').value.trim();
+
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const section = meeting?.sections.find(s => s.id === currentSectionId);
+        if (!section) return;
+
+        if (currentTaskId) {
+          const task = section.tasks.find(t => t.id === currentTaskId);
+          if (task) {
+            task.desc = desc;
+            task.status = status;
+            task.progress = progress;
+            task.pic = pic;
+            task.notes = notes;
+          }
+        } else {
+          section.tasks.push({ id: genId(), desc, status, progress, pic, notes });
+        }
+        saveData();
+        closeAllModals();
+        renderDetail();
+      });
+
+      document.getElementById('deleteTaskBtn').addEventListener('click', () => {
+        if (!currentMeetingId || !currentSectionId || !currentTaskId) return;
+        if (!confirm('Hapus tugas ini?')) return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const section = meeting?.sections.find(s => s.id === currentSectionId);
+        if (section) {
+          section.tasks = section.tasks.filter(t => t.id !== currentTaskId);
+          saveData();
+          closeAllModals();
+          renderDetail();
+        }
+      });
+
+      function deleteTask(sectionId, taskId) {
+        if (!confirm('Hapus tugas?')) return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const section = meeting?.sections.find(s => s.id === sectionId);
+        if (section) {
+          section.tasks = section.tasks.filter(t => t.id !== taskId);
+          saveData();
+          renderDetail();
+        }
+      }
+
+      window.addEventListener('click', (e) => { if (e.target.classList.contains('modal')) closeAllModals(); });
+
+      // Export buttons
+      document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+      document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
+      document.getElementById('printBtn').addEventListener('click', printMeeting);
+
+      // Init
+      loadData();
+      renderSidebar();
+      if (meetings.length > 0) {
+        currentMeetingId = meetings[0].id;
+        renderDetail();
+        updateExportButtons();
+      }
+    })();
+  </script>
 </body>
 </html>
