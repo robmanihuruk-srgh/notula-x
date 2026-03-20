@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap dari versi stabil) ===== */
+    /* ===== CSS (sama seperti sebelumnya, tidak diubah) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -111,7 +111,6 @@
       background: #1e7e34;
     }
 
-    /* Workspace list */
     .workspace-section {
       padding: 12px 16px;
       border-bottom: 1px solid var(--color-border);
@@ -1269,9 +1268,17 @@
       async function seedDefaultData() {
         if (!currentUser) return;
         try {
+          // Cek apakah sudah pernah seeding (gunakan _metadata)
+          const metaRef = db.collection('_metadata').doc('seeded');
+          const metaDoc = await metaRef.get();
+          if (metaDoc.exists) {
+            console.log('Data default sudah pernah ditambahkan.');
+            return;
+          }
+
           // Buat grup default jika belum ada
-          const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
           let workspaceId;
+          const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
           if (workspaceQuery.empty) {
             const newWorkspace = {
               name: 'Rapat Pesparawi Distrik VII',
@@ -1282,8 +1289,10 @@
             };
             const workspaceRef = await db.collection('workspaces').add(newWorkspace);
             workspaceId = workspaceRef.id;
+            console.log('Grup default dibuat:', workspaceId);
           } else {
             workspaceId = workspaceQuery.docs[0].id;
+            console.log('Grup default sudah ada:', workspaceId);
           }
 
           // Tambahkan rapat default jika belum ada
@@ -1313,9 +1322,15 @@
                 }))
               };
               await db.collection('meetings').add(meetingData);
+              console.log(`Rapat default ditambahkan: ${m.title}`);
+            } else {
+              console.log(`Rapat sudah ada: ${m.title}`);
             }
           }
-          console.log('Data default berhasil ditambahkan');
+
+          // Tandai seeding sudah selesai
+          await metaRef.set({ seeded: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+          console.log('Seeding data default selesai.');
         } catch (error) {
           console.error('Gagal menambahkan data default:', error);
         }
@@ -1329,7 +1344,7 @@
           hideLogin();
           await fetchUserRole(user.uid);
 
-          // Panggil seeding jika admin (tanpa menunggu snapshot, agar tidak infinite loop)
+          // Panggil seeding jika admin (setelah role diketahui)
           if (userRole === 'admin') {
             await seedDefaultData();
           }
