@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap, tidak berubah) ===== */
+    /* ===== CSS (lengkap) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -339,6 +339,11 @@
     .theme-btn.orange { background: linear-gradient(145deg, #f97316, #1e4a6d); }
     .theme-btn.green { background: linear-gradient(145deg, #16a34a, #1e3a5f); }
     .theme-btn.purple { background: linear-gradient(145deg, #9333ea, #0f3b5e); }
+    /* Tema baru */
+    .theme-btn.red { background: linear-gradient(145deg, #e63946, #2c3e50); }
+    .theme-btn.yellow { background: linear-gradient(145deg, #f4d03f, #1e4a6d); }
+    .theme-btn.blue { background: linear-gradient(145deg, #3498db, #2c3e50); }
+
     .user-info {
       display: flex;
       align-items: center;
@@ -1037,6 +1042,9 @@
           <div class="theme-btn orange active" data-theme="orange"></div>
           <div class="theme-btn green" data-theme="green"></div>
           <div class="theme-btn purple" data-theme="purple"></div>
+          <div class="theme-btn red" data-theme="red"></div>
+          <div class="theme-btn yellow" data-theme="yellow"></div>
+          <div class="theme-btn blue" data-theme="blue"></div>
         </div>
         <button class="btn-header" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Excel</button>
         <button class="btn-header" id="exportPdfBtn" disabled><i class="fas fa-file-pdf"></i> PDF</button>
@@ -1227,6 +1235,51 @@
             --color-text: #1e293b;
             --color-text-light: #6b4f8c;
             --color-accent: #9333ea;
+          }
+        `,
+        red: `
+          :root {
+            --color-primary: #e63946;
+            --color-primary-dark: #c62a36;
+            --color-secondary: #2c3e50;
+            --color-secondary-light: #3e5a6f;
+            --color-bg-light: #fef2f2;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #e2e8f0;
+            --color-text: #1e293b;
+            --color-text-light: #6c757d;
+            --color-accent: #e63946;
+          }
+        `,
+        yellow: `
+          :root {
+            --color-primary: #f4d03f;
+            --color-primary-dark: #e5c02c;
+            --color-secondary: #1e4a6d;
+            --color-secondary-light: #2b6f9e;
+            --color-bg-light: #fffef7;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #e2e8f0;
+            --color-text: #1e293b;
+            --color-text-light: #7f8c8d;
+            --color-accent: #f4d03f;
+          }
+        `,
+        blue: `
+          :root {
+            --color-primary: #3498db;
+            --color-primary-dark: #2980b9;
+            --color-secondary: #2c3e50;
+            --color-secondary-light: #3e5a6f;
+            --color-bg-light: #eef6fc;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #d5e6f2;
+            --color-text: #1e293b;
+            --color-text-light: #4a6f8a;
+            --color-accent: #3498db;
           }
         `
       };
