@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>Notula · Workspace + Grup + Role</title>
+  <title>Notula · Workspace + Grup + Role + Hapus Massal</title>
   <!-- Font & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (sama seperti sebelumnya, tidak diubah) ===== */
+    /* ===== CSS (lengkap, hanya ditambahkan z-index untuk modal reset password) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -138,6 +138,13 @@
     .workspace-item:hover {
       background: #fef2e7;
     }
+    .workspace-checkbox {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--color-primary);
+    }
     .workspace-name {
       flex: 1;
       font-weight: 500;
@@ -153,7 +160,6 @@
       border-radius: 20px;
       color: var(--color-text);
     }
-
     .meeting-list {
       flex: 1;
       overflow-y: auto;
@@ -182,8 +188,8 @@
     }
     .meeting-checkbox {
       flex-shrink: 0;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       cursor: pointer;
       accent-color: var(--color-primary);
     }
@@ -648,6 +654,10 @@
     .modal.active {
       display: flex;
     }
+    /* Perbaikan: modal reset password harus lebih tinggi dari login overlay */
+    #resetPasswordModal.modal {
+      z-index: 2100;
+    }
     .modal-content {
       background: white;
       width: 520px;
@@ -892,7 +902,7 @@
     </div>
   </div>
 
-  <!-- MODAL RAPAT (dengan pilihan tempat) -->
+  <!-- MODAL RAPAT -->
   <div class="modal" id="meetingModal">
     <div class="modal-content">
       <h3 id="modalMeetingTitle">Rapat baru</h3>
@@ -975,7 +985,7 @@
     </div>
   </div>
 
-  <!-- Sidebar dan panel utama -->
+  <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-header">
       <h1><i class="fas fa-book-open"></i> Notula</h1>
@@ -983,14 +993,10 @@
       <button class="btn-new-workspace" id="newWorkspaceBtn" disabled><i class="fas fa-users"></i> Buat Grup</button>
       <button class="btn-delete-selected" id="deleteSelectedBtn" disabled><i class="fas fa-trash"></i> Hapus Terpilih</button>
     </div>
-
-    <!-- Daftar Grup -->
     <div class="workspace-section">
       <h3>Grup Saya</h3>
       <div id="workspaceList"></div>
     </div>
-
-    <!-- Rapat Pribadi -->
     <div class="workspace-section">
       <h3>Rapat Pribadi</h3>
       <div id="privateMeetingList" class="meeting-list" style="padding:0;"></div>
@@ -1021,10 +1027,7 @@
         </div>
       </div>
     </div>
-
-    <div class="content" id="contentArea">
-      <!-- akan diisi oleh js -->
-    </div>
+    <div class="content" id="contentArea"></div>
   </div>
 
   <script>
@@ -1048,7 +1051,7 @@
       let meetings = [];
       let workspaces = [];
       let currentMeetingId = null;
-      let currentWorkspaceId = null; // null berarti rapat pribadi
+      let currentWorkspaceId = null;
       let currentSectionId = null;
       let currentTaskId = null;
       let selectedSectionFilter = 'ALL';
@@ -1057,8 +1060,9 @@
       let unsubscribeMeetings = null;
       let unsubscribeWorkspaces = null;
       let selectedMeetingIds = new Set();
+      let selectedWorkspaceIds = new Set();
 
-      // ========== DATA DEFAULT LENGKAP ==========
+      // ========== DATA DEFAULT LENGKAP (rapat 1 & 9 Maret) ==========
       const defaultMeetings = [
         {
           title: 'Rapat Koordinasi Panitia Pesparawi – 1 Maret 2026',
@@ -1235,6 +1239,7 @@
         resetMessage.innerText = '';
         resetPasswordModal.classList.add('active');
       });
+
       cancelResetModal.addEventListener('click', () => resetPasswordModal.classList.remove('active'));
       sendResetBtn.addEventListener('click', async () => {
         const email = resetEmailInput.value.trim();
@@ -1257,18 +1262,16 @@
           const doc = await db.collection('users').doc(uid).get();
           if (doc.exists) userRole = doc.data().role || 'member';
           else { await db.collection('users').doc(uid).set({ role: 'member' }); userRole = 'member'; }
-        } catch (e) { 
+        } catch (e) {
           console.error('Error fetching role:', e);
-          userRole = 'member'; 
+          userRole = 'member';
         }
         document.getElementById('userRole').innerText = userRole;
       }
 
-      // Fungsi untuk migrasi data default (dipanggil setelah role diketahui)
       async function seedDefaultData() {
         if (!currentUser) return;
         try {
-          // Cek apakah sudah pernah seeding (gunakan _metadata)
           const metaRef = db.collection('_metadata').doc('seeded');
           const metaDoc = await metaRef.get();
           if (metaDoc.exists) {
@@ -1276,7 +1279,6 @@
             return;
           }
 
-          // Buat grup default jika belum ada
           let workspaceId;
           const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
           if (workspaceQuery.empty) {
@@ -1289,13 +1291,10 @@
             };
             const workspaceRef = await db.collection('workspaces').add(newWorkspace);
             workspaceId = workspaceRef.id;
-            console.log('Grup default dibuat:', workspaceId);
           } else {
             workspaceId = workspaceQuery.docs[0].id;
-            console.log('Grup default sudah ada:', workspaceId);
           }
 
-          // Tambahkan rapat default jika belum ada
           for (const m of defaultMeetings) {
             const meetingQuery = await db.collection('meetings')
               .where('title', '==', m.title)
@@ -1322,13 +1321,8 @@
                 }))
               };
               await db.collection('meetings').add(meetingData);
-              console.log(`Rapat default ditambahkan: ${m.title}`);
-            } else {
-              console.log(`Rapat sudah ada: ${m.title}`);
             }
           }
-
-          // Tandai seeding sudah selesai
           await metaRef.set({ seeded: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
           console.log('Seeding data default selesai.');
         } catch (error) {
@@ -1343,23 +1337,17 @@
           document.getElementById('userInfo').style.display = 'flex';
           hideLogin();
           await fetchUserRole(user.uid);
-
-          // Panggil seeding jika admin (setelah role diketahui)
           if (userRole === 'admin') {
             await seedDefaultData();
           }
 
-          // Listener workspaces (grup yang diikuti user)
           if (unsubscribeWorkspaces) unsubscribeWorkspaces();
           unsubscribeWorkspaces = db.collection('workspaces').where('members', 'array-contains', user.uid).onSnapshot(snapshot => {
             workspaces = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderWorkspaceList();
             updateMeetingWorkspaceSelect();
-          }, error => {
-            console.error('Workspace listener error:', error);
-          });
+          }, error => console.error('Workspace listener error:', error));
 
-          // Listener meetings
           if (unsubscribeMeetings) unsubscribeMeetings();
           unsubscribeMeetings = db.collection('meetings').onSnapshot(snapshot => {
             meetings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1379,9 +1367,7 @@
             }
             updateButtonsByRole();
             updateDeleteSelectedButton();
-          }, error => {
-            console.error('Meetings listener error:', error);
-          });
+          }, error => console.error('Meetings listener error:', error));
         } else {
           currentUser = null;
           userRole = 'member';
@@ -1414,17 +1400,52 @@
         workspaces.forEach(w => {
           const div = document.createElement('div');
           div.className = `workspace-item ${currentWorkspaceId === w.id ? 'active' : ''}`;
-          div.innerHTML = `
-            <i class="fas fa-users" style="color:var(--color-primary);"></i>
-            <span class="workspace-name">${escapeHtml(w.name)}</span>
-            <span class="workspace-badge">${w.members.length}</span>
-            ${w.createdBy === currentUser?.uid ? `<button class="btn-icon" onclick="event.stopPropagation(); openManageMembers('${w.id}')" title="Kelola anggota"><i class="fas fa-cog"></i></button>` : ''}
-          `;
-          div.addEventListener('click', () => {
-            currentWorkspaceId = w.id;
-            currentMeetingId = null;
-            renderWorkspaceList();
-            renderWorkspaceMeetings(w.id);
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'workspace-checkbox';
+          checkbox.checked = selectedWorkspaceIds.has(w.id);
+          if (userRole !== 'admin') {
+            checkbox.disabled = true;
+            checkbox.style.display = 'none';
+          }
+          checkbox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (checkbox.checked) selectedWorkspaceIds.add(w.id);
+            else selectedWorkspaceIds.delete(w.id);
+            updateDeleteSelectedButton();
+          });
+
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'workspace-name';
+          nameSpan.innerText = w.name;
+          const badge = document.createElement('span');
+          badge.className = 'workspace-badge';
+          badge.innerText = w.members.length;
+          const manageBtn = document.createElement('button');
+          manageBtn.className = 'btn-icon';
+          manageBtn.innerHTML = '<i class="fas fa-cog"></i>';
+          manageBtn.title = 'Kelola anggota';
+          if (w.createdBy === currentUser?.uid) {
+            manageBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              openManageMembers(w.id);
+            });
+          } else {
+            manageBtn.disabled = true;
+            manageBtn.style.opacity = '0.5';
+          }
+
+          div.appendChild(checkbox);
+          div.appendChild(nameSpan);
+          div.appendChild(badge);
+          div.appendChild(manageBtn);
+          div.addEventListener('click', (e) => {
+            if (e.target !== checkbox && e.target !== manageBtn) {
+              currentWorkspaceId = w.id;
+              currentMeetingId = null;
+              renderWorkspaceList();
+              renderWorkspaceMeetings(w.id);
+            }
           });
           container.appendChild(div);
         });
@@ -1509,18 +1530,37 @@
         privateMeetings.forEach(m => {
           const div = document.createElement('div');
           div.className = `meeting-item ${m.id === currentMeetingId && !currentWorkspaceId ? 'active' : ''}`;
-          div.dataset.id = m.id;
-          div.innerHTML = `
-            <div class="meeting-content">
-              <div class="meeting-title">${escapeHtml(m.title)}</div>
-              <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
-            </div>
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'meeting-checkbox';
+          checkbox.checked = selectedMeetingIds.has(m.id);
+          if (userRole !== 'admin') {
+            checkbox.disabled = true;
+            checkbox.style.display = 'none';
+          }
+          checkbox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (checkbox.checked) selectedMeetingIds.add(m.id);
+            else selectedMeetingIds.delete(m.id);
+            updateDeleteSelectedButton();
+          });
+
+          const content = document.createElement('div');
+          content.className = 'meeting-content';
+          content.innerHTML = `
+            <div class="meeting-title">${escapeHtml(m.title)}</div>
+            <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
           `;
-          div.addEventListener('click', () => {
-            currentWorkspaceId = null;
-            currentMeetingId = m.id;
-            renderPrivateMeetings();
-            renderDetail(m);
+
+          div.appendChild(checkbox);
+          div.appendChild(content);
+          div.addEventListener('click', (e) => {
+            if (e.target !== checkbox) {
+              currentWorkspaceId = null;
+              currentMeetingId = m.id;
+              renderPrivateMeetings();
+              renderDetail(m);
+            }
           });
           container.appendChild(div);
         });
@@ -1537,6 +1577,7 @@
         workspaceMeetings.forEach(m => {
           html += `
             <div class="meeting-item ${m.id === currentMeetingId ? 'active' : ''}" data-id="${m.id}">
+              <input type="checkbox" class="meeting-checkbox" data-id="${m.id}" ${userRole !== 'admin' ? 'disabled' : ''}>
               <div class="meeting-content">
                 <div class="meeting-title">${escapeHtml(m.title)}</div>
                 <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
@@ -1549,10 +1590,22 @@
         workspaceMeetings.forEach(m => {
           const el = content.querySelector(`.meeting-item[data-id="${m.id}"]`);
           if (el) {
-            el.addEventListener('click', () => {
-              currentMeetingId = m.id;
-              renderWorkspaceMeetings(workspaceId);
-              renderDetail(m);
+            const cb = el.querySelector('.meeting-checkbox');
+            if (cb) {
+              cb.checked = selectedMeetingIds.has(m.id);
+              cb.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (cb.checked) selectedMeetingIds.add(m.id);
+                else selectedMeetingIds.delete(m.id);
+                updateDeleteSelectedButton();
+              });
+            }
+            el.addEventListener('click', (e) => {
+              if (e.target !== cb) {
+                currentMeetingId = m.id;
+                renderWorkspaceMeetings(workspaceId);
+                renderDetail(m);
+              }
             });
           }
         });
@@ -1731,7 +1784,7 @@
         `;
       }
 
-      // ========== CRUD Operations ==========
+      // ========== CRUD OPERATIONS ==========
       async function saveMeeting(meetingData) {
         if (userRole !== 'admin') return;
         try {
@@ -1964,22 +2017,47 @@
         closeAllModals();
       });
 
-      // ========== HAPUS MASSAL ==========
+      // ========== HAPUS TERPILIH ==========
       function updateDeleteSelectedButton() {
         const btn = document.getElementById('deleteSelectedBtn');
         if (!btn) return;
-        btn.disabled = !(userRole === 'admin' && selectedMeetingIds.size > 0);
+        btn.disabled = !(userRole === 'admin' && (selectedMeetingIds.size > 0 || selectedWorkspaceIds.size > 0));
       }
 
       async function deleteSelectedMeetings() {
-        if (userRole !== 'admin' || selectedMeetingIds.size === 0) return;
-        if (!confirm(`Hapus ${selectedMeetingIds.size} rapat terpilih?`)) return;
+        if (userRole !== 'admin') return;
+        const total = selectedMeetingIds.size + selectedWorkspaceIds.size;
+        if (total === 0) return;
+        if (!confirm(`Hapus ${total} item terpilih? (Rapat dan grup akan dihapus beserta seluruh isinya)`)) return;
+
         const promises = [];
-        selectedMeetingIds.forEach(id => promises.push(db.collection('meetings').doc(id).delete()));
+        // Hapus rapat
+        selectedMeetingIds.forEach(id => {
+          promises.push(db.collection('meetings').doc(id).delete());
+        });
+        // Hapus grup dan rapat di dalamnya
+        for (const wsId of selectedWorkspaceIds) {
+          const groupMeetings = meetings.filter(m => m.workspaceId === wsId);
+          for (const m of groupMeetings) {
+            promises.push(db.collection('meetings').doc(m.id).delete());
+          }
+          promises.push(db.collection('workspaces').doc(wsId).delete());
+        }
+
         try {
           await Promise.all(promises);
           selectedMeetingIds.clear();
+          selectedWorkspaceIds.clear();
           updateDeleteSelectedButton();
+          if (currentMeetingId && !meetings.find(m => m.id === currentMeetingId)) {
+            currentMeetingId = null;
+            renderDetail(null);
+          }
+          if (currentWorkspaceId && !workspaces.find(w => w.id === currentWorkspaceId)) {
+            currentWorkspaceId = null;
+            renderWorkspaceList();
+            document.getElementById('contentArea').innerHTML = '<p style="text-align:center; color:#778faa; margin-top:60px;">Pilih rapat dari sidebar atau buat baru.</p>';
+          }
         } catch (error) {
           alert('Gagal menghapus: ' + error.message);
         }
