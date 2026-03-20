@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap, dengan tambahan tombol delete grup) ===== */
+    /* ===== CSS (lengkap, dengan tombol hapus grup) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -1280,11 +1280,24 @@
       });
       window.addEventListener('click', (e) => { if (e.target === resetPasswordModal) resetPasswordModal.classList.remove('active'); });
 
+      // Perbaikan: saat mengambil role, simpan juga email di dokumen users
       async function fetchUserRole(uid) {
         try {
+          const user = auth.currentUser;
+          if (!user) return;
+          const userEmail = user.email;
           const doc = await db.collection('users').doc(uid).get();
-          if (doc.exists) userRole = doc.data().role || 'member';
-          else { await db.collection('users').doc(uid).set({ role: 'member' }); userRole = 'member'; }
+          if (doc.exists) {
+            userRole = doc.data().role || 'member';
+            // Update email jika berubah (misal user ganti email, tapi jarang)
+            if (doc.data().email !== userEmail) {
+              await db.collection('users').doc(uid).update({ email: userEmail });
+            }
+          } else {
+            // Buat dokumen baru dengan role dan email
+            await db.collection('users').doc(uid).set({ role: 'member', email: userEmail });
+            userRole = 'member';
+          }
         } catch (e) {
           console.error('Error fetching role:', e);
           userRole = 'member';
@@ -1550,10 +1563,11 @@
       document.getElementById('addMemberBtn').addEventListener('click', async () => {
         const email = document.getElementById('memberEmailInput').value.trim();
         if (!email) return;
+        // Query users berdasarkan email
         const usersRef = db.collection('users');
         const snapshot = await usersRef.where('email', '==', email).get();
         if (snapshot.empty) {
-          alert('Email tidak ditemukan di sistem.');
+          alert('Email tidak ditemukan di sistem. Pastikan pengguna telah login minimal sekali.');
           return;
         }
         const uid = snapshot.docs[0].id;
@@ -1561,6 +1575,7 @@
         const workspaceRef = db.collection('workspaces').doc(workspaceId);
         await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayUnion(uid) });
         document.getElementById('memberEmailInput').value = '';
+        alert('Anggota berhasil ditambahkan!');
       });
 
       document.getElementById('closeMembersModal').addEventListener('click', () => {
@@ -1875,11 +1890,13 @@
         const meeting = meetings.find(m => m.id === meetingId);
         if (!meeting) return;
         if (meeting.workspaceId) {
-          // rapat grup: cek apakah user adalah anggota grup atau pemilik grup?
-          // Untuk kesederhanaan, kita izinkan admin menghapus rapat grup jika dia anggota.
-          // Namun kita akan biarkan aturan firestore menangani izin.
+          // rapat grup: izinkan jika user adalah anggota grup (cek melalui workspaces)
+          const workspace = workspaces.find(w => w.id === meeting.workspaceId);
+          if (!workspace || !workspace.members.includes(currentUser.uid)) {
+            alert('Anda tidak memiliki izin untuk menghapus rapat ini.');
+            return;
+          }
         } else {
-          // rapat pribadi: hanya pembuat yang bisa hapus
           if (meeting.createdBy !== currentUser.uid) {
             alert('Anda tidak memiliki izin untuk menghapus rapat ini.');
             return;
