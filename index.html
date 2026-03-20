@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap, hanya ditambahkan z-index untuk modal reset password) ===== */
+    /* ===== CSS (lengkap, dengan tambahan tombol delete grup) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -160,6 +160,29 @@
       border-radius: 20px;
       color: var(--color-text);
     }
+    .workspace-actions {
+      display: flex;
+      gap: 4px;
+    }
+    .workspace-actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 4px;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+    .workspace-actions button:hover {
+      background: #e2e8f0;
+    }
+    .workspace-actions .delete-workspace {
+      color: #dc3545;
+    }
+    .workspace-actions .delete-workspace:hover {
+      background: #fce4e0;
+    }
+
     .meeting-list {
       flex: 1;
       overflow-y: auto;
@@ -1394,12 +1417,44 @@
       document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
       // ========== WORKSPACE ==========
+      async function deleteWorkspace(workspaceId) {
+        if (userRole !== 'admin') return;
+        const workspace = workspaces.find(w => w.id === workspaceId);
+        if (!workspace) return;
+        if (workspace.createdBy !== currentUser.uid) {
+          alert('Anda tidak memiliki izin untuk menghapus grup ini.');
+          return;
+        }
+        if (!confirm(`Hapus grup "${workspace.name}" beserta semua rapat di dalamnya?`)) return;
+        try {
+          // Hapus semua rapat dalam grup
+          const groupMeetings = meetings.filter(m => m.workspaceId === workspaceId);
+          for (const m of groupMeetings) {
+            await db.collection('meetings').doc(m.id).delete();
+          }
+          // Hapus grup itu sendiri
+          await db.collection('workspaces').doc(workspaceId).delete();
+          // Jika grup yang sedang aktif dihapus, kosongkan tampilan
+          if (currentWorkspaceId === workspaceId) {
+            currentWorkspaceId = null;
+            currentMeetingId = null;
+            renderWorkspaceList();
+            document.getElementById('contentArea').innerHTML = '<p style="text-align:center; color:#778faa; margin-top:60px;">Pilih rapat dari sidebar atau buat baru.</p>';
+          } else {
+            renderWorkspaceList();
+          }
+        } catch (error) {
+          alert('Gagal menghapus grup: ' + error.message);
+        }
+      }
+
       function renderWorkspaceList() {
         const container = document.getElementById('workspaceList');
         container.innerHTML = '';
         workspaces.forEach(w => {
           const div = document.createElement('div');
           div.className = `workspace-item ${currentWorkspaceId === w.id ? 'active' : ''}`;
+          // Checkbox untuk seleksi massal
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
           checkbox.className = 'workspace-checkbox';
@@ -1421,8 +1476,11 @@
           const badge = document.createElement('span');
           badge.className = 'workspace-badge';
           badge.innerText = w.members.length;
+
+          const actionsDiv = document.createElement('div');
+          actionsDiv.className = 'workspace-actions';
+          // Tombol kelola anggota (cog)
           const manageBtn = document.createElement('button');
-          manageBtn.className = 'btn-icon';
           manageBtn.innerHTML = '<i class="fas fa-cog"></i>';
           manageBtn.title = 'Kelola anggota';
           if (w.createdBy === currentUser?.uid) {
@@ -1434,13 +1492,26 @@
             manageBtn.disabled = true;
             manageBtn.style.opacity = '0.5';
           }
+          actionsDiv.appendChild(manageBtn);
+          // Tombol hapus grup (trash), hanya untuk pemilik
+          if (w.createdBy === currentUser?.uid && userRole === 'admin') {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.className = 'delete-workspace';
+            deleteBtn.title = 'Hapus grup';
+            deleteBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              deleteWorkspace(w.id);
+            });
+            actionsDiv.appendChild(deleteBtn);
+          }
 
           div.appendChild(checkbox);
           div.appendChild(nameSpan);
           div.appendChild(badge);
-          div.appendChild(manageBtn);
+          div.appendChild(actionsDiv);
           div.addEventListener('click', (e) => {
-            if (e.target !== checkbox && e.target !== manageBtn) {
+            if (e.target !== checkbox && e.target !== manageBtn && e.target !== deleteBtn && !e.target.closest('.workspace-actions')) {
               currentWorkspaceId = w.id;
               currentMeetingId = null;
               renderWorkspaceList();
@@ -1801,6 +1872,19 @@
 
       async function deleteMeeting(meetingId) {
         if (userRole !== 'admin') return;
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (!meeting) return;
+        if (meeting.workspaceId) {
+          // rapat grup: cek apakah user adalah anggota grup atau pemilik grup?
+          // Untuk kesederhanaan, kita izinkan admin menghapus rapat grup jika dia anggota.
+          // Namun kita akan biarkan aturan firestore menangani izin.
+        } else {
+          // rapat pribadi: hanya pembuat yang bisa hapus
+          if (meeting.createdBy !== currentUser.uid) {
+            alert('Anda tidak memiliki izin untuk menghapus rapat ini.');
+            return;
+          }
+        }
         if (!confirm('Hapus rapat ini? Semua seksi dan tugas akan ikut terhapus.')) return;
         try {
           await db.collection('meetings').doc(meetingId).delete();
