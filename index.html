@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap, dengan tombol hapus grup) ===== */
+    /* ===== CSS (lengkap, sama seperti sebelumnya) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -1280,7 +1280,6 @@
       });
       window.addEventListener('click', (e) => { if (e.target === resetPasswordModal) resetPasswordModal.classList.remove('active'); });
 
-      // Perbaikan: saat mengambil role, simpan juga email di dokumen users
       async function fetchUserRole(uid) {
         try {
           const user = auth.currentUser;
@@ -1289,12 +1288,10 @@
           const doc = await db.collection('users').doc(uid).get();
           if (doc.exists) {
             userRole = doc.data().role || 'member';
-            // Update email jika berubah (misal user ganti email, tapi jarang)
             if (doc.data().email !== userEmail) {
               await db.collection('users').doc(uid).update({ email: userEmail });
             }
           } else {
-            // Buat dokumen baru dengan role dan email
             await db.collection('users').doc(uid).set({ role: 'member', email: userEmail });
             userRole = 'member';
           }
@@ -1467,7 +1464,8 @@
         workspaces.forEach(w => {
           const div = document.createElement('div');
           div.className = `workspace-item ${currentWorkspaceId === w.id ? 'active' : ''}`;
-          // Checkbox untuk seleksi massal
+          
+          // Checkbox
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
           checkbox.className = 'workspace-checkbox';
@@ -1492,6 +1490,7 @@
 
           const actionsDiv = document.createElement('div');
           actionsDiv.className = 'workspace-actions';
+          
           // Tombol kelola anggota (cog)
           const manageBtn = document.createElement('button');
           manageBtn.innerHTML = '<i class="fas fa-cog"></i>';
@@ -1506,9 +1505,11 @@
             manageBtn.style.opacity = '0.5';
           }
           actionsDiv.appendChild(manageBtn);
+          
           // Tombol hapus grup (trash), hanya untuk pemilik
+          let deleteBtn = null;
           if (w.createdBy === currentUser?.uid && userRole === 'admin') {
-            const deleteBtn = document.createElement('button');
+            deleteBtn = document.createElement('button');
             deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
             deleteBtn.className = 'delete-workspace';
             deleteBtn.title = 'Hapus grup';
@@ -1523,6 +1524,8 @@
           div.appendChild(nameSpan);
           div.appendChild(badge);
           div.appendChild(actionsDiv);
+          
+          // Event click pada item grup
           div.addEventListener('click', (e) => {
             if (e.target !== checkbox && e.target !== manageBtn && e.target !== deleteBtn && !e.target.closest('.workspace-actions')) {
               currentWorkspaceId = w.id;
@@ -1563,7 +1566,6 @@
       document.getElementById('addMemberBtn').addEventListener('click', async () => {
         const email = document.getElementById('memberEmailInput').value.trim();
         if (!email) return;
-        // Query users berdasarkan email
         const usersRef = db.collection('users');
         const snapshot = await usersRef.where('email', '==', email).get();
         if (snapshot.empty) {
@@ -1890,7 +1892,6 @@
         const meeting = meetings.find(m => m.id === meetingId);
         if (!meeting) return;
         if (meeting.workspaceId) {
-          // rapat grup: izinkan jika user adalah anggota grup (cek melalui workspaces)
           const workspace = workspaces.find(w => w.id === meeting.workspaceId);
           if (!workspace || !workspace.members.includes(currentUser.uid)) {
             alert('Anda tidak memiliki izin untuk menghapus rapat ini.');
