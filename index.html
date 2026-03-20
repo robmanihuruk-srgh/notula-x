@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>Notula · Firebase + Role + 3 Tema + Reset Password</title>
+  <title>Notula · Firebase + Role + 3 Tema + Reset Password + Mobile</title>
   <!-- Font & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1174,306 +1174,951 @@
   </div>
 
   <script>
-    // ========== FIREBASE CONFIG ==========
-    const firebaseConfig = {
-      apiKey: "AIzaSyAnmuaAc-uBM5hAZGcYsrdyZYUmyTYe3PM",
-      authDomain: "dologmasagaltangerang.firebaseapp.com",
-      databaseURL: "https://dologmasagaltangerang-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "dologmasagaltangerang",
-      storageBucket: "dologmasagaltangerang.firebasestorage.app",
-      messagingSenderId: "800663657726",
-      appId: "1:800663657726:web:182efd830d62c8637359af",
-      measurementId: "G-FD0TTQ89WC"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    (function() {
+      // ========== FIREBASE CONFIG ==========
+      const firebaseConfig = {
+        apiKey: "AIzaSyAnmuaAc-uBM5hAZGcYsrdyZYUmyTYe3PM",
+        authDomain: "dologmasagaltangerang.firebaseapp.com",
+        databaseURL: "https://dologmasagaltangerang-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "dologmasagaltangerang",
+        storageBucket: "dologmasagaltangerang.firebasestorage.app",
+        messagingSenderId: "800663657726",
+        appId: "1:800663657726:web:182efd830d62c8637359af",
+        measurementId: "G-FD0TTQ89WC"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
 
-    // ========== GLOBAL STATE ==========
-    let meetings = [];
-    let currentMeetingId = null;
-    let currentSectionId = null;
-    let currentTaskId = null;
-    let selectedSectionFilter = 'ALL';
-    let currentUser = null;
-    let userRole = 'member';
-    let unsubscribeMeetings = null;
-    let selectedMeetingIds = new Set();
+      // ========== GLOBAL STATE ==========
+      let meetings = [];
+      let currentMeetingId = null;
+      let currentSectionId = null;
+      let currentTaskId = null;
+      let selectedSectionFilter = 'ALL';
+      let currentUser = null;
+      let userRole = 'member';
+      let unsubscribeMeetings = null;
+      let selectedMeetingIds = new Set();
 
-    // ========== DATA DEFAULT LENGKAP ==========
-    const defaultMeetings = [
-      {
-        title: 'Rapat Koordinasi Panitia Pesparawi – 1 Maret 2026',
-        date: '2026-03-01',
-        info: 'Pembahasan RAB & persiapan awal',
-        sections: [ ... ] // (isi lengkap, disini disingkat demi tempat, pastikan di kode asli diisi penuh)
-      },
-      {
-        title: 'Rapat Koordinasi Panitia – 9 Maret 2026',
-        date: '2026-03-09',
-        info: 'Total anggaran ±330jt | SMESCO sewa 61jt | 20 Juni 2026',
-        sections: [ ... ] // (isi lengkap)
+      // ========== DATA DEFAULT LENGKAP ==========
+      const defaultMeetings = [
+        {
+          title: 'Rapat Koordinasi Panitia Pesparawi – 1 Maret 2026',
+          date: '2026-03-01',
+          info: 'Pembahasan RAB & persiapan awal',
+          sections: [
+            { name: 'RAB setiap seksi', tasks: [
+              { desc: 'Seksi Acara mengirim RAB', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '' },
+              { desc: 'Seksi Humpubdok mengirim RAB', status: 'selesai', progress: 100, pic: 'Humas', notes: '' },
+              { desc: 'Seksi Konsumsi mengirim RAB', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '' },
+              { desc: 'Seksi Perlengkapan survey tempat & vendor', status: 'berlangsung', progress: 30, pic: 'Perkap', notes: '' },
+              { desc: 'Seksi Keamanan menunggu tempat', status: 'rencana', progress: 0, pic: 'Keamanan', notes: '' },
+              { desc: 'Seksi kesehatan ditindaklanjuti', status: 'rencana', progress: 0, pic: 'Kesehatan', notes: '' },
+              { desc: 'DD penyerahan RAB ke bendahara (6 Maret)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '' },
+              { desc: 'Bendahara cross-cek RAB dan rapat 9 Maret', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '' }
+            ]},
+            { name: 'Seksi Perkap', tasks: [
+              { desc: 'Survey tempat & vendor', status: 'berlangsung', progress: 40, pic: 'Perkap', notes: '' }
+            ]},
+            { name: 'Seksi Lomba', tasks: [
+              { desc: 'Tanggal pelaksanaan 20 Juni 2026', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
+              { desc: 'Story Telling max 2 orang per-resort', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
+              { desc: 'Story Telling tidak merangkap Koor/Vocal', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
+              { desc: 'Nada dasar lagu koor tidak diganti', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
+              { desc: 'Mencari juri kompeten', status: 'berlangsung', progress: 60, pic: 'Acara', notes: '' },
+              { desc: 'Terjemahkan aturan lomba ke Indonesia (deadline 3 Maret)', status: 'rencana', progress: 0, pic: 'Acara', notes: '' }
+            ]},
+            { name: 'Seksi Humpubdok', tasks: [
+              { desc: 'Koordinasi video teaser tiap resort', status: 'rencana', progress: 0, pic: 'Humas', notes: '' },
+              { desc: 'Upload video teaser di medsos', status: 'rencana', progress: 0, pic: 'Humas', notes: '' },
+              { desc: 'Aktifasi medsos IG & FB', status: 'rencana', progress: 10, pic: 'Humas', notes: '' }
+            ]},
+            { name: 'Seksi Dana', tasks: [
+              { desc: 'Galangan jemaat & hari H', status: 'rencana', progress: 0, pic: 'Dana', notes: '' },
+              { desc: 'Proposal', status: 'rencana', progress: 5, pic: 'Dana', notes: '' },
+              { desc: 'Bazar', status: 'rencana', progress: 0, pic: 'Dana', notes: '' }
+            ]},
+            { name: 'Bendahara', tasks: [
+              { desc: 'Rekening Panitia (OTP)', status: 'berlangsung', progress: 70, pic: 'Bendahara', notes: '' }
+            ]},
+            { name: 'Sekretariat', tasks: [
+              { desc: 'Surat pemberitahuan ke resort', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba' },
+              { desc: 'Flyer Pesparawi', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba' },
+              { desc: 'Proposal (RAB, Norek, ketentuan)', status: 'rencana', progress: 20, pic: 'Sekretariat', notes: '' },
+              { desc: 'Surat permohonan galangan', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'koordinasi praeses' }
+            ]}
+          ]
+        },
+        {
+          title: 'Rapat Koordinasi Panitia – 9 Maret 2026',
+          date: '2026-03-09',
+          info: 'Total anggaran ±330jt | SMESCO sewa 61jt | 20 Juni 2026',
+          sections: [
+            { name: 'Seksi Acara', tasks: [
+              { desc: 'RAB acara Rp105,5 jt', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
+              { desc: 'Menentukan juri & hadiah', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
+              { desc: 'Koordinasi panggung dgn perkap', status: 'berlangsung', progress: 50, pic: 'Acara', notes: '' },
+              { desc: 'Koordinasi dengan GKPS TV', status: 'rencana', progress: 10, pic: 'Acara', notes: '' },
+              { desc: 'Artis tamu (Ziva/Bastian/Grace) budget 5jt', status: 'kendala', progress: 20, pic: 'Acara', notes: 'belum final' }
+            ]},
+            { name: 'Koordinator Lomba', tasks: [
+              { desc: 'Aturan teknis lomba', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
+              { desc: 'Formulir pendaftaran detail', status: 'berlangsung', progress: 70, pic: 'Lomba', notes: '' },
+              { desc: 'Follow up Sinode durasi & aturan', status: 'rencana', progress: 0, pic: 'Lomba', notes: 'menunggu info' }
+            ]},
+            { name: 'Seksi Perlengkapan', tasks: [
+              { desc: 'Penawaran SMESCO', status: 'selesai', progress: 100, pic: 'Perkap', notes: '' },
+              { desc: 'Negosiasi harga sewa', status: 'berlangsung', progress: 60, pic: 'Perkap', notes: '' },
+              { desc: 'Survey lokasi 16 April 2026', status: 'rencana', progress: 0, pic: 'Perkap', notes: '' },
+              { desc: 'DP gedung (fu korpel)', status: 'kendala', progress: 10, pic: 'Perkap', notes: '' }
+            ]},
+            { name: 'Seksi Konsumsi', tasks: [
+              { desc: 'RAB Rp56,38 jt', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '' },
+              { desc: 'Revisi jumlah peserta', status: 'berlangsung', progress: 50, pic: 'Konsumsi', notes: '' },
+              { desc: 'Katering & sistem box', status: 'rencana', progress: 20, pic: 'Konsumsi', notes: '' }
+            ]},
+            { name: 'Seksi Humas', tasks: [
+              { desc: 'Konsep banner/backdrop', status: 'selesai', progress: 100, pic: 'Humas', notes: '' },
+              { desc: 'Koordinasi desain (Bang Robert)', status: 'berlangsung', progress: 80, pic: 'Humas', notes: '' },
+              { desc: 'Finalisasi jumlah banner', status: 'rencana', progress: 0, pic: 'Humas', notes: 'budget 37jt' }
+            ]},
+            { name: 'Bendahara', tasks: [
+              { desc: 'Mengumpulkan RAB semua seksi', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '' },
+              { desc: 'Menyusun proposal lengkap', status: 'berlangsung', progress: 65, pic: 'Bendahara', notes: '' },
+              { desc: 'Finalisasi total anggaran', status: 'rencana', progress: 30, pic: 'Bendahara', notes: 'masih ada pos belum final' }
+            ]},
+            { name: 'Sekretariat', tasks: [
+              { desc: 'Surat ke resort', status: 'selesai', progress: 100, pic: 'Sekretariat', notes: '' },
+              { desc: 'Proposal bersama bendahara', status: 'berlangsung', progress: 65, pic: 'Sekretariat', notes: '' },
+              { desc: 'Flyer (no.telp?)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '' }
+            ]}
+          ]
+        }
+      ];
+
+      // ========== THEME MANAGEMENT ==========
+      const themeStyles = document.getElementById('theme-style');
+      const themes = {
+        orange: `
+          :root {
+            --color-primary: #f97316;
+            --color-primary-dark: #e05e0f;
+            --color-secondary: #1e4a6d;
+            --color-secondary-light: #2b6f9e;
+            --color-bg-light: #f4f7fb;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #e2e8f0;
+            --color-text: #1e293b;
+            --color-text-light: #54708f;
+            --color-accent: #f97316;
+          }
+        `,
+        green: `
+          :root {
+            --color-primary: #16a34a;
+            --color-primary-dark: #12833a;
+            --color-secondary: #1e3a5f;
+            --color-secondary-light: #2b4f7a;
+            --color-bg-light: #f0f9f0;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #d0e0d0;
+            --color-text: #1e293b;
+            --color-text-light: #4a6f5e;
+            --color-accent: #16a34a;
+          }
+        `,
+        purple: `
+          :root {
+            --color-primary: #9333ea;
+            --color-primary-dark: #7e22ce;
+            --color-secondary: #0f3b5e;
+            --color-secondary-light: #1e4b72;
+            --color-bg-light: #f5f0fa;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #d9d0e8;
+            --color-text: #1e293b;
+            --color-text-light: #6b4f8c;
+            --color-accent: #9333ea;
+          }
+        `
+      };
+      function setTheme(theme) {
+        themeStyles.innerHTML = themes[theme];
+        localStorage.setItem('notula_theme', theme);
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.theme === theme);
+        });
       }
-    ];
-    // (untuk kode asli, pastikan defaultMeetings diisi penuh seperti sebelumnya)
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => setTheme(btn.dataset.theme));
+      });
+      const savedTheme = localStorage.getItem('notula_theme') || 'orange';
+      setTheme(savedTheme);
 
-    // ========== THEME MANAGEMENT ==========
-    const themeStyles = document.getElementById('theme-style');
-    const themes = { ... }; // (isi lengkap)
+      // ========== AUTH & ROLE ==========
+      const loginOverlay = document.getElementById('loginOverlay');
+      const loginBtn = document.getElementById('loginBtn');
+      const registerBtn = document.getElementById('registerBtn');
+      const loginEmail = document.getElementById('loginEmail');
+      const loginPassword = document.getElementById('loginPassword');
+      const loginError = document.getElementById('loginError');
+      const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+      const resetPasswordModal = document.getElementById('resetPasswordModal');
+      const resetEmailInput = document.getElementById('resetEmailInput');
+      const sendResetBtn = document.getElementById('sendResetBtn');
+      const cancelResetModal = document.getElementById('cancelResetModal');
+      const resetMessage = document.getElementById('resetMessage');
 
-    function setTheme(theme) { ... }
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-      btn.addEventListener('click', () => setTheme(btn.dataset.theme));
-    });
-    const savedTheme = localStorage.getItem('notula_theme') || 'orange';
-    setTheme(savedTheme);
+      function showLogin() { loginOverlay.style.display = 'flex'; }
+      function hideLogin() { loginOverlay.style.display = 'none'; }
 
-    // ========== AUTH & ROLE ==========
-    const loginOverlay = document.getElementById('loginOverlay');
-    const loginBtn = document.getElementById('loginBtn');
-    const registerBtn = document.getElementById('registerBtn');
-    const loginEmail = document.getElementById('loginEmail');
-    const loginPassword = document.getElementById('loginPassword');
-    const loginError = document.getElementById('loginError');
-    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-    const resetPasswordModal = document.getElementById('resetPasswordModal');
-    const resetEmailInput = document.getElementById('resetEmailInput');
-    const sendResetBtn = document.getElementById('sendResetBtn');
-    const cancelResetModal = document.getElementById('cancelResetModal');
-    const resetMessage = document.getElementById('resetMessage');
-
-    function showLogin() { loginOverlay.style.display = 'flex'; }
-    function hideLogin() { loginOverlay.style.display = 'none'; }
-
-    forgotPasswordLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      resetEmailInput.value = '';
-      resetMessage.innerText = '';
-      resetPasswordModal.classList.add('active');
-    });
-
-    cancelResetModal.addEventListener('click', () => {
-      resetPasswordModal.classList.remove('active');
-    });
-
-    sendResetBtn.addEventListener('click', async () => {
-      const email = resetEmailInput.value.trim();
-      if (!email) {
-        resetMessage.innerText = 'Email harus diisi.';
-        resetMessage.style.color = 'red';
-        return;
-      }
-      try {
-        await auth.sendPasswordResetEmail(email);
-        resetMessage.innerText = 'Email reset telah dikirim. Periksa kotak masuk Anda.';
-        resetMessage.style.color = 'green';
+      forgotPasswordLink.addEventListener('click', (e) => {
+        e.preventDefault();
         resetEmailInput.value = '';
-        setTimeout(() => {
-          resetPasswordModal.classList.remove('active');
-        }, 3000);
-      } catch (error) {
-        console.error('Reset password error:', error);
-        resetMessage.innerText = error.message;
-        resetMessage.style.color = 'red';
-      }
-    });
+        resetMessage.innerText = '';
+        resetPasswordModal.classList.add('active');
+      });
 
-    window.addEventListener('click', (e) => {
-      if (e.target === resetPasswordModal) {
+      cancelResetModal.addEventListener('click', () => {
         resetPasswordModal.classList.remove('active');
-      }
-    });
+      });
 
-    async function fetchUserRole(uid) {
-      try {
-        const doc = await db.collection('users').doc(uid).get();
-        if (doc.exists) {
-          userRole = doc.data().role || 'member';
-        } else {
-          await db.collection('users').doc(uid).set({ role: 'member' });
+      sendResetBtn.addEventListener('click', async () => {
+        const email = resetEmailInput.value.trim();
+        if (!email) {
+          resetMessage.innerText = 'Email harus diisi.';
+          resetMessage.style.color = 'red';
+          return;
+        }
+        try {
+          await auth.sendPasswordResetEmail(email);
+          resetMessage.innerText = 'Email reset telah dikirim. Periksa kotak masuk Anda.';
+          resetMessage.style.color = 'green';
+          resetEmailInput.value = '';
+          setTimeout(() => {
+            resetPasswordModal.classList.remove('active');
+          }, 3000);
+        } catch (error) {
+          console.error('Reset password error:', error);
+          resetMessage.innerText = error.message;
+          resetMessage.style.color = 'red';
+        }
+      });
+
+      window.addEventListener('click', (e) => {
+        if (e.target === resetPasswordModal) {
+          resetPasswordModal.classList.remove('active');
+        }
+      });
+
+      async function fetchUserRole(uid) {
+        try {
+          const doc = await db.collection('users').doc(uid).get();
+          if (doc.exists) {
+            userRole = doc.data().role || 'member';
+          } else {
+            await db.collection('users').doc(uid).set({ role: 'member' });
+            userRole = 'member';
+          }
+        } catch (e) {
+          console.error('Error fetching role', e);
           userRole = 'member';
         }
-      } catch (e) {
-        console.error('Error fetching role', e);
-        userRole = 'member';
+        document.getElementById('userRole').innerText = userRole;
       }
-      document.getElementById('userRole').innerText = userRole;
-    }
 
-    auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        currentUser = user;
-        document.getElementById('userEmail').innerText = user.email;
-        document.getElementById('userInfo').style.display = 'flex';
-        hideLogin();
-        await fetchUserRole(user.uid);
-        if (unsubscribeMeetings) unsubscribeMeetings();
-        unsubscribeMeetings = db.collection('meetings').onSnapshot(async (snapshot) => {
-          meetings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          meetings.sort((a, b) => (a.date < b.date ? 1 : -1));
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          currentUser = user;
+          document.getElementById('userEmail').innerText = user.email;
+          document.getElementById('userInfo').style.display = 'flex';
+          hideLogin();
+          await fetchUserRole(user.uid);
+          if (unsubscribeMeetings) unsubscribeMeetings();
+          unsubscribeMeetings = db.collection('meetings').onSnapshot(async (snapshot) => {
+            meetings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            meetings.sort((a, b) => (a.date < b.date ? 1 : -1));
 
-          if (userRole === 'admin') {
-            const seededDoc = await db.collection('_metadata').doc('seeded').get();
-            if (!seededDoc.exists) {
-              try {
-                for (const m of defaultMeetings) {
-                  const existing = meetings.some(meet => meet.title === m.title);
-                  if (!existing) {
-                    const meetingData = {
-                      title: m.title,
-                      date: m.date,
-                      info: m.info,
-                      sections: m.sections.map(section => ({
-                        id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
-                        name: section.name,
-                        tasks: section.tasks.map(task => ({
-                          id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
-                          desc: task.desc,
-                          status: task.status,
-                          progress: task.progress,
-                          pic: task.pic,
-                          notes: task.notes
+            if (userRole === 'admin') {
+              const seededDoc = await db.collection('_metadata').doc('seeded').get();
+              if (!seededDoc.exists) {
+                try {
+                  for (const m of defaultMeetings) {
+                    const existing = meetings.some(meet => meet.title === m.title);
+                    if (!existing) {
+                      const meetingData = {
+                        title: m.title,
+                        date: m.date,
+                        info: m.info,
+                        sections: m.sections.map(section => ({
+                          id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                          name: section.name,
+                          tasks: section.tasks.map(task => ({
+                            id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                            desc: task.desc,
+                            status: task.status,
+                            progress: task.progress,
+                            pic: task.pic,
+                            notes: task.notes
+                          }))
                         }))
-                      }))
-                    };
-                    await db.collection('meetings').add(meetingData);
+                      };
+                      await db.collection('meetings').add(meetingData);
+                    }
                   }
+                  await db.collection('_metadata').doc('seeded').set({ seeded: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                  console.log('Data default berhasil ditambahkan (jika belum ada)');
+                  return;
+                } catch (error) {
+                  console.error('Gagal menambahkan data default:', error);
                 }
-                await db.collection('_metadata').doc('seeded').set({ seeded: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                console.log('Data default berhasil ditambahkan (jika belum ada)');
-                return;
-              } catch (error) {
-                console.error('Gagal menambahkan data default:', error);
               }
             }
-          }
 
+            renderSidebar();
+            if (currentMeetingId && meetings.find(m => m.id === currentMeetingId)) {
+              renderDetail();
+            } else if (meetings.length > 0) {
+              currentMeetingId = meetings[0].id;
+              renderDetail();
+            } else {
+              currentMeetingId = null;
+              renderDetail();
+            }
+            updateButtonsByRole();
+            updateDeleteSelectedButton();
+          });
+        } else {
+          currentUser = null;
+          userRole = 'member';
+          document.getElementById('userInfo').style.display = 'none';
+          meetings = [];
           renderSidebar();
-          if (currentMeetingId && meetings.find(m => m.id === currentMeetingId)) {
-            renderDetail();
-          } else if (meetings.length > 0) {
+          renderDetail();
+          showLogin();
+          if (unsubscribeMeetings) unsubscribeMeetings();
+        }
+      });
+
+      loginBtn.addEventListener('click', async () => {
+        const email = loginEmail.value;
+        const pass = loginPassword.value;
+        try {
+          await auth.signInWithEmailAndPassword(email, pass);
+        } catch (e) {
+          loginError.innerText = e.message;
+        }
+      });
+      registerBtn.addEventListener('click', async () => {
+        const email = loginEmail.value;
+        const pass = loginPassword.value;
+        try {
+          await auth.createUserWithEmailAndPassword(email, pass);
+        } catch (e) {
+          loginError.innerText = e.message;
+        }
+      });
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        auth.signOut();
+      });
+
+      // ========== ROLE-BASED UI ==========
+      function updateButtonsByRole() {
+        const isAdmin = userRole === 'admin';
+        const editBtns = [
+          document.getElementById('newMeetingBtn'),
+          document.getElementById('editMeetingBtn'),
+          document.getElementById('deleteMeetingBtn'),
+          document.getElementById('addSectionBtn'),
+          document.getElementById('deleteSelectedBtn'),
+          ...document.querySelectorAll('.btn-add-section'),
+          ...document.querySelectorAll('.section-actions button'),
+          ...document.querySelectorAll('.task-actions button'),
+          ...document.querySelectorAll('.add-task-btn')
+        ].filter(Boolean);
+        editBtns.forEach(btn => {
+          if (isAdmin) {
+            btn.classList.remove('disabled');
+            btn.disabled = false;
+          } else {
+            btn.classList.add('disabled');
+            btn.disabled = true;
+          }
+        });
+      }
+
+      function applyRoleToDynamicButtons() {
+        updateButtonsByRole();
+      }
+
+      // ========== FUNGSI UTILITY ==========
+      function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+      function formatDate(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }); }
+      function translateStatus(st) { const map = { selesai:'Selesai', berlangsung:'Berlangsung', rencana:'Rencana', kendala:'Kendala' }; return map[st] || st; }
+
+      function updateExportButtons() {
+        const disabled = !currentMeetingId;
+        document.getElementById('exportExcelBtn').disabled = disabled;
+        document.getElementById('exportPdfBtn').disabled = disabled;
+        document.getElementById('printBtn').disabled = disabled;
+        document.getElementById('editMeetingBtn').disabled = disabled || userRole !== 'admin';
+        document.getElementById('deleteMeetingBtn').disabled = disabled || userRole !== 'admin';
+      }
+
+      // ========== HAPUS MASSAL ==========
+      function updateDeleteSelectedButton() {
+        const btn = document.getElementById('deleteSelectedBtn');
+        if (!btn) return;
+        if (userRole === 'admin' && selectedMeetingIds.size > 0) {
+          btn.disabled = false;
+        } else {
+          btn.disabled = true;
+        }
+      }
+
+      async function deleteSelectedMeetings() {
+        if (userRole !== 'admin' || selectedMeetingIds.size === 0) return;
+        if (!confirm(`Hapus ${selectedMeetingIds.size} rapat terpilih? Semua data terkait akan hilang.`)) return;
+        
+        const promises = [];
+        selectedMeetingIds.forEach(id => {
+          promises.push(db.collection('meetings').doc(id).delete());
+        });
+        await Promise.all(promises);
+        
+        selectedMeetingIds.clear();
+        updateDeleteSelectedButton();
+        if (!meetings.find(m => m.id === currentMeetingId)) {
+          if (meetings.length > 0) {
             currentMeetingId = meetings[0].id;
-            renderDetail();
           } else {
             currentMeetingId = null;
-            renderDetail();
           }
-          updateButtonsByRole();
-          updateDeleteSelectedButton();
-        });
-      } else {
-        currentUser = null;
-        userRole = 'member';
-        document.getElementById('userInfo').style.display = 'none';
-        meetings = [];
-        renderSidebar();
-        renderDetail();
-        showLogin();
-        if (unsubscribeMeetings) unsubscribeMeetings();
-      }
-    });
-
-    loginBtn.addEventListener('click', async () => {
-      const email = loginEmail.value;
-      const pass = loginPassword.value;
-      try {
-        await auth.signInWithEmailAndPassword(email, pass);
-      } catch (e) {
-        loginError.innerText = e.message;
-      }
-    });
-    registerBtn.addEventListener('click', async () => {
-      const email = loginEmail.value;
-      const pass = loginPassword.value;
-      try {
-        await auth.createUserWithEmailAndPassword(email, pass);
-      } catch (e) {
-        loginError.innerText = e.message;
-      }
-    });
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      auth.signOut();
-    });
-
-    // ========== FUNGSI RENDER DAN CRUD (lengkap seperti sebelumnya) ==========
-    // (semua fungsi renderSidebar, renderDetail, renderDashboard, renderSectionCard,
-    //  saveMeeting, deleteMeeting, saveSection, deleteSection, saveTask, deleteTask,
-    //  export, dll. disini harus diisi lengkap, karena sudah ada di kode sebelumnya.
-    //  Untuk menghemat tempat, saya tidak menulis ulang, namun pada implementasi sebenarnya
-    //  semua fungsi tersebut harus ada. Di sini diasumsikan sudah lengkap.)
-
-    // Catatan: Karena kode sangat panjang, pastikan semua fungsi dari versi sebelumnya
-    // disertakan. Di sini saya hanya menambahkan media query dan perbaikan mobile.
-    // Untuk menjalankan, gunakan kode lengkap dari jawaban sebelumnya yang sudah
-    // mencakup semua fungsi CRUD, export, dll. Saya hanya menambahkan CSS media query.
-
-    // ===== FUNGSI-FUNGSI YANG DIPERLUKAN (HARUS ADA) =====
-    // (Tolong pastikan semua fungsi dari kode sebelumnya sudah disalin)
-    // Di sini saya akan menandai bahwa bagian ini harus diisi dengan kode lengkap dari jawaban sebelumnya.
-
-    // ========== RENDER SIDEBAR ==========
-    function renderSidebar() {
-      const container = document.getElementById('meetingList');
-      container.innerHTML = '';
-      meetings.forEach(m => {
-        const div = document.createElement('div');
-        div.className = `meeting-item ${m.id === currentMeetingId ? 'active' : ''}`;
-        div.dataset.id = m.id;
-
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'meeting-checkbox';
-        checkbox.checked = selectedMeetingIds.has(m.id);
-        if (userRole !== 'admin') {
-          checkbox.disabled = true;
-          checkbox.style.display = 'none';
+          renderDetail();
         }
-        checkbox.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (checkbox.checked) {
-            selectedMeetingIds.add(m.id);
-          } else {
-            selectedMeetingIds.delete(m.id);
+      }
+
+      document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedMeetings);
+
+      // ========== RENDER SIDEBAR ==========
+      function renderSidebar() {
+        const container = document.getElementById('meetingList');
+        container.innerHTML = '';
+        meetings.forEach(m => {
+          const div = document.createElement('div');
+          div.className = `meeting-item ${m.id === currentMeetingId ? 'active' : ''}`;
+          div.dataset.id = m.id;
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'meeting-checkbox';
+          checkbox.checked = selectedMeetingIds.has(m.id);
+          if (userRole !== 'admin') {
+            checkbox.disabled = true;
+            checkbox.style.display = 'none';
           }
-          updateDeleteSelectedButton();
+          checkbox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (checkbox.checked) {
+              selectedMeetingIds.add(m.id);
+            } else {
+              selectedMeetingIds.delete(m.id);
+            }
+            updateDeleteSelectedButton();
+          });
+
+          const content = document.createElement('div');
+          content.className = 'meeting-content';
+          content.innerHTML = `
+            <div class="meeting-title">${escapeHtml(m.title)}</div>
+            <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
+          `;
+
+          div.appendChild(checkbox);
+          div.appendChild(content);
+
+          div.addEventListener('click', (e) => {
+            if (e.target !== checkbox) {
+              currentMeetingId = m.id;
+              selectedSectionFilter = 'ALL';
+              renderSidebar();
+              renderDetail();
+              updateExportButtons();
+            }
+          });
+
+          container.appendChild(div);
+        });
+      }
+
+      // ========== RENDER DETAIL ==========
+      function renderDashboard(meeting) {
+        if (!meeting.sections) return '';
+        const sections = meeting.sections;
+        let totalTasks = 0, totalProgress = 0, taskCountByStatus = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
+        const sectionProgress = [];
+
+        sections.forEach(sec => {
+          let secTotal = 0, secSum = 0;
+          sec.tasks.forEach(task => {
+            totalTasks++;
+            secSum += task.progress || 0;
+            taskCountByStatus[task.status] = (taskCountByStatus[task.status] || 0) + 1;
+          });
+          const avg = sec.tasks.length ? (secSum / sec.tasks.length) : 0;
+          sectionProgress.push({ id: sec.id, name: sec.name, progress: avg, taskCount: sec.tasks.length });
+          totalProgress += secSum;
         });
 
-        const content = document.createElement('div');
-        content.className = 'meeting-content';
-        content.innerHTML = `
-          <div class="meeting-title">${escapeHtml(m.title)}</div>
-          <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
+        const overallAvg = totalTasks ? (totalProgress / totalTasks) : 0;
+
+        let html = `
+          <div class="dashboard-card">
+            <div class="dashboard-title"><i class="fas fa-chart-pie"></i> Dashboard Progress</div>
+            <div class="stats-grid">
+              <div class="stat-item"><span class="stat-label">Total Tugas</span><div class="stat-value">${totalTasks}</div></div>
+              <div class="stat-item"><span class="stat-label">Rata-rata Progress</span><div class="stat-value">${Math.round(overallAvg)}%</div></div>
+              <div class="stat-item"><span class="stat-label">Selesai</span><div class="stat-value" style="color:#14633b;">${taskCountByStatus.selesai || 0}</div></div>
+              <div class="stat-item"><span class="stat-label">Berlangsung</span><div class="stat-value" style="color:#9e5e04;">${taskCountByStatus.berlangsung || 0}</div></div>
+              <div class="stat-item"><span class="stat-label">Rencana</span><div class="stat-value" style="color:#0a5585;">${taskCountByStatus.rencana || 0}</div></div>
+              <div class="stat-item"><span class="stat-label">Kendala</span><div class="stat-value" style="color:#b13e2d;">${taskCountByStatus.kendala || 0}</div></div>
+            </div>
+            <div class="progress-section-list">
         `;
 
-        div.appendChild(checkbox);
-        div.appendChild(content);
-
-        div.addEventListener('click', (e) => {
-          if (e.target !== checkbox) {
-            currentMeetingId = m.id;
-            selectedSectionFilter = 'ALL';
-            renderSidebar();
-            renderDetail();
-            updateExportButtons();
-          }
+        sectionProgress.forEach(sp => {
+          html += `
+            <div class="section-progress-item">
+              <span class="section-progress-name">${escapeHtml(sp.name)}</span>
+              <div class="section-progress-bar"><div class="section-progress-fill" style="width: ${sp.progress}%;"></div></div>
+              <span class="section-progress-percent">${Math.round(sp.progress)}%</span>
+            </div>
+          `;
         });
 
-        container.appendChild(div);
+        html += `
+            </div>
+            <div class="filter-row">
+              <span class="filter-label"><i class="fas fa-filter"></i> Tampilkan seksi:</span>
+              <select id="sectionFilterSelect" class="section-filter-select">
+                <option value="ALL">Semua Seksi</option>
+        `;
+        sections.forEach(sec => {
+          html += `<option value="${sec.id}" ${selectedSectionFilter === sec.id ? 'selected' : ''}>${escapeHtml(sec.name)}</option>`;
+        });
+        html += `
+              </select>
+              <button class="reset-filter" id="resetFilterBtn">Reset</button>
+            </div>
+          </div>
+        `;
+        return html;
+      }
+
+      function renderFilteredSections(meeting) {
+        if (!meeting.sections) return '';
+        let sectionsToRender = meeting.sections;
+        if (selectedSectionFilter !== 'ALL') {
+          sectionsToRender = meeting.sections.filter(s => s.id === selectedSectionFilter);
+        }
+        if (sectionsToRender.length === 0) return '<p>Tidak ada seksi.</p>';
+
+        let html = '';
+        sectionsToRender.forEach(section => {
+          html += renderSectionCard(meeting.id, section);
+        });
+        return html;
+      }
+
+      function renderSectionCard(meetingId, section) {
+        let tasksHtml = '';
+        section.tasks?.forEach(task => {
+          const statusClass = `status-${task.status}`;
+          const progress = task.progress ?? 0;
+          const pic = task.pic || '—';
+          tasksHtml += `
+            <div class="task-item">
+              <div class="task-row">
+                <div class="task-status"><span class="status-badge ${statusClass}">${translateStatus(task.status)}</span></div>
+                <div class="task-desc">${escapeHtml(task.desc)}</div>
+                <div class="task-pic"><i class="fas fa-user"></i> ${escapeHtml(pic)}</div>
+                <div class="progress-container">
+                  <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${progress}%;"></div></div>
+                  <span class="progress-percent">${progress}%</span>
+                </div>
+                <div class="task-actions">
+                  <button id="edit-task-${task.id}" title="Edit" ${userRole!=='admin'?'disabled':''}><i class="fas fa-pencil-alt"></i></button>
+                  <button id="del-task-${task.id}" title="Hapus" ${userRole!=='admin'?'disabled':''}><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+              ${task.notes ? `<div style="font-size:0.8rem; color:#6a7f9b; margin-top:6px; margin-left: 110px;"><i class="fas fa-comment"></i> ${escapeHtml(task.notes)}</div>` : ''}
+            </div>
+          `;
+        });
+
+        return `
+          <div class="section-card">
+            <div class="section-title">
+              <h4>${escapeHtml(section.name)}</h4>
+              <div class="section-actions">
+                <button id="edit-section-${section.id}" title="Edit seksi" ${userRole!=='admin'?'disabled':''}><i class="fas fa-edit"></i></button>
+                <button id="del-section-${section.id}" title="Hapus seksi" ${userRole!=='admin'?'disabled':''}><i class="fas fa-times-circle"></i></button>
+              </div>
+            </div>
+            <div class="task-list">
+              ${tasksHtml || '<div style="color:#9fb3cc; padding:8px;">Belum ada tugas</div>'}
+            </div>
+            <button class="add-task-btn ${userRole!=='admin'?'disabled':''}" id="add-task-${section.id}" ${userRole!=='admin'?'disabled':''}><i class="fas fa-plus-circle"></i> Tambah tugas</button>
+          </div>
+        `;
+      }
+
+      function renderDetail() {
+        const content = document.getElementById('contentArea');
+        const headerTitle = document.getElementById('meetingTitle');
+        const headerDate = document.getElementById('meetingDate');
+
+        if (!currentMeetingId || !meetings.length) {
+          headerTitle.innerText = 'Pilih rapat';
+          headerDate.innerHTML = '';
+          content.innerHTML = `<div style="text-align: center; color: #778faa; margin-top: 60px;"><i class="fas fa-arrow-left"></i> Pilih rapat dari sidebar atau buat baru</div>`;
+          return;
+        }
+
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+
+        headerTitle.innerText = meeting.title;
+        headerDate.innerHTML = `<i class="far fa-calendar-alt"></i> ${formatDate(meeting.date)}`;
+
+        let html = `
+          <div class="info-card">
+            <div style="font-weight: 600; margin-bottom: 10px; color: var(--color-secondary);"><i class="fas fa-info-circle"></i> Informasi rapat</div>
+            <div class="info-grid">
+              <div class="info-item"><i class="fas fa-tag"></i> ${meeting.info || 'Tidak ada catatan'}</div>
+            </div>
+          </div>
+        `;
+
+        html += renderDashboard(meeting);
+        html += `
+          <div class="section-header">
+            <h3><i class="fas fa-layer-group"></i> ${selectedSectionFilter === 'ALL' ? 'Semua Seksi' : 'Detail Seksi'}</h3>
+            <button class="btn-add-section ${userRole!=='admin'?'disabled':''}" id="addSectionBtn" ${userRole!=='admin'?'disabled':''}><i class="fas fa-plus"></i> Seksi baru</button>
+          </div>
+        `;
+        html += renderFilteredSections(meeting);
+
+        content.innerHTML = html;
+
+        document.getElementById('addSectionBtn')?.addEventListener('click', () => openSectionModal(null));
+
+        const filterSelect = document.getElementById('sectionFilterSelect');
+        if (filterSelect) {
+          filterSelect.addEventListener('change', (e) => {
+            selectedSectionFilter = e.target.value;
+            renderDetail();
+          });
+        }
+        document.getElementById('resetFilterBtn')?.addEventListener('click', () => {
+          selectedSectionFilter = 'ALL';
+          renderDetail();
+        });
+
+        meeting.sections?.forEach(section => {
+          document.getElementById(`edit-section-${section.id}`)?.addEventListener('click', () => openSectionModal(section.id));
+          document.getElementById(`del-section-${section.id}`)?.addEventListener('click', () => deleteSection(section.id));
+          document.getElementById(`add-task-${section.id}`)?.addEventListener('click', () => openTaskModal(section.id, null));
+          section.tasks?.forEach(task => {
+            document.getElementById(`edit-task-${task.id}`)?.addEventListener('click', () => openTaskModal(section.id, task.id));
+            document.getElementById(`del-task-${task.id}`)?.addEventListener('click', () => deleteTask(section.id, task.id));
+          });
+        });
+        updateExportButtons();
+        applyRoleToDynamicButtons();
+      }
+
+      // ========== CRUD Operations with Firestore ==========
+      async function saveMeeting(meetingData) {
+        if (userRole !== 'admin') return;
+        if (meetingData.id) {
+          await db.collection('meetings').doc(meetingData.id).set(meetingData, { merge: true });
+        } else {
+          const ref = await db.collection('meetings').add(meetingData);
+          currentMeetingId = ref.id;
+        }
+      }
+
+      async function deleteMeeting(meetingId) {
+        if (userRole !== 'admin') return;
+        if (!confirm('Hapus rapat ini? Semua seksi dan tugas akan ikut terhapus.')) return;
+        await db.collection('meetings').doc(meetingId).delete();
+        if (currentMeetingId === meetingId) {
+          currentMeetingId = null;
+        }
+      }
+
+      async function saveSection(sectionData, meetingId) {
+        if (userRole !== 'admin') return;
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (!meeting) return;
+        if (!meeting.sections) meeting.sections = [];
+        if (sectionData.id) {
+          const index = meeting.sections.findIndex(s => s.id === sectionData.id);
+          if (index !== -1) meeting.sections[index] = sectionData;
+        } else {
+          sectionData.id = 'sec_' + Date.now() + '_' + Math.random().toString(36);
+          meeting.sections.push(sectionData);
+        }
+        await db.collection('meetings').doc(meetingId).update({ sections: meeting.sections });
+      }
+
+      async function deleteSection(sectionId) {
+        if (userRole !== 'admin') return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+        meeting.sections = meeting.sections.filter(s => s.id !== sectionId);
+        await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+      }
+
+      async function saveTask(taskData, sectionId) {
+        if (userRole !== 'admin') return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+        const section = meeting.sections.find(s => s.id === sectionId);
+        if (!section) return;
+        if (!section.tasks) section.tasks = [];
+        if (taskData.id) {
+          const index = section.tasks.findIndex(t => t.id === taskData.id);
+          if (index !== -1) section.tasks[index] = taskData;
+        } else {
+          taskData.id = 'task_' + Date.now() + '_' + Math.random().toString(36);
+          section.tasks.push(taskData);
+        }
+        await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+      }
+
+      async function deleteTask(sectionId, taskId) {
+        if (userRole !== 'admin') return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+        const section = meeting.sections.find(s => s.id === sectionId);
+        if (!section) return;
+        section.tasks = section.tasks.filter(t => t.id !== taskId);
+        await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+      }
+
+      // ========== MODAL HANDLING ==========
+      const meetingModal = document.getElementById('meetingModal');
+      const sectionModal = document.getElementById('sectionModal');
+      const taskModal = document.getElementById('taskModal');
+
+      function closeAllModals() { 
+        meetingModal.classList.remove('active');
+        sectionModal.classList.remove('active');
+        taskModal.classList.remove('active');
+      }
+
+      document.getElementById('newMeetingBtn').addEventListener('click', () => {
+        if (userRole !== 'admin') return;
+        document.getElementById('modalMeetingTitle').innerText = 'Rapat baru';
+        document.getElementById('meetingNameInput').value = '';
+        document.getElementById('meetingDateInput').value = '';
+        document.getElementById('meetingInfoInput').value = '';
+        delete document.getElementById('saveMeetingModal').dataset.editId;
+        meetingModal.classList.add('active');
       });
-    }
 
-    // ... dan seterusnya (fungsi-fungsi lain) ...
-    // Karena sangat panjang, untuk keperluan responsif kita cukup menambahkan media query.
-    // Pada implementasi nyata, pastikan semua fungsi dari kode sebelumnya disalin ke sini.
+      document.getElementById('editMeetingBtn').addEventListener('click', () => {
+        if (!currentMeetingId || userRole !== 'admin') return;
+        const m = meetings.find(m => m.id === currentMeetingId);
+        if (!m) return;
+        document.getElementById('modalMeetingTitle').innerText = 'Edit rapat';
+        document.getElementById('meetingNameInput').value = m.title;
+        document.getElementById('meetingDateInput').value = m.date;
+        document.getElementById('meetingInfoInput').value = m.info || '';
+        document.getElementById('saveMeetingModal').dataset.editId = m.id;
+        meetingModal.classList.add('active');
+      });
 
-    // ========== EXPORT ==========
-    function getCurrentMeeting() { ... }
-    function exportToExcel() { ... }
-    function exportToPDF() { ... }
-    function printMeeting() { ... }
+      document.getElementById('deleteMeetingBtn').addEventListener('click', async () => {
+        if (!currentMeetingId || userRole !== 'admin') return;
+        await deleteMeeting(currentMeetingId);
+      });
 
-    // ========== INISIALISASI ==========
-    // (sudah dijalankan di atas)
+      document.getElementById('cancelMeetingModal').addEventListener('click', closeAllModals);
+      document.getElementById('saveMeetingModal').addEventListener('click', async () => {
+        if (userRole !== 'admin') return;
+        const title = document.getElementById('meetingNameInput').value.trim();
+        const date = document.getElementById('meetingDateInput').value;
+        const info = document.getElementById('meetingInfoInput').value.trim();
+        if (!title || !date) return alert('Judul dan tanggal harus diisi');
+
+        const editId = document.getElementById('saveMeetingModal').dataset.editId;
+        const meetingData = { title, date, info, sections: [] };
+        if (editId) {
+          meetingData.id = editId;
+          const existing = meetings.find(m => m.id === editId);
+          if (existing) meetingData.sections = existing.sections;
+        }
+        await saveMeeting(meetingData);
+        closeAllModals();
+      });
+
+      function openSectionModal(sectionId) {
+        if (userRole !== 'admin') return;
+        currentSectionId = sectionId;
+        const modalTitle = document.getElementById('modalSectionTitle');
+        const nameInput = document.getElementById('sectionNameInput');
+        if (sectionId) {
+          const meeting = meetings.find(m => m.id === currentMeetingId);
+          const sec = meeting?.sections.find(s => s.id === sectionId);
+          if (sec) { nameInput.value = sec.name; modalTitle.innerText = 'Edit seksi'; }
+        } else {
+          nameInput.value = '';
+          modalTitle.innerText = 'Tambah seksi';
+        }
+        sectionModal.classList.add('active');
+      }
+
+      document.getElementById('cancelSectionModal').addEventListener('click', closeAllModals);
+      document.getElementById('saveSectionModal').addEventListener('click', async () => {
+        if (userRole !== 'admin') return;
+        if (!currentMeetingId) return;
+        const name = document.getElementById('sectionNameInput').value.trim();
+        if (!name) return alert('Nama seksi harus diisi');
+
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+
+        const sectionData = { name, tasks: [] };
+        if (currentSectionId) {
+          sectionData.id = currentSectionId;
+          const existing = meeting.sections.find(s => s.id === currentSectionId);
+          if (existing) sectionData.tasks = existing.tasks;
+        }
+        await saveSection(sectionData, currentMeetingId);
+        closeAllModals();
+      });
+
+      function openTaskModal(sectionId, taskId) {
+        if (userRole !== 'admin') return;
+        if (!currentMeetingId) return;
+        currentSectionId = sectionId;
+        currentTaskId = taskId;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const section = meeting?.sections.find(s => s.id === sectionId);
+        const task = taskId ? section?.tasks.find(t => t.id === taskId) : null;
+
+        document.getElementById('taskDescInput').value = task ? task.desc : '';
+        document.getElementById('taskStatusInput').value = task ? task.status : 'rencana';
+        document.getElementById('taskProgressInput').value = task ? (task.progress ?? 0) : 0;
+        document.getElementById('taskPicInput').value = task ? (task.pic || '') : '';
+        document.getElementById('taskNotesInput').value = task ? (task.notes || '') : '';
+        document.getElementById('modalTaskTitle').innerText = task ? 'Edit tugas' : 'Tugas baru';
+        document.getElementById('deleteTaskBtn').classList.toggle('hidden', !task);
+        taskModal.classList.add('active');
+      }
+
+      document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
+      document.getElementById('saveTaskModal').addEventListener('click', async () => {
+        if (userRole !== 'admin') return;
+        if (!currentMeetingId || !currentSectionId) return;
+        const desc = document.getElementById('taskDescInput').value.trim();
+        if (!desc) return alert('Deskripsi tugas harus diisi');
+        const status = document.getElementById('taskStatusInput').value;
+        const progress = parseInt(document.getElementById('taskProgressInput').value, 10) || 0;
+        const pic = document.getElementById('taskPicInput').value.trim();
+        const notes = document.getElementById('taskNotesInput').value.trim();
+
+        const taskData = { desc, status, progress, pic, notes };
+        if (currentTaskId) taskData.id = currentTaskId;
+        await saveTask(taskData, currentSectionId);
+        closeAllModals();
+      });
+
+      document.getElementById('deleteTaskBtn').addEventListener('click', async () => {
+        if (userRole !== 'admin') return;
+        if (!currentMeetingId || !currentSectionId || !currentTaskId) return;
+        if (!confirm('Hapus tugas ini?')) return;
+        await deleteTask(currentSectionId, currentTaskId);
+        closeAllModals();
+      });
+
+      // ========== EXPORT ==========
+      function getCurrentMeeting() {
+        return meetings.find(m => m.id === currentMeetingId);
+      }
+
+      function exportToExcel() {
+        const meeting = getCurrentMeeting();
+        if (!meeting) return;
+        const data = [];
+        data.push(['Seksi', 'Tugas', 'Status', 'Progress (%)', 'PIC', 'Catatan']);
+        meeting.sections.forEach(section => {
+          section.tasks.forEach(task => {
+            data.push([
+              section.name,
+              task.desc,
+              translateStatus(task.status),
+              task.progress ?? 0,
+              task.pic || '-',
+              task.notes || ''
+            ]);
+          });
+        });
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Progress');
+        XLSX.writeFile(wb, `notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
+      }
+
+      function exportToPDF() {
+        const meeting = getCurrentMeeting();
+        if (!meeting) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text(meeting.title, 14, 20);
+        doc.setFontSize(11);
+        doc.text(`Tanggal: ${formatDate(meeting.date)}`, 14, 28);
+        doc.text(`Informasi: ${meeting.info || '-'}`, 14, 35);
+        
+        const tableData = [];
+        meeting.sections.forEach(section => {
+          section.tasks.forEach(task => {
+            tableData.push([
+              section.name,
+              task.desc,
+              translateStatus(task.status),
+              (task.progress ?? 0).toString(),
+              task.pic || '-',
+              task.notes || ''
+            ]);
+          });
+        });
+        doc.autoTable({
+          head: [['Seksi', 'Tugas', 'Status', 'Prog(%)', 'PIC', 'Catatan']],
+          body: tableData,
+          startY: 45,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [249, 115, 22] }
+        });
+        doc.save(`notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+      }
+
+      function printMeeting() {
+        window.print();
+      }
+
+      document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+      document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
+      document.getElementById('printBtn').addEventListener('click', printMeeting);
+    })();
   </script>
 </body>
 </html>
