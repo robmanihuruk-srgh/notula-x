@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap, tidak diubah) ===== */
+    /* ===== CSS (lengkap, sama seperti sebelumnya) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -1221,9 +1221,8 @@
       let unsubscribeWorkspaces = null;
       let selectedMeetingIds = new Set();
       let selectedWorkspaceIds = new Set();
-      let seedingInProgress = false; // flag untuk mencegah seeding ganda
 
-      // ========== DATA DEFAULT LENGKAP (rapat 1 & 9 Maret) ==========
+      // ========== DATA DEFAULT (rapat 1 & 9 Maret) ==========
       const defaultMeetings = [
         {
           title: 'Rapat Koordinasi Panitia Pesparawi – 1 Maret 2026',
@@ -1401,37 +1400,52 @@
       }
 
       async function seedDefaultData() {
-        if (!currentUser || seedingInProgress) return;
-        seedingInProgress = true;
+        if (!currentUser) return;
         try {
-          // Gunakan transaksi untuk memastikan hanya sekali
-          const metaRef = db.collection('_metadata').doc('seeded');
-          await db.runTransaction(async (transaction) => {
-            const metaDoc = await transaction.get(metaRef);
-            if (metaDoc.exists) {
-              console.log('Data default sudah pernah ditambahkan.');
-              seedingInProgress = false;
-              return;
-            }
-            
-            // Buat grup default jika belum ada
-            let workspaceId;
-            const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
-            if (workspaceQuery.empty) {
-              const newWorkspace = {
-                name: 'Rapat Pesparawi Distrik VII',
-                description: 'Grup default untuk rapat Pesparawi',
-                createdBy: currentUser.uid,
-                members: [currentUser.uid],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              };
-              const workspaceRef = await db.collection('workspaces').add(newWorkspace);
-              workspaceId = workspaceRef.id;
-            } else {
-              workspaceId = workspaceQuery.docs[0].id;
-            }
+          // Gunakan pengecekan yang lebih kuat: periksa apakah kedua rapat default sudah ada di grup yang tepat
+          const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
+          if (workspaceQuery.empty) {
+            // Buat grup default
+            const newWorkspace = {
+              name: 'Rapat Pesparawi Distrik VII',
+              description: 'Grup default untuk rapat Pesparawi',
+              createdBy: currentUser.uid,
+              members: [currentUser.uid],
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            const workspaceRef = await db.collection('workspaces').add(newWorkspace);
+            const workspaceId = workspaceRef.id;
 
-            // Tambahkan rapat default (cek ulang apakah sudah ada)
+            // Tambahkan dua rapat default
+            for (const m of defaultMeetings) {
+              const meetingData = {
+                title: m.title,
+                date: m.date,
+                info: m.info,
+                workspaceId,
+                createdBy: currentUser.uid,
+                sections: m.sections.map(section => ({
+                  id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                  name: section.name,
+                  tasks: section.tasks.map(task => ({
+                    id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                    desc: task.desc,
+                    status: task.status,
+                    progress: task.progress,
+                    pic: task.pic,
+                    notes: task.notes,
+                    deadline: task.deadline || ''
+                  }))
+                }))
+              };
+              await db.collection('meetings').add(meetingData);
+            }
+            // Tandai seeding selesai
+            await db.collection('_metadata').doc('seeded').set({ seeded: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            console.log('Seeding data default selesai.');
+          } else {
+            // Grup sudah ada, periksa apakah kedua rapat default sudah ada
+            const workspaceId = workspaceQuery.docs[0].id;
             for (const m of defaultMeetings) {
               const meetingQuery = await db.collection('meetings')
                 .where('title', '==', m.title)
@@ -1459,16 +1473,12 @@
                   }))
                 };
                 await db.collection('meetings').add(meetingData);
+                console.log(`Rapat default "${m.title}" ditambahkan ke grup yang sudah ada.`);
               }
             }
-            // Tandai seeding selesai
-            transaction.set(metaRef, { seeded: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-          });
-          console.log('Seeding data default selesai.');
+          }
         } catch (error) {
           console.error('Gagal menambahkan data default:', error);
-        } finally {
-          seedingInProgress = false;
         }
       }
 
@@ -1535,7 +1545,7 @@
       });
       document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
-      // ========== WORKSPACE ==========
+      // ========== WORKSPACE (tidak diubah) ==========
       async function deleteWorkspace(workspaceId) {
         if (userRole !== 'admin') return;
         const workspace = workspaces.find(w => w.id === workspaceId);
@@ -1755,13 +1765,20 @@
       function getLastMeetingInWorkspace(workspaceId) {
         const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
         if (workspaceMeetings.length === 0) return null;
-        const sorted = [...workspaceMeetings].sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Urutkan berdasarkan tanggal terbaru, lalu ambil yang pertama
+        const sorted = [...workspaceMeetings].sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+          // Jika tanggal sama, gunakan ID sebagai tie-breaker
+          return b.id.localeCompare(a.id);
+        });
         return sorted[0];
       }
 
       const workspaceSelect = document.getElementById('meetingWorkspaceSelect');
 
-      // ========== DASHBOARD GLOBAL dengan tooltip ==========
+      // ========== DASHBOARD GLOBAL (tidak diubah) ==========
       let activeTooltip = null;
 
       function showStatTooltip(statType, event, statsData) {
@@ -2005,7 +2022,7 @@
         });
       }
 
-      // ========== RENDER DETAIL ==========
+      // ========== RENDER DETAIL (tidak diubah) ==========
       function renderDetail(meeting) {
         const content = document.getElementById('contentArea');
         const headerTitle = document.getElementById('meetingTitle');
@@ -2342,7 +2359,7 @@
         if (!editId && workspaceId !== null) {
           const lastMeeting = getLastMeetingInWorkspace(workspaceId);
           if (lastMeeting && lastMeeting.sections) {
-            // Salin persis tanpa perubahan apapun
+            console.log('Menyalin template dari rapat terakhir:', lastMeeting.title);
             sections = lastMeeting.sections.map(section => ({
               id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
               name: section.name,
