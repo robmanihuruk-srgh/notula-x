@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap, sama seperti sebelumnya, tidak diubah) ===== */
+    /* ===== CSS (lengkap, dengan tambahan tombol reset) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -71,7 +71,7 @@
       color: var(--color-primary);
       font-size: 1.8rem;
     }
-    .btn-new, .btn-delete-selected, .btn-new-workspace {
+    .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default {
       width: 100%;
       margin-top: 12px;
       background: var(--color-primary);
@@ -89,7 +89,7 @@
       transition: background 0.15s;
       box-shadow: 0 4px 8px rgba(249,115,22,0.2);
     }
-    .btn-new:hover, .btn-delete-selected:hover, .btn-new-workspace:hover {
+    .btn-new:hover, .btn-delete-selected:hover, .btn-new-workspace:hover, .btn-reset-default:hover {
       background: var(--color-primary-dark);
     }
     .btn-delete-selected {
@@ -109,6 +109,13 @@
     }
     .btn-new-workspace:hover {
       background: #1e7e34;
+    }
+    .btn-reset-default {
+      background: #6c757d;
+      box-shadow: 0 4px 8px rgba(108,117,125,0.2);
+    }
+    .btn-reset-default:hover {
+      background: #5a6268;
     }
 
     .workspace-section {
@@ -968,7 +975,7 @@
       body { flex-direction: column; overflow: auto; height: auto; }
       .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 10; }
       .sidebar-header { padding: 16px; }
-      .btn-new, .btn-delete-selected, .btn-new-workspace { padding: 10px 12px; font-size: 0.9rem; margin-top: 8px; }
+      .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default { padding: 10px 12px; font-size: 0.9rem; margin-top: 8px; }
       .meeting-list { max-height: 200px; padding: 8px 12px; }
       .main-panel { width: 100%; height: auto; overflow: visible; }
       .panel-header { padding: 16px; flex-direction: column; align-items: flex-start; }
@@ -1149,6 +1156,7 @@
       <button class="btn-new" id="newMeetingBtn" disabled><i class="fas fa-plus-circle"></i> Rapat baru</button>
       <button class="btn-new-workspace" id="newWorkspaceBtn" disabled><i class="fas fa-users"></i> Buat Grup</button>
       <button class="btn-delete-selected" id="deleteSelectedBtn" disabled><i class="fas fa-trash"></i> Hapus Terpilih</button>
+      <button class="btn-reset-default" id="resetDefaultDataBtn" disabled><i class="fas fa-database"></i> Reset Data Default</button>
     </div>
     <div class="workspace-section">
       <h3>Grup Saya</h3>
@@ -1222,7 +1230,7 @@
       let selectedMeetingIds = new Set();
       let selectedWorkspaceIds = new Set();
 
-      // ========== DATA DEFAULT LENGKAP ==========
+      // ========== DATA DEFAULT LENGKAP (rapat 1 & 9 Maret) ==========
       const defaultMeetings = [
         {
           title: 'Rapat Koordinasi Panitia Pesparawi – 1 Maret 2026',
@@ -1318,7 +1326,7 @@
         }
       ];
 
-      // ========== THEME MANAGEMENT (sama) ==========
+      // ========== THEME MANAGEMENT ==========
       const themeStyles = document.getElementById('theme-style');
       const themes = {
         orange: `:root { --color-primary: #f97316; --color-primary-dark: #e05e0f; --color-secondary: #1e4a6d; --color-secondary-light: #2b6f9e; --color-bg-light: #f4f7fb; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #54708f; --color-accent: #f97316; }`,
@@ -1399,12 +1407,16 @@
         document.getElementById('userRole').innerText = userRole;
       }
 
+      // Fungsi seeding data default (menambahkan grup dan rapat)
       async function seedDefaultData() {
         if (!currentUser) return;
         try {
-          // Cek apakah sudah ada grup default
+          // Cek apakah grup default sudah ada
+          let workspaceId = null;
           const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
-          if (workspaceQuery.empty) {
+          if (!workspaceQuery.empty) {
+            workspaceId = workspaceQuery.docs[0].id;
+          } else {
             // Buat grup default
             const newWorkspace = {
               name: 'Rapat Pesparawi Distrik VII',
@@ -1414,10 +1426,16 @@
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             const workspaceRef = await db.collection('workspaces').add(newWorkspace);
-            const workspaceId = workspaceRef.id;
+            workspaceId = workspaceRef.id;
+          }
 
-            // Tambahkan dua rapat default
-            for (const m of defaultMeetings) {
+          // Tambahkan dua rapat default jika belum ada
+          for (const m of defaultMeetings) {
+            const meetingQuery = await db.collection('meetings')
+              .where('title', '==', m.title)
+              .where('workspaceId', '==', workspaceId)
+              .get();
+            if (meetingQuery.empty) {
               const meetingData = {
                 title: m.title,
                 date: m.date,
@@ -1439,13 +1457,38 @@
                 }))
               };
               await db.collection('meetings').add(meetingData);
+              console.log(`Rapat default "${m.title}" ditambahkan.`);
             }
-            // Tandai seeding selesai
-            await db.collection('_metadata').doc('seeded').set({ seeded: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-            console.log('Seeding data default selesai.');
           }
         } catch (error) {
           console.error('Gagal menambahkan data default:', error);
+        }
+      }
+
+      // Fungsi reset data default (hapus grup default dan semua rapat di dalamnya, lalu tambah ulang)
+      async function resetDefaultData() {
+        if (userRole !== 'admin') return;
+        if (!confirm('Reset data default? Semua grup "Rapat Pesparawi Distrik VII" dan rapat di dalamnya akan dihapus, lalu ditambahkan ulang. Data lain tidak terpengaruh.')) return;
+        try {
+          // Cari grup default
+          const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
+          for (const doc of workspaceQuery.docs) {
+            // Hapus semua rapat dalam grup
+            const meetingsInGroup = meetings.filter(m => m.workspaceId === doc.id);
+            for (const m of meetingsInGroup) {
+              await db.collection('meetings').doc(m.id).delete();
+            }
+            // Hapus grup
+            await db.collection('workspaces').doc(doc.id).delete();
+          }
+          // Panggil seeding ulang
+          await seedDefaultData();
+          alert('Data default berhasil direset!');
+          // Refresh tampilan
+          window.location.reload();
+        } catch (error) {
+          console.error('Reset gagal:', error);
+          alert('Reset gagal: ' + error.message);
         }
       }
 
@@ -1512,7 +1555,7 @@
       });
       document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
-      // ========== WORKSPACE (sama seperti sebelumnya) ==========
+      // ========== WORKSPACE ==========
       async function deleteWorkspace(workspaceId) {
         if (userRole !== 'admin') return;
         const workspace = workspaces.find(w => w.id === workspaceId);
@@ -1729,17 +1772,21 @@
         });
       }
 
-      function getTemplateMeetingInWorkspace(workspaceId) {
+      function getLastMeetingInWorkspace(workspaceId) {
         const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
         if (workspaceMeetings.length === 0) return null;
-        // Ambil rapat dengan tanggal tertua (1 Maret) sebagai template tetap
-        const sorted = [...workspaceMeetings].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const sorted = [...workspaceMeetings].sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+          return b.id.localeCompare(a.id);
+        });
         return sorted[0];
       }
 
       const workspaceSelect = document.getElementById('meetingWorkspaceSelect');
 
-      // ========== DASHBOARD GLOBAL dengan tooltip ==========
+      // ========== DASHBOARD GLOBAL dan tooltip ==========
       let activeTooltip = null;
 
       function showStatTooltip(statType, event, statsData) {
@@ -2318,10 +2365,10 @@
         const editId = document.getElementById('saveMeetingModal').dataset.editId;
         let sections = [];
         if (!editId && workspaceId !== null) {
-          const templateMeeting = getTemplateMeetingInWorkspace(workspaceId);
-          if (templateMeeting && templateMeeting.sections) {
-            console.log('Menggunakan template dari rapat:', templateMeeting.title);
-            sections = templateMeeting.sections.map(section => ({
+          const lastMeeting = getLastMeetingInWorkspace(workspaceId);
+          if (lastMeeting && lastMeeting.sections) {
+            // Salin persis tanpa perubahan apapun
+            sections = lastMeeting.sections.map(section => ({
               id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
               name: section.name,
               tasks: section.tasks.map(task => ({
@@ -2475,6 +2522,9 @@
 
       document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedMeetings);
 
+      // ========== TOMBOL RESET DATA DEFAULT ==========
+      document.getElementById('resetDefaultDataBtn').addEventListener('click', resetDefaultData);
+
       // ========== ROLE-BASED UI ==========
       function updateButtonsByRole() {
         const isAdmin = userRole === 'admin';
@@ -2485,6 +2535,7 @@
           document.getElementById('addSectionBtn'),
           document.getElementById('deleteSelectedBtn'),
           document.getElementById('newWorkspaceBtn'),
+          document.getElementById('resetDefaultDataBtn'),
           ...document.querySelectorAll('.btn-add-section'),
           ...document.querySelectorAll('.section-actions button'),
           ...document.querySelectorAll('.task-actions button'),
