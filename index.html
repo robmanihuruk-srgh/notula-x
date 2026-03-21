@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>Notula · Workspace + Grup + Role + Hapus Massal</title>
+  <title>Notula · Workspace + Grup + Role + Hapus Massal + Dashboard Global</title>
   <!-- Font & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -834,6 +834,68 @@
     .member-item:last-child {
       border-bottom: none;
     }
+    /* Dashboard Global Styles */
+    .global-dashboard {
+      background: var(--color-card-bg);
+      border-radius: 24px;
+      padding: 24px;
+      margin-bottom: 32px;
+      border: 1px solid #ffddc4;
+      box-shadow: 0 8px 20px -6px rgba(0, 32, 64, 0.08);
+    }
+    .global-dashboard h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .global-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px 40px;
+      margin-bottom: 24px;
+      background: #fff7ed;
+      padding: 16px 20px;
+      border-radius: 20px;
+    }
+    .global-stat-item {
+      min-width: 100px;
+    }
+    .global-stat-label {
+      font-size: 0.8rem;
+      color: var(--color-text-light);
+      text-transform: uppercase;
+    }
+    .global-stat-value {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--color-secondary);
+    }
+    .kendala-list {
+      margin-top: 16px;
+      border-top: 1px solid #f0e0d0;
+      padding-top: 16px;
+    }
+    .kendala-item {
+      background: #fff5f0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      border-left: 3px solid var(--color-primary);
+    }
+    .kendala-task {
+      font-weight: 500;
+      color: var(--color-secondary);
+    }
+    .kendala-meeting {
+      font-size: 0.8rem;
+      color: var(--color-text-light);
+      margin-top: 4px;
+    }
     @media print {
       .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .btn-delete-meeting, .theme-switcher, .user-info { display: none !important; }
       body, .main-panel, .content { background: white; overflow: visible; height: auto; }
@@ -859,6 +921,8 @@
       .task-row { flex-direction: column; align-items: flex-start; }
       .task-status, .task-desc, .task-pic, .progress-container, .task-actions { width: 100%; margin-left: 0; }
       .progress-container { min-width: 100%; }
+      .global-stats { gap: 12px; padding: 12px; }
+      .global-stat-value { font-size: 1.4rem; }
     }
   </style>
 </head>
@@ -1448,7 +1512,6 @@
                 if (meeting) renderDetail(meeting);
                 else currentMeetingId = null;
               } else {
-                // Perubahan teks: menghilangkan kata "sidebar"
                 document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
               }
             }
@@ -1500,7 +1563,6 @@
             currentWorkspaceId = null;
             currentMeetingId = null;
             renderWorkspaceList();
-            // Perubahan teks: menghilangkan kata "sidebar"
             document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
           } else {
             renderWorkspaceList();
@@ -1702,6 +1764,67 @@
         });
       }
 
+      // ========== DASHBOARD GLOBAL ==========
+      function renderGlobalDashboard(workspaceId) {
+        const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
+        let totalTasks = 0;
+        let totalProgress = 0;
+        let taskCount = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
+        let kendalaTasks = [];
+
+        workspaceMeetings.forEach(meeting => {
+          meeting.sections?.forEach(section => {
+            section.tasks?.forEach(task => {
+              totalTasks++;
+              totalProgress += task.progress || 0;
+              taskCount[task.status] = (taskCount[task.status] || 0) + 1;
+              if (task.status === 'kendala') {
+                kendalaTasks.push({
+                  taskDesc: task.desc,
+                  meetingTitle: meeting.title,
+                  meetingDate: meeting.date,
+                  pic: task.pic || '-',
+                  notes: task.notes || ''
+                });
+              }
+            });
+          });
+        });
+
+        const avgProgress = totalTasks ? (totalProgress / totalTasks) : 0;
+
+        let html = `
+          <div class="global-dashboard">
+            <h3><i class="fas fa-chart-line"></i> Dashboard Progres Keseluruhan</h3>
+            <div class="global-stats">
+              <div class="global-stat-item"><span class="global-stat-label">Total Tugas</span><div class="global-stat-value">${totalTasks}</div></div>
+              <div class="global-stat-item"><span class="global-stat-label">Rata-rata Progress</span><div class="global-stat-value">${Math.round(avgProgress)}%</div></div>
+              <div class="global-stat-item"><span class="global-stat-label">Selesai</span><div class="global-stat-value" style="color:#14633b;">${taskCount.selesai || 0}</div></div>
+              <div class="global-stat-item"><span class="global-stat-label">Berlangsung</span><div class="global-stat-value" style="color:#9e5e04;">${taskCount.berlangsung || 0}</div></div>
+              <div class="global-stat-item"><span class="global-stat-label">Rencana</span><div class="global-stat-value" style="color:#0a5585;">${taskCount.rencana || 0}</div></div>
+              <div class="global-stat-item"><span class="global-stat-label">Kendala</span><div class="global-stat-value" style="color:#b13e2d;">${taskCount.kendala || 0}</div></div>
+            </div>
+        `;
+
+        if (kendalaTasks.length > 0) {
+          html += `<div class="kendala-list"><strong><i class="fas fa-exclamation-triangle"></i> Tugas dengan Kendala:</strong><div style="margin-top: 8px;">`;
+          kendalaTasks.forEach(kt => {
+            html += `
+              <div class="kendala-item">
+                <div class="kendala-task">📌 ${escapeHtml(kt.taskDesc)}</div>
+                <div class="kendala-meeting">📅 ${formatDate(kt.meetingDate)} – ${escapeHtml(kt.meetingTitle)} | 👤 ${escapeHtml(kt.pic)}</div>
+                ${kt.notes ? `<div class="kendala-notes" style="font-size:0.8rem; margin-top:4px;">📝 ${escapeHtml(kt.notes)}</div>` : ''}
+              </div>
+            `;
+          });
+          html += `</div></div>`;
+        } else {
+          html += `<div style="margin-top:16px; color: var(--color-text-light);"><i class="fas fa-check-circle"></i> Tidak ada kendala saat ini.</div>`;
+        }
+        html += `</div>`;
+        return html;
+      }
+
       function renderWorkspaceMeetings(workspaceId) {
         const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
         const content = document.getElementById('contentArea');
@@ -1709,7 +1832,10 @@
           content.innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-users"></i> Belum ada rapat di grup ini.<br>Klik tombol "Rapat baru" untuk membuat rapat di grup ini.</div>';
           return;
         }
-        let html = '<div class="meeting-list" style="padding:0;">';
+
+        // Tampilkan dashboard global di atas daftar rapat
+        let html = renderGlobalDashboard(workspaceId);
+        html += '<div class="meeting-list" style="padding:0; margin-top:24px;"><h3 style="margin-bottom:16px; font-size:1.1rem;">Daftar Rapat dalam Grup</h3>';
         workspaceMeetings.forEach(m => {
           html += `
             <div class="meeting-item ${m.id === currentMeetingId ? 'active' : ''}" data-id="${m.id}">
@@ -1723,6 +1849,7 @@
         });
         html += '</div>';
         content.innerHTML = html;
+
         workspaceMeetings.forEach(m => {
           const el = content.querySelector(`.meeting-item[data-id="${m.id}"]`);
           if (el) {
@@ -1747,7 +1874,7 @@
         });
       }
 
-      // ========== RENDER DETAIL ==========
+      // ========== RENDER DETAIL (tidak diubah) ==========
       function renderDetail(meeting) {
         const content = document.getElementById('contentArea');
         const headerTitle = document.getElementById('meetingTitle');
@@ -1823,7 +1950,7 @@
 
         let html = `
           <div class="dashboard-card">
-            <div class="dashboard-title"><i class="fas fa-chart-pie"></i> Dashboard Progress</div>
+            <div class="dashboard-title"><i class="fas fa-chart-pie"></i> Dashboard Progress Rapat Ini</div>
             <div class="stats-grid">
               <div class="stat-item"><span class="stat-label">Total Tugas</span><div class="stat-value">${totalTasks}</div></div>
               <div class="stat-item"><span class="stat-label">Rata-rata Progress</span><div class="stat-value">${Math.round(overallAvg)}%</div></div>
@@ -1920,7 +2047,7 @@
         `;
       }
 
-      // ========== CRUD OPERATIONS ==========
+      // ========== CRUD OPERATIONS (tidak diubah) ==========
       async function saveMeeting(meetingData) {
         if (userRole !== 'admin') return;
         try {
@@ -2204,7 +2331,6 @@
           if (currentWorkspaceId && !workspaces.find(w => w.id === currentWorkspaceId)) {
             currentWorkspaceId = null;
             renderWorkspaceList();
-            // Perubahan teks: menghilangkan kata "sidebar"
             document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
           }
         } catch (error) {
