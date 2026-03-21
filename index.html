@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>Notula · Workspace + Grup + Role + Hapus Massal + Dashboard Global</title>
+  <title>Notula · Workspace + Grup + Role + Hapus Massal + Template + Deadline</title>
   <!-- Font & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap, tidak diubah) ===== */
+    /* ===== CSS (lengkap, dengan tambahan style deadline) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -630,6 +630,17 @@
       color: var(--color-secondary);
       min-width: 45px;
     }
+    .task-deadline {
+      font-size: 0.7rem;
+      color: #e67e22;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #fef5e8;
+      padding: 2px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
     .task-actions {
       display: flex;
       gap: 8px;
@@ -640,6 +651,7 @@
       border: none;
       color: #8ba0bb;
       cursor: pointer;
+      font-size: 0.95rem;
     }
     .task-actions button:hover {
       color: var(--color-primary);
@@ -919,7 +931,7 @@
       .section-header { flex-direction: column; align-items: flex-start; gap: 12px; }
       .btn-add-section { width: 100%; justify-content: center; }
       .task-row { flex-direction: column; align-items: flex-start; }
-      .task-status, .task-desc, .task-pic, .progress-container, .task-actions { width: 100%; margin-left: 0; }
+      .task-status, .task-desc, .task-pic, .progress-container, .task-deadline, .task-actions { width: 100%; margin-left: 0; }
       .progress-container { min-width: 100%; }
       .global-stats { gap: 12px; padding: 12px; }
       .global-stat-value { font-size: 1.4rem; }
@@ -994,7 +1006,7 @@
     </div>
   </div>
 
-  <!-- MODAL RAPAT -->
+  <!-- MODAL RAPAT (dengan opsi template) -->
   <div class="modal" id="meetingModal">
     <div class="modal-content">
       <h3 id="modalMeetingTitle">Rapat baru</h3>
@@ -1011,6 +1023,10 @@
         <select id="meetingWorkspaceSelect">
           <option value="private">Pribadi (hanya saya)</option>
         </select>
+      </div>
+      <div class="form-group" id="templateOptionGroup" style="display: none;">
+        <label><input type="checkbox" id="copyFromLastMeeting"> Salin dari rapat terakhir di grup ini (struktur seksi dan tugas)</label>
+        <div id="lastMeetingInfo" style="font-size:0.85rem; color:var(--color-text-light); margin-top:4px;"></div>
       </div>
       <div class="form-group">
         <label>Informasi tambahan (opsional)</label>
@@ -1038,7 +1054,7 @@
     </div>
   </div>
 
-  <!-- MODAL TASK -->
+  <!-- MODAL TASK (dengan deadline) -->
   <div class="modal" id="taskModal">
     <div class="modal-content">
       <h3 id="modalTaskTitle">Tugas / item</h3>
@@ -1064,6 +1080,10 @@
       <div class="form-group">
         <label>Penanggung Jawab (PIC)</label>
         <input type="text" id="taskPicInput" placeholder="Nama / seksi">
+      </div>
+      <div class="form-group">
+        <label>Tenggat waktu (deadline)</label>
+        <input type="datetime-local" id="taskDeadlineInput">
       </div>
       <div class="form-group">
         <label>Catatan (opsional)</label>
@@ -1165,44 +1185,44 @@
           info: 'Pembahasan RAB & persiapan awal',
           sections: [
             { name: 'RAB setiap seksi', tasks: [
-              { desc: 'Seksi Acara mengirim RAB', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '' },
-              { desc: 'Seksi Humpubdok mengirim RAB', status: 'selesai', progress: 100, pic: 'Humas', notes: '' },
-              { desc: 'Seksi Konsumsi mengirim RAB', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '' },
-              { desc: 'Seksi Perlengkapan survey tempat & vendor', status: 'berlangsung', progress: 30, pic: 'Perkap', notes: '' },
-              { desc: 'Seksi Keamanan menunggu tempat', status: 'rencana', progress: 0, pic: 'Keamanan', notes: '' },
-              { desc: 'Seksi kesehatan ditindaklanjuti', status: 'rencana', progress: 0, pic: 'Kesehatan', notes: '' },
-              { desc: 'DD penyerahan RAB ke bendahara (6 Maret)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '' },
-              { desc: 'Bendahara cross-cek RAB dan rapat 9 Maret', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '' }
+              { desc: 'Seksi Acara mengirim RAB', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '', deadline: '' },
+              { desc: 'Seksi Humpubdok mengirim RAB', status: 'selesai', progress: 100, pic: 'Humas', notes: '', deadline: '' },
+              { desc: 'Seksi Konsumsi mengirim RAB', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '', deadline: '' },
+              { desc: 'Seksi Perlengkapan survey tempat & vendor', status: 'berlangsung', progress: 30, pic: 'Perkap', notes: '', deadline: '' },
+              { desc: 'Seksi Keamanan menunggu tempat', status: 'rencana', progress: 0, pic: 'Keamanan', notes: '', deadline: '' },
+              { desc: 'Seksi kesehatan ditindaklanjuti', status: 'rencana', progress: 0, pic: 'Kesehatan', notes: '', deadline: '' },
+              { desc: 'DD penyerahan RAB ke bendahara (6 Maret)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '', deadline: '' },
+              { desc: 'Bendahara cross-cek RAB dan rapat 9 Maret', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '', deadline: '' }
             ]},
             { name: 'Seksi Perkap', tasks: [
-              { desc: 'Survey tempat & vendor', status: 'berlangsung', progress: 40, pic: 'Perkap', notes: '' }
+              { desc: 'Survey tempat & vendor', status: 'berlangsung', progress: 40, pic: 'Perkap', notes: '', deadline: '' }
             ]},
             { name: 'Seksi Lomba', tasks: [
-              { desc: 'Tanggal pelaksanaan 20 Juni 2026', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
-              { desc: 'Story Telling max 2 orang per-resort', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
-              { desc: 'Story Telling tidak merangkap Koor/Vocal', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
-              { desc: 'Nada dasar lagu koor tidak diganti', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
-              { desc: 'Mencari juri kompeten', status: 'berlangsung', progress: 60, pic: 'Acara', notes: '' },
-              { desc: 'Terjemahkan aturan lomba ke Indonesia (deadline 3 Maret)', status: 'rencana', progress: 0, pic: 'Acara', notes: '' }
+              { desc: 'Tanggal pelaksanaan 20 Juni 2026', status: 'selesai', progress: 100, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Story Telling max 2 orang per-resort', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
+              { desc: 'Story Telling tidak merangkap Koor/Vocal', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
+              { desc: 'Nada dasar lagu koor tidak diganti', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
+              { desc: 'Mencari juri kompeten', status: 'berlangsung', progress: 60, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Terjemahkan aturan lomba ke Indonesia (deadline 3 Maret)', status: 'rencana', progress: 0, pic: 'Acara', notes: '', deadline: '' }
             ]},
             { name: 'Seksi Humpubdok', tasks: [
-              { desc: 'Koordinasi video teaser tiap resort', status: 'rencana', progress: 0, pic: 'Humas', notes: '' },
-              { desc: 'Upload video teaser di medsos', status: 'rencana', progress: 0, pic: 'Humas', notes: '' },
-              { desc: 'Aktifasi medsos IG & FB', status: 'rencana', progress: 10, pic: 'Humas', notes: '' }
+              { desc: 'Koordinasi video teaser tiap resort', status: 'rencana', progress: 0, pic: 'Humas', notes: '', deadline: '' },
+              { desc: 'Upload video teaser di medsos', status: 'rencana', progress: 0, pic: 'Humas', notes: '', deadline: '' },
+              { desc: 'Aktifasi medsos IG & FB', status: 'rencana', progress: 10, pic: 'Humas', notes: '', deadline: '' }
             ]},
             { name: 'Seksi Dana', tasks: [
-              { desc: 'Galangan jemaat & hari H', status: 'rencana', progress: 0, pic: 'Dana', notes: '' },
-              { desc: 'Proposal', status: 'rencana', progress: 5, pic: 'Dana', notes: '' },
-              { desc: 'Bazar', status: 'rencana', progress: 0, pic: 'Dana', notes: '' }
+              { desc: 'Galangan jemaat & hari H', status: 'rencana', progress: 0, pic: 'Dana', notes: '', deadline: '' },
+              { desc: 'Proposal', status: 'rencana', progress: 5, pic: 'Dana', notes: '', deadline: '' },
+              { desc: 'Bazar', status: 'rencana', progress: 0, pic: 'Dana', notes: '', deadline: '' }
             ]},
             { name: 'Bendahara', tasks: [
-              { desc: 'Rekening Panitia (OTP)', status: 'berlangsung', progress: 70, pic: 'Bendahara', notes: '' }
+              { desc: 'Rekening Panitia (OTP)', status: 'berlangsung', progress: 70, pic: 'Bendahara', notes: '', deadline: '' }
             ]},
             { name: 'Sekretariat', tasks: [
-              { desc: 'Surat pemberitahuan ke resort', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba' },
-              { desc: 'Flyer Pesparawi', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba' },
-              { desc: 'Proposal (RAB, Norek, ketentuan)', status: 'rencana', progress: 20, pic: 'Sekretariat', notes: '' },
-              { desc: 'Surat permohonan galangan', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'koordinasi praeses' }
+              { desc: 'Surat pemberitahuan ke resort', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba', deadline: '' },
+              { desc: 'Flyer Pesparawi', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba', deadline: '' },
+              { desc: 'Proposal (RAB, Norek, ketentuan)', status: 'rencana', progress: 20, pic: 'Sekretariat', notes: '', deadline: '' },
+              { desc: 'Surat permohonan galangan', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'koordinasi praeses', deadline: '' }
             ]}
           ]
         },
@@ -1212,42 +1232,42 @@
           info: 'Total anggaran ±330jt | SMESCO sewa 61jt | 20 Juni 2026',
           sections: [
             { name: 'Seksi Acara', tasks: [
-              { desc: 'RAB acara Rp105,5 jt', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
-              { desc: 'Menentukan juri & hadiah', status: 'selesai', progress: 100, pic: 'Acara', notes: '' },
-              { desc: 'Koordinasi panggung dgn perkap', status: 'berlangsung', progress: 50, pic: 'Acara', notes: '' },
-              { desc: 'Koordinasi dengan GKPS TV', status: 'rencana', progress: 10, pic: 'Acara', notes: '' },
-              { desc: 'Artis tamu (Ziva/Bastian/Grace) budget 5jt', status: 'kendala', progress: 20, pic: 'Acara', notes: 'belum final' }
+              { desc: 'RAB acara Rp105,5 jt', status: 'selesai', progress: 100, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Menentukan juri & hadiah', status: 'selesai', progress: 100, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Koordinasi panggung dgn perkap', status: 'berlangsung', progress: 50, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Koordinasi dengan GKPS TV', status: 'rencana', progress: 10, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Artis tamu (Ziva/Bastian/Grace) budget 5jt', status: 'kendala', progress: 20, pic: 'Acara', notes: 'belum final', deadline: '' }
             ]},
             { name: 'Koordinator Lomba', tasks: [
-              { desc: 'Aturan teknis lomba', status: 'selesai', progress: 100, pic: 'Lomba', notes: '' },
-              { desc: 'Formulir pendaftaran detail', status: 'berlangsung', progress: 70, pic: 'Lomba', notes: '' },
-              { desc: 'Follow up Sinode durasi & aturan', status: 'rencana', progress: 0, pic: 'Lomba', notes: 'menunggu info' }
+              { desc: 'Aturan teknis lomba', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
+              { desc: 'Formulir pendaftaran detail', status: 'berlangsung', progress: 70, pic: 'Lomba', notes: '', deadline: '' },
+              { desc: 'Follow up Sinode durasi & aturan', status: 'rencana', progress: 0, pic: 'Lomba', notes: 'menunggu info', deadline: '' }
             ]},
             { name: 'Seksi Perlengkapan', tasks: [
-              { desc: 'Penawaran SMESCO', status: 'selesai', progress: 100, pic: 'Perkap', notes: '' },
-              { desc: 'Negosiasi harga sewa', status: 'berlangsung', progress: 60, pic: 'Perkap', notes: '' },
-              { desc: 'Survey lokasi 16 April 2026', status: 'rencana', progress: 0, pic: 'Perkap', notes: '' },
-              { desc: 'DP gedung (fu korpel)', status: 'kendala', progress: 10, pic: 'Perkap', notes: '' }
+              { desc: 'Penawaran SMESCO', status: 'selesai', progress: 100, pic: 'Perkap', notes: '', deadline: '' },
+              { desc: 'Negosiasi harga sewa', status: 'berlangsung', progress: 60, pic: 'Perkap', notes: '', deadline: '' },
+              { desc: 'Survey lokasi 16 April 2026', status: 'rencana', progress: 0, pic: 'Perkap', notes: '', deadline: '' },
+              { desc: 'DP gedung (fu korpel)', status: 'kendala', progress: 10, pic: 'Perkap', notes: '', deadline: '' }
             ]},
             { name: 'Seksi Konsumsi', tasks: [
-              { desc: 'RAB Rp56,38 jt', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '' },
-              { desc: 'Revisi jumlah peserta', status: 'berlangsung', progress: 50, pic: 'Konsumsi', notes: '' },
-              { desc: 'Katering & sistem box', status: 'rencana', progress: 20, pic: 'Konsumsi', notes: '' }
+              { desc: 'RAB Rp56,38 jt', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '', deadline: '' },
+              { desc: 'Revisi jumlah peserta', status: 'berlangsung', progress: 50, pic: 'Konsumsi', notes: '', deadline: '' },
+              { desc: 'Katering & sistem box', status: 'rencana', progress: 20, pic: 'Konsumsi', notes: '', deadline: '' }
             ]},
             { name: 'Seksi Humas', tasks: [
-              { desc: 'Konsep banner/backdrop', status: 'selesai', progress: 100, pic: 'Humas', notes: '' },
-              { desc: 'Koordinasi desain (Bang Robert)', status: 'berlangsung', progress: 80, pic: 'Humas', notes: '' },
-              { desc: 'Finalisasi jumlah banner', status: 'rencana', progress: 0, pic: 'Humas', notes: 'budget 37jt' }
+              { desc: 'Konsep banner/backdrop', status: 'selesai', progress: 100, pic: 'Humas', notes: '', deadline: '' },
+              { desc: 'Koordinasi desain (Bang Robert)', status: 'berlangsung', progress: 80, pic: 'Humas', notes: '', deadline: '' },
+              { desc: 'Finalisasi jumlah banner', status: 'rencana', progress: 0, pic: 'Humas', notes: 'budget 37jt', deadline: '' }
             ]},
             { name: 'Bendahara', tasks: [
-              { desc: 'Mengumpulkan RAB semua seksi', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '' },
-              { desc: 'Menyusun proposal lengkap', status: 'berlangsung', progress: 65, pic: 'Bendahara', notes: '' },
-              { desc: 'Finalisasi total anggaran', status: 'rencana', progress: 30, pic: 'Bendahara', notes: 'masih ada pos belum final' }
+              { desc: 'Mengumpulkan RAB semua seksi', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '', deadline: '' },
+              { desc: 'Menyusun proposal lengkap', status: 'berlangsung', progress: 65, pic: 'Bendahara', notes: '', deadline: '' },
+              { desc: 'Finalisasi total anggaran', status: 'rencana', progress: 30, pic: 'Bendahara', notes: 'masih ada pos belum final', deadline: '' }
             ]},
             { name: 'Sekretariat', tasks: [
-              { desc: 'Surat ke resort', status: 'selesai', progress: 100, pic: 'Sekretariat', notes: '' },
-              { desc: 'Proposal bersama bendahara', status: 'berlangsung', progress: 65, pic: 'Sekretariat', notes: '' },
-              { desc: 'Flyer (no.telp?)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '' }
+              { desc: 'Surat ke resort', status: 'selesai', progress: 100, pic: 'Sekretariat', notes: '', deadline: '' },
+              { desc: 'Proposal bersama bendahara', status: 'berlangsung', progress: 65, pic: 'Sekretariat', notes: '', deadline: '' },
+              { desc: 'Flyer (no.telp?)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '', deadline: '' }
             ]}
           ]
         }
@@ -1256,96 +1276,12 @@
       // ========== THEME MANAGEMENT ==========
       const themeStyles = document.getElementById('theme-style');
       const themes = {
-        orange: `
-          :root {
-            --color-primary: #f97316;
-            --color-primary-dark: #e05e0f;
-            --color-secondary: #1e4a6d;
-            --color-secondary-light: #2b6f9e;
-            --color-bg-light: #f4f7fb;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #e2e8f0;
-            --color-text: #1e293b;
-            --color-text-light: #54708f;
-            --color-accent: #f97316;
-          }
-        `,
-        green: `
-          :root {
-            --color-primary: #16a34a;
-            --color-primary-dark: #12833a;
-            --color-secondary: #1e3a5f;
-            --color-secondary-light: #2b4f7a;
-            --color-bg-light: #f0f9f0;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #d0e0d0;
-            --color-text: #1e293b;
-            --color-text-light: #4a6f5e;
-            --color-accent: #16a34a;
-          }
-        `,
-        purple: `
-          :root {
-            --color-primary: #9333ea;
-            --color-primary-dark: #7e22ce;
-            --color-secondary: #0f3b5e;
-            --color-secondary-light: #1e4b72;
-            --color-bg-light: #f5f0fa;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #d9d0e8;
-            --color-text: #1e293b;
-            --color-text-light: #6b4f8c;
-            --color-accent: #9333ea;
-          }
-        `,
-        red: `
-          :root {
-            --color-primary: #e63946;
-            --color-primary-dark: #c62a36;
-            --color-secondary: #2c3e50;
-            --color-secondary-light: #3e5a6f;
-            --color-bg-light: #fef2f2;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #e2e8f0;
-            --color-text: #1e293b;
-            --color-text-light: #6c757d;
-            --color-accent: #e63946;
-          }
-        `,
-        yellow: `
-          :root {
-            --color-primary: #f4d03f;
-            --color-primary-dark: #e5c02c;
-            --color-secondary: #1e4a6d;
-            --color-secondary-light: #2b6f9e;
-            --color-bg-light: #fffef7;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #e2e8f0;
-            --color-text: #1e293b;
-            --color-text-light: #7f8c8d;
-            --color-accent: #f4d03f;
-          }
-        `,
-        blue: `
-          :root {
-            --color-primary: #3498db;
-            --color-primary-dark: #2980b9;
-            --color-secondary: #2c3e50;
-            --color-secondary-light: #3e5a6f;
-            --color-bg-light: #eef6fc;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #d5e6f2;
-            --color-text: #1e293b;
-            --color-text-light: #4a6f8a;
-            --color-accent: #3498db;
-          }
-        `
+        orange: `:root { --color-primary: #f97316; --color-primary-dark: #e05e0f; --color-secondary: #1e4a6d; --color-secondary-light: #2b6f9e; --color-bg-light: #f4f7fb; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #54708f; --color-accent: #f97316; }`,
+        green: `:root { --color-primary: #16a34a; --color-primary-dark: #12833a; --color-secondary: #1e3a5f; --color-secondary-light: #2b4f7a; --color-bg-light: #f0f9f0; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d0e0d0; --color-text: #1e293b; --color-text-light: #4a6f5e; --color-accent: #16a34a; }`,
+        purple: `:root { --color-primary: #9333ea; --color-primary-dark: #7e22ce; --color-secondary: #0f3b5e; --color-secondary-light: #1e4b72; --color-bg-light: #f5f0fa; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d9d0e8; --color-text: #1e293b; --color-text-light: #6b4f8c; --color-accent: #9333ea; }`,
+        red: `:root { --color-primary: #e63946; --color-primary-dark: #c62a36; --color-secondary: #2c3e50; --color-secondary-light: #3e5a6f; --color-bg-light: #fef2f2; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #6c757d; --color-accent: #e63946; }`,
+        yellow: `:root { --color-primary: #f4d03f; --color-primary-dark: #e5c02c; --color-secondary: #1e4a6d; --color-secondary-light: #2b6f9e; --color-bg-light: #fffef7; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #7f8c8d; --color-accent: #f4d03f; }`,
+        blue: `:root { --color-primary: #3498db; --color-primary-dark: #2980b9; --color-secondary: #2c3e50; --color-secondary-light: #3e5a6f; --color-bg-light: #eef6fc; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d5e6f2; --color-text: #1e293b; --color-text-light: #4a6f8a; --color-accent: #3498db; }`
       };
       function setTheme(theme) {
         themeStyles.innerHTML = themes[theme];
@@ -1379,7 +1315,6 @@
         resetMessage.innerText = '';
         resetPasswordModal.classList.add('active');
       });
-
       cancelResetModal.addEventListener('click', () => resetPasswordModal.classList.remove('active'));
       sendResetBtn.addEventListener('click', async () => {
         const email = resetEmailInput.value.trim();
@@ -1466,7 +1401,8 @@
                     status: task.status,
                     progress: task.progress,
                     pic: task.pic,
-                    notes: task.notes
+                    notes: task.notes,
+                    deadline: task.deadline || ''
                   }))
                 }))
               };
@@ -1764,6 +1700,41 @@
         });
       }
 
+      // Fungsi untuk mendapatkan rapat terakhir dalam grup (berdasarkan tanggal)
+      function getLastMeetingInWorkspace(workspaceId) {
+        const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
+        if (workspaceMeetings.length === 0) return null;
+        // Urutkan berdasarkan tanggal (descending) dan ambil yang pertama
+        const sorted = [...workspaceMeetings].sort((a, b) => new Date(b.date) - new Date(a.date));
+        return sorted[0];
+      }
+
+      // Event listener untuk perubahan pilihan tempat di modal rapat baru
+      const workspaceSelect = document.getElementById('meetingWorkspaceSelect');
+      const templateOptionGroup = document.getElementById('templateOptionGroup');
+      const copyFromLastMeetingCheck = document.getElementById('copyFromLastMeeting');
+      const lastMeetingInfo = document.getElementById('lastMeetingInfo');
+
+      workspaceSelect.addEventListener('change', async () => {
+        const selectedValue = workspaceSelect.value;
+        if (selectedValue === 'private') {
+          templateOptionGroup.style.display = 'none';
+          copyFromLastMeetingCheck.checked = false;
+        } else {
+          // Cek apakah ada rapat di grup ini
+          const lastMeeting = getLastMeetingInWorkspace(selectedValue);
+          if (lastMeeting) {
+            templateOptionGroup.style.display = 'block';
+            lastMeetingInfo.innerText = `Rapat terakhir: ${lastMeeting.title} (${formatDate(lastMeeting.date)})`;
+          } else {
+            templateOptionGroup.style.display = 'block';
+            lastMeetingInfo.innerText = 'Belum ada rapat di grup ini, template tidak tersedia.';
+            copyFromLastMeetingCheck.disabled = true;
+            copyFromLastMeetingCheck.checked = false;
+          }
+        }
+      });
+
       // ========== DASHBOARD GLOBAL ==========
       function renderGlobalDashboard(workspaceId) {
         const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
@@ -1874,7 +1845,7 @@
         });
       }
 
-      // ========== RENDER DETAIL (tidak diubah) ==========
+      // ========== RENDER DETAIL (dengan deadline) ==========
       function renderDetail(meeting) {
         const content = document.getElementById('contentArea');
         const headerTitle = document.getElementById('meetingTitle');
@@ -2010,6 +1981,8 @@
           const statusClass = `status-${task.status}`;
           const progress = task.progress ?? 0;
           const pic = task.pic || '—';
+          const deadline = task.deadline ? new Date(task.deadline) : null;
+          const deadlineStr = deadline ? deadline.toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
           tasksHtml += `
             <div class="task-item">
               <div class="task-row">
@@ -2020,6 +1993,7 @@
                   <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${progress}%;"></div></div>
                   <span class="progress-percent">${progress}%</span>
                 </div>
+                ${deadline ? `<div class="task-deadline"><i class="fas fa-calendar-alt"></i> ${deadlineStr}</div>` : ''}
                 <div class="task-actions">
                   <button id="edit-task-${task.id}" title="Edit" ${userRole!=='admin'?'disabled':''}><i class="fas fa-pencil-alt"></i></button>
                   <button id="del-task-${task.id}" title="Hapus" ${userRole!=='admin'?'disabled':''}><i class="fas fa-trash"></i></button>
@@ -2047,7 +2021,7 @@
         `;
       }
 
-      // ========== CRUD OPERATIONS (tidak diubah) ==========
+      // ========== CRUD OPERATIONS ==========
       async function saveMeeting(meetingData) {
         if (userRole !== 'admin') return;
         try {
@@ -2171,6 +2145,11 @@
         document.getElementById('meetingDateInput').value = '';
         document.getElementById('meetingInfoInput').value = '';
         document.getElementById('meetingWorkspaceSelect').value = currentWorkspaceId || 'private';
+        copyFromLastMeetingCheck.checked = false;
+        copyFromLastMeetingCheck.disabled = false;
+        // Trigger change untuk mengecek template
+        const event = new Event('change');
+        workspaceSelect.dispatchEvent(event);
         delete document.getElementById('saveMeetingModal').dataset.editId;
         meetingModal.classList.add('active');
       });
@@ -2184,6 +2163,9 @@
         document.getElementById('meetingDateInput').value = m.date;
         document.getElementById('meetingInfoInput').value = m.info || '';
         document.getElementById('meetingWorkspaceSelect').value = m.workspaceId || 'private';
+        copyFromLastMeetingCheck.checked = false;
+        copyFromLastMeetingCheck.disabled = true;
+        templateOptionGroup.style.display = 'none';
         document.getElementById('saveMeetingModal').dataset.editId = m.id;
         meetingModal.classList.add('active');
       });
@@ -2204,7 +2186,30 @@
         if (!title || !date) return alert('Judul dan tanggal harus diisi');
 
         const editId = document.getElementById('saveMeetingModal').dataset.editId;
-        const meetingData = { title, date, info, workspaceId, createdBy: currentUser.uid, sections: [] };
+        let sections = [];
+        if (!editId && copyFromLastMeetingCheck.checked && workspaceId !== null) {
+          // Ambil rapat terakhir di grup
+          const lastMeeting = getLastMeetingInWorkspace(workspaceId);
+          if (lastMeeting && lastMeeting.sections) {
+            // Salin sections dan tasks, berikan ID baru, reset progress dan status?
+            // Kita akan salin semua field, tetapi progress tetap, status tetap, deadline tetap. (User bisa edit nanti)
+            sections = lastMeeting.sections.map(section => ({
+              id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+              name: section.name,
+              tasks: section.tasks.map(task => ({
+                id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                desc: task.desc,
+                status: task.status,
+                progress: task.progress,
+                pic: task.pic,
+                notes: task.notes,
+                deadline: task.deadline || ''
+              }))
+            }));
+          }
+        }
+
+        const meetingData = { title, date, info, workspaceId, createdBy: currentUser.uid, sections };
         if (editId) {
           meetingData.id = editId;
           const existing = meetings.find(m => m.id === editId);
@@ -2263,6 +2268,7 @@
         document.getElementById('taskStatusInput').value = task ? task.status : 'rencana';
         document.getElementById('taskProgressInput').value = task ? (task.progress ?? 0) : 0;
         document.getElementById('taskPicInput').value = task ? (task.pic || '') : '';
+        document.getElementById('taskDeadlineInput').value = task && task.deadline ? task.deadline.slice(0, 16) : '';
         document.getElementById('taskNotesInput').value = task ? (task.notes || '') : '';
         document.getElementById('modalTaskTitle').innerText = task ? 'Edit tugas' : 'Tugas baru';
         document.getElementById('deleteTaskBtn').classList.toggle('hidden', !task);
@@ -2278,9 +2284,10 @@
         const status = document.getElementById('taskStatusInput').value;
         const progress = parseInt(document.getElementById('taskProgressInput').value, 10) || 0;
         const pic = document.getElementById('taskPicInput').value.trim();
+        const deadline = document.getElementById('taskDeadlineInput').value;
         const notes = document.getElementById('taskNotesInput').value.trim();
 
-        const taskData = { desc, status, progress, pic, notes };
+        const taskData = { desc, status, progress, pic, notes, deadline };
         if (currentTaskId) taskData.id = currentTaskId;
         await saveTask(taskData, currentSectionId);
         closeAllModals();
@@ -2398,10 +2405,11 @@
         const meeting = getCurrentMeeting();
         if (!meeting) return;
         const data = [];
-        data.push(['Seksi', 'Tugas', 'Status', 'Progress (%)', 'PIC', 'Catatan']);
+        data.push(['Seksi', 'Tugas', 'Status', 'Progress (%)', 'PIC', 'Deadline', 'Catatan']);
         meeting.sections.forEach(section => {
           section.tasks.forEach(task => {
-            data.push([section.name, task.desc, translateStatus(task.status), task.progress ?? 0, task.pic || '-', task.notes || '']);
+            const deadline = task.deadline ? new Date(task.deadline).toLocaleString('id-ID') : '';
+            data.push([section.name, task.desc, translateStatus(task.status), task.progress ?? 0, task.pic || '-', deadline, task.notes || '']);
           });
         });
         const wb = XLSX.utils.book_new();
@@ -2422,11 +2430,12 @@
         const tableData = [];
         meeting.sections.forEach(section => {
           section.tasks.forEach(task => {
-            tableData.push([section.name, task.desc, translateStatus(task.status), (task.progress ?? 0).toString(), task.pic || '-', task.notes || '']);
+            const deadline = task.deadline ? new Date(task.deadline).toLocaleString('id-ID') : '';
+            tableData.push([section.name, task.desc, translateStatus(task.status), (task.progress ?? 0).toString(), task.pic || '-', deadline, task.notes || '']);
           });
         });
         doc.autoTable({
-          head: [['Seksi', 'Tugas', 'Status', 'Prog(%)', 'PIC', 'Catatan']],
+          head: [['Seksi', 'Tugas', 'Status', 'Prog(%)', 'PIC', 'Deadline', 'Catatan']],
           body: tableData,
           startY: 45,
           styles: { fontSize: 8 },
