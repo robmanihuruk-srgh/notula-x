@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap, sama seperti sebelumnya) ===== */
+    /* ===== CSS (lengkap, sama seperti sebelumnya, tidak diubah) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -1222,7 +1222,7 @@
       let selectedMeetingIds = new Set();
       let selectedWorkspaceIds = new Set();
 
-      // ========== DATA DEFAULT (rapat 1 & 9 Maret) ==========
+      // ========== DATA DEFAULT LENGKAP ==========
       const defaultMeetings = [
         {
           title: 'Rapat Koordinasi Panitia Pesparawi – 1 Maret 2026',
@@ -1318,7 +1318,7 @@
         }
       ];
 
-      // ========== THEME MANAGEMENT ==========
+      // ========== THEME MANAGEMENT (sama) ==========
       const themeStyles = document.getElementById('theme-style');
       const themes = {
         orange: `:root { --color-primary: #f97316; --color-primary-dark: #e05e0f; --color-secondary: #1e4a6d; --color-secondary-light: #2b6f9e; --color-bg-light: #f4f7fb; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #54708f; --color-accent: #f97316; }`,
@@ -1402,7 +1402,7 @@
       async function seedDefaultData() {
         if (!currentUser) return;
         try {
-          // Gunakan pengecekan yang lebih kuat: periksa apakah kedua rapat default sudah ada di grup yang tepat
+          // Cek apakah sudah ada grup default
           const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
           if (workspaceQuery.empty) {
             // Buat grup default
@@ -1443,39 +1443,6 @@
             // Tandai seeding selesai
             await db.collection('_metadata').doc('seeded').set({ seeded: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
             console.log('Seeding data default selesai.');
-          } else {
-            // Grup sudah ada, periksa apakah kedua rapat default sudah ada
-            const workspaceId = workspaceQuery.docs[0].id;
-            for (const m of defaultMeetings) {
-              const meetingQuery = await db.collection('meetings')
-                .where('title', '==', m.title)
-                .where('workspaceId', '==', workspaceId)
-                .get();
-              if (meetingQuery.empty) {
-                const meetingData = {
-                  title: m.title,
-                  date: m.date,
-                  info: m.info,
-                  workspaceId,
-                  createdBy: currentUser.uid,
-                  sections: m.sections.map(section => ({
-                    id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
-                    name: section.name,
-                    tasks: section.tasks.map(task => ({
-                      id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
-                      desc: task.desc,
-                      status: task.status,
-                      progress: task.progress,
-                      pic: task.pic,
-                      notes: task.notes,
-                      deadline: task.deadline || ''
-                    }))
-                  }))
-                };
-                await db.collection('meetings').add(meetingData);
-                console.log(`Rapat default "${m.title}" ditambahkan ke grup yang sudah ada.`);
-              }
-            }
           }
         } catch (error) {
           console.error('Gagal menambahkan data default:', error);
@@ -1545,7 +1512,7 @@
       });
       document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
-      // ========== WORKSPACE (tidak diubah) ==========
+      // ========== WORKSPACE (sama seperti sebelumnya) ==========
       async function deleteWorkspace(workspaceId) {
         if (userRole !== 'admin') return;
         const workspace = workspaces.find(w => w.id === workspaceId);
@@ -1762,23 +1729,17 @@
         });
       }
 
-      function getLastMeetingInWorkspace(workspaceId) {
+      function getTemplateMeetingInWorkspace(workspaceId) {
         const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
         if (workspaceMeetings.length === 0) return null;
-        // Urutkan berdasarkan tanggal terbaru, lalu ambil yang pertama
-        const sorted = [...workspaceMeetings].sort((a, b) => {
-          const dateA = new Date(a.date);
-          const dateB = new Date(b.date);
-          if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
-          // Jika tanggal sama, gunakan ID sebagai tie-breaker
-          return b.id.localeCompare(a.id);
-        });
+        // Ambil rapat dengan tanggal tertua (1 Maret) sebagai template tetap
+        const sorted = [...workspaceMeetings].sort((a, b) => new Date(a.date) - new Date(b.date));
         return sorted[0];
       }
 
       const workspaceSelect = document.getElementById('meetingWorkspaceSelect');
 
-      // ========== DASHBOARD GLOBAL (tidak diubah) ==========
+      // ========== DASHBOARD GLOBAL dengan tooltip ==========
       let activeTooltip = null;
 
       function showStatTooltip(statType, event, statsData) {
@@ -2022,7 +1983,7 @@
         });
       }
 
-      // ========== RENDER DETAIL (tidak diubah) ==========
+      // ========== RENDER DETAIL ==========
       function renderDetail(meeting) {
         const content = document.getElementById('contentArea');
         const headerTitle = document.getElementById('meetingTitle');
@@ -2357,10 +2318,10 @@
         const editId = document.getElementById('saveMeetingModal').dataset.editId;
         let sections = [];
         if (!editId && workspaceId !== null) {
-          const lastMeeting = getLastMeetingInWorkspace(workspaceId);
-          if (lastMeeting && lastMeeting.sections) {
-            console.log('Menyalin template dari rapat terakhir:', lastMeeting.title);
-            sections = lastMeeting.sections.map(section => ({
+          const templateMeeting = getTemplateMeetingInWorkspace(workspaceId);
+          if (templateMeeting && templateMeeting.sections) {
+            console.log('Menggunakan template dari rapat:', templateMeeting.title);
+            sections = templateMeeting.sections.map(section => ({
               id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
               name: section.name,
               tasks: section.tasks.map(task => ({
