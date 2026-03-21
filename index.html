@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>Notula · Workspace + Grup + Role + Hapus Massal + Template + Deadline</title>
+  <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
   <!-- Font & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap, dengan tambahan style deadline) ===== */
+    /* ===== CSS (lengkap, tidak diubah) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -339,7 +339,6 @@
     .theme-btn.orange { background: linear-gradient(145deg, #f97316, #1e4a6d); }
     .theme-btn.green { background: linear-gradient(145deg, #16a34a, #1e3a5f); }
     .theme-btn.purple { background: linear-gradient(145deg, #9333ea, #0f3b5e); }
-    /* Tema baru */
     .theme-btn.red { background: linear-gradient(145deg, #e63946, #2c3e50); }
     .theme-btn.yellow { background: linear-gradient(145deg, #f4d03f, #1e4a6d); }
     .theme-btn.blue { background: linear-gradient(145deg, #3498db, #2c3e50); }
@@ -417,6 +416,8 @@
     }
     .stat-item {
       min-width: 100px;
+      position: relative;
+      cursor: pointer;
     }
     .stat-label {
       font-size: 0.8rem;
@@ -427,6 +428,55 @@
       font-size: 1.8rem;
       font-weight: 600;
       color: var(--color-secondary);
+    }
+    .stat-tooltip {
+      position: fixed;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.2);
+      padding: 16px 20px;
+      z-index: 1100;
+      max-width: 300px;
+      border: 1px solid var(--color-border);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      font-size: 0.9rem;
+    }
+    .stat-tooltip.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .stat-tooltip h4 {
+      margin-bottom: 12px;
+      color: var(--color-primary);
+    }
+    .stat-tooltip ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .stat-tooltip li {
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+    }
+    .stat-tooltip .close-tooltip {
+      margin-top: 12px;
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--color-text-light);
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    @media (max-width: 768px) {
+      .stat-tooltip {
+        width: 90%;
+        max-width: 320px;
+        left: 5% !important;
+        top: 50% !important;
+        transform: translateY(-50%);
+      }
     }
     .progress-section-list {
       margin: 20px 0 16px;
@@ -694,7 +744,6 @@
     .modal.active {
       display: flex;
     }
-    /* Perbaikan: modal reset password harus lebih tinggi dari login overlay */
     #resetPasswordModal.modal {
       z-index: 2100;
     }
@@ -846,7 +895,6 @@
     .member-item:last-child {
       border-bottom: none;
     }
-    /* Dashboard Global Styles */
     .global-dashboard {
       background: var(--color-card-bg);
       border-radius: 24px;
@@ -875,6 +923,8 @@
     }
     .global-stat-item {
       min-width: 100px;
+      position: relative;
+      cursor: pointer;
     }
     .global-stat-label {
       font-size: 0.8rem;
@@ -925,7 +975,7 @@
       .header-actions { width: 100%; justify-content: flex-start; gap: 8px; }
       .content { padding: 16px; }
       .stats-grid { gap: 12px; padding: 12px; }
-      .stat-value { font-size: 1.4rem; }
+      .stat-value, .global-stat-value { font-size: 1.4rem; }
       .filter-row { flex-direction: column; align-items: flex-start; }
       .section-filter-select { width: 100%; }
       .section-header { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -934,7 +984,6 @@
       .task-status, .task-desc, .task-pic, .progress-container, .task-deadline, .task-actions { width: 100%; margin-left: 0; }
       .progress-container { min-width: 100%; }
       .global-stats { gap: 12px; padding: 12px; }
-      .global-stat-value { font-size: 1.4rem; }
     }
   </style>
 </head>
@@ -1006,7 +1055,7 @@
     </div>
   </div>
 
-  <!-- MODAL RAPAT (dengan opsi template) -->
+  <!-- MODAL RAPAT (tanpa checkbox template) -->
   <div class="modal" id="meetingModal">
     <div class="modal-content">
       <h3 id="modalMeetingTitle">Rapat baru</h3>
@@ -1023,10 +1072,6 @@
         <select id="meetingWorkspaceSelect">
           <option value="private">Pribadi (hanya saya)</option>
         </select>
-      </div>
-      <div class="form-group" id="templateOptionGroup" style="display: none;">
-        <label><input type="checkbox" id="copyFromLastMeeting"> Salin dari rapat terakhir di grup ini (struktur seksi dan tugas)</label>
-        <div id="lastMeetingInfo" style="font-size:0.85rem; color:var(--color-text-light); margin-top:4px;"></div>
       </div>
       <div class="form-group">
         <label>Informasi tambahan (opsional)</label>
@@ -1054,7 +1099,7 @@
     </div>
   </div>
 
-  <!-- MODAL TASK (dengan deadline) -->
+  <!-- MODAL TASK -->
   <div class="modal" id="taskModal">
     <div class="modal-content">
       <h3 id="modalTaskTitle">Tugas / item</h3>
@@ -1276,12 +1321,96 @@
       // ========== THEME MANAGEMENT ==========
       const themeStyles = document.getElementById('theme-style');
       const themes = {
-        orange: `:root { --color-primary: #f97316; --color-primary-dark: #e05e0f; --color-secondary: #1e4a6d; --color-secondary-light: #2b6f9e; --color-bg-light: #f4f7fb; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #54708f; --color-accent: #f97316; }`,
-        green: `:root { --color-primary: #16a34a; --color-primary-dark: #12833a; --color-secondary: #1e3a5f; --color-secondary-light: #2b4f7a; --color-bg-light: #f0f9f0; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d0e0d0; --color-text: #1e293b; --color-text-light: #4a6f5e; --color-accent: #16a34a; }`,
-        purple: `:root { --color-primary: #9333ea; --color-primary-dark: #7e22ce; --color-secondary: #0f3b5e; --color-secondary-light: #1e4b72; --color-bg-light: #f5f0fa; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d9d0e8; --color-text: #1e293b; --color-text-light: #6b4f8c; --color-accent: #9333ea; }`,
-        red: `:root { --color-primary: #e63946; --color-primary-dark: #c62a36; --color-secondary: #2c3e50; --color-secondary-light: #3e5a6f; --color-bg-light: #fef2f2; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #6c757d; --color-accent: #e63946; }`,
-        yellow: `:root { --color-primary: #f4d03f; --color-primary-dark: #e5c02c; --color-secondary: #1e4a6d; --color-secondary-light: #2b6f9e; --color-bg-light: #fffef7; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #7f8c8d; --color-accent: #f4d03f; }`,
-        blue: `:root { --color-primary: #3498db; --color-primary-dark: #2980b9; --color-secondary: #2c3e50; --color-secondary-light: #3e5a6f; --color-bg-light: #eef6fc; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d5e6f2; --color-text: #1e293b; --color-text-light: #4a6f8a; --color-accent: #3498db; }`
+        orange: `
+          :root {
+            --color-primary: #f97316;
+            --color-primary-dark: #e05e0f;
+            --color-secondary: #1e4a6d;
+            --color-secondary-light: #2b6f9e;
+            --color-bg-light: #f4f7fb;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #e2e8f0;
+            --color-text: #1e293b;
+            --color-text-light: #54708f;
+            --color-accent: #f97316;
+          }
+        `,
+        green: `
+          :root {
+            --color-primary: #16a34a;
+            --color-primary-dark: #12833a;
+            --color-secondary: #1e3a5f;
+            --color-secondary-light: #2b4f7a;
+            --color-bg-light: #f0f9f0;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #d0e0d0;
+            --color-text: #1e293b;
+            --color-text-light: #4a6f5e;
+            --color-accent: #16a34a;
+          }
+        `,
+        purple: `
+          :root {
+            --color-primary: #9333ea;
+            --color-primary-dark: #7e22ce;
+            --color-secondary: #0f3b5e;
+            --color-secondary-light: #1e4b72;
+            --color-bg-light: #f5f0fa;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #d9d0e8;
+            --color-text: #1e293b;
+            --color-text-light: #6b4f8c;
+            --color-accent: #9333ea;
+          }
+        `,
+        red: `
+          :root {
+            --color-primary: #e63946;
+            --color-primary-dark: #c62a36;
+            --color-secondary: #2c3e50;
+            --color-secondary-light: #3e5a6f;
+            --color-bg-light: #fef2f2;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #e2e8f0;
+            --color-text: #1e293b;
+            --color-text-light: #6c757d;
+            --color-accent: #e63946;
+          }
+        `,
+        yellow: `
+          :root {
+            --color-primary: #f4d03f;
+            --color-primary-dark: #e5c02c;
+            --color-secondary: #1e4a6d;
+            --color-secondary-light: #2b6f9e;
+            --color-bg-light: #fffef7;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #e2e8f0;
+            --color-text: #1e293b;
+            --color-text-light: #7f8c8d;
+            --color-accent: #f4d03f;
+          }
+        `,
+        blue: `
+          :root {
+            --color-primary: #3498db;
+            --color-primary-dark: #2980b9;
+            --color-secondary: #2c3e50;
+            --color-secondary-light: #3e5a6f;
+            --color-bg-light: #eef6fc;
+            --color-card-bg: #ffffff;
+            --color-sidebar-bg: #ffffff;
+            --color-border: #d5e6f2;
+            --color-text: #1e293b;
+            --color-text-light: #4a6f8a;
+            --color-accent: #3498db;
+          }
+        `
       };
       function setTheme(theme) {
         themeStyles.innerHTML = themes[theme];
@@ -1315,6 +1444,7 @@
         resetMessage.innerText = '';
         resetPasswordModal.classList.add('active');
       });
+
       cancelResetModal.addEventListener('click', () => resetPasswordModal.classList.remove('active'));
       sendResetBtn.addEventListener('click', async () => {
         const email = resetEmailInput.value.trim();
@@ -1514,7 +1644,6 @@
         workspaces.forEach(w => {
           const div = document.createElement('div');
           div.className = `workspace-item ${currentWorkspaceId === w.id ? 'active' : ''}`;
-          
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
           checkbox.className = 'workspace-checkbox';
@@ -1539,7 +1668,6 @@
 
           const actionsDiv = document.createElement('div');
           actionsDiv.className = 'workspace-actions';
-          
           const manageBtn = document.createElement('button');
           manageBtn.innerHTML = '<i class="fas fa-cog"></i>';
           manageBtn.title = 'Kelola anggota';
@@ -1553,7 +1681,6 @@
             manageBtn.style.opacity = '0.5';
           }
           actionsDiv.appendChild(manageBtn);
-          
           let deleteBtn = null;
           if (w.createdBy === currentUser?.uid && userRole === 'admin') {
             deleteBtn = document.createElement('button');
@@ -1571,7 +1698,6 @@
           div.appendChild(nameSpan);
           div.appendChild(badge);
           div.appendChild(actionsDiv);
-          
           div.addEventListener('click', (e) => {
             if (e.target !== checkbox && e.target !== manageBtn && e.target !== deleteBtn && !e.target.closest('.workspace-actions')) {
               currentWorkspaceId = w.id;
@@ -1700,56 +1826,122 @@
         });
       }
 
-      // Fungsi untuk mendapatkan rapat terakhir dalam grup (berdasarkan tanggal)
       function getLastMeetingInWorkspace(workspaceId) {
         const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
         if (workspaceMeetings.length === 0) return null;
-        // Urutkan berdasarkan tanggal (descending) dan ambil yang pertama
         const sorted = [...workspaceMeetings].sort((a, b) => new Date(b.date) - new Date(a.date));
         return sorted[0];
       }
 
-      // Event listener untuk perubahan pilihan tempat di modal rapat baru
       const workspaceSelect = document.getElementById('meetingWorkspaceSelect');
-      const templateOptionGroup = document.getElementById('templateOptionGroup');
-      const copyFromLastMeetingCheck = document.getElementById('copyFromLastMeeting');
-      const lastMeetingInfo = document.getElementById('lastMeetingInfo');
 
-      workspaceSelect.addEventListener('change', async () => {
-        const selectedValue = workspaceSelect.value;
-        if (selectedValue === 'private') {
-          templateOptionGroup.style.display = 'none';
-          copyFromLastMeetingCheck.checked = false;
-        } else {
-          // Cek apakah ada rapat di grup ini
-          const lastMeeting = getLastMeetingInWorkspace(selectedValue);
-          if (lastMeeting) {
-            templateOptionGroup.style.display = 'block';
-            lastMeetingInfo.innerText = `Rapat terakhir: ${lastMeeting.title} (${formatDate(lastMeeting.date)})`;
-          } else {
-            templateOptionGroup.style.display = 'block';
-            lastMeetingInfo.innerText = 'Belum ada rapat di grup ini, template tidak tersedia.';
-            copyFromLastMeetingCheck.disabled = true;
-            copyFromLastMeetingCheck.checked = false;
-          }
+      // ========== DASHBOARD GLOBAL dengan tooltip ==========
+      let activeTooltip = null;
+
+      function showStatTooltip(statType, event, statsData) {
+        if (activeTooltip) {
+          activeTooltip.remove();
+          activeTooltip = null;
         }
-      });
+        const div = document.createElement('div');
+        div.className = 'stat-tooltip';
+        let title = '';
+        let items = [];
+        switch(statType) {
+          case 'total':
+            title = 'Total Tugas per Seksi';
+            items = statsData.sectionTotals;
+            break;
+          case 'selesai':
+            title = 'Tugas Selesai per Seksi';
+            items = statsData.selesaiBySection;
+            break;
+          case 'berlangsung':
+            title = 'Tugas Berlangsung per Seksi';
+            items = statsData.berlangsungBySection;
+            break;
+          case 'rencana':
+            title = 'Tugas Rencana per Seksi';
+            items = statsData.rencanaBySection;
+            break;
+          case 'kendala':
+            title = 'Tugas Kendala per Seksi';
+            items = statsData.kendalaBySection;
+            break;
+          default: return;
+        }
+        if (!items || items.length === 0) {
+          div.innerHTML = `<h4>${title}</h4><p>Belum ada data.</p><div class="close-tooltip">Tutup</div>`;
+        } else {
+          let listHtml = '<ul>';
+          items.forEach(item => {
+            listHtml += `<li><strong>${escapeHtml(item.name)}</strong> <span>${item.count} tugas</span></li>`;
+          });
+          listHtml += '</ul>';
+          div.innerHTML = `<h4>${title}</h4>${listHtml}<div class="close-tooltip">Tutup</div>`;
+        }
+        document.body.appendChild(div);
+        const rect = event.target.closest('.global-stat-item, .stat-item').getBoundingClientRect();
+        if (window.innerWidth <= 768) {
+          div.style.left = '50%';
+          div.style.top = '50%';
+          div.style.transform = 'translate(-50%, -50%)';
+        } else {
+          div.style.left = rect.left + 'px';
+          div.style.top = (rect.bottom + 10) + 'px';
+        }
+        div.classList.add('active');
+        activeTooltip = div;
+        const closeTooltip = () => {
+          if (activeTooltip) {
+            activeTooltip.remove();
+            activeTooltip = null;
+          }
+          document.removeEventListener('click', outsideClickListener);
+        };
+        const outsideClickListener = (e) => {
+          if (!div.contains(e.target)) {
+            closeTooltip();
+          }
+        };
+        setTimeout(() => {
+          document.addEventListener('click', outsideClickListener);
+        }, 10);
+        div.querySelector('.close-tooltip')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          closeTooltip();
+        });
+      }
 
-      // ========== DASHBOARD GLOBAL ==========
       function renderGlobalDashboard(workspaceId) {
         const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
         let totalTasks = 0;
         let totalProgress = 0;
         let taskCount = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
         let kendalaTasks = [];
+        let sectionTotals = {};
+        let selesaiBySection = {};
+        let berlangsungBySection = {};
+        let rencanaBySection = {};
+        let kendalaBySection = {};
 
         workspaceMeetings.forEach(meeting => {
           meeting.sections?.forEach(section => {
+            if (!sectionTotals[section.name]) sectionTotals[section.name] = 0;
+            if (!selesaiBySection[section.name]) selesaiBySection[section.name] = 0;
+            if (!berlangsungBySection[section.name]) berlangsungBySection[section.name] = 0;
+            if (!rencanaBySection[section.name]) rencanaBySection[section.name] = 0;
+            if (!kendalaBySection[section.name]) kendalaBySection[section.name] = 0;
             section.tasks?.forEach(task => {
               totalTasks++;
               totalProgress += task.progress || 0;
               taskCount[task.status] = (taskCount[task.status] || 0) + 1;
-              if (task.status === 'kendala') {
+              sectionTotals[section.name]++;
+              if (task.status === 'selesai') selesaiBySection[section.name]++;
+              else if (task.status === 'berlangsung') berlangsungBySection[section.name]++;
+              else if (task.status === 'rencana') rencanaBySection[section.name]++;
+              else if (task.status === 'kendala') {
+                kendalaBySection[section.name]++;
                 kendalaTasks.push({
                   taskDesc: task.desc,
                   meetingTitle: meeting.title,
@@ -1763,17 +1955,44 @@
         });
 
         const avgProgress = totalTasks ? (totalProgress / totalTasks) : 0;
+        const sectionsList = Object.keys(sectionTotals).map(name => ({ name, count: sectionTotals[name] }));
+        const selesaiList = Object.keys(selesaiBySection).map(name => ({ name, count: selesaiBySection[name] }));
+        const berlangsungList = Object.keys(berlangsungBySection).map(name => ({ name, count: berlangsungBySection[name] }));
+        const rencanaList = Object.keys(rencanaBySection).map(name => ({ name, count: rencanaBySection[name] }));
+        const kendalaList = Object.keys(kendalaBySection).map(name => ({ name, count: kendalaBySection[name] }));
+
+        const statsData = {
+          sectionTotals: sectionsList,
+          selesaiBySection: selesaiList,
+          berlangsungBySection: berlangsungList,
+          rencanaBySection: rencanaList,
+          kendalaBySection: kendalaList
+        };
 
         let html = `
           <div class="global-dashboard">
             <h3><i class="fas fa-chart-line"></i> Dashboard Progres Keseluruhan</h3>
             <div class="global-stats">
-              <div class="global-stat-item"><span class="global-stat-label">Total Tugas</span><div class="global-stat-value">${totalTasks}</div></div>
-              <div class="global-stat-item"><span class="global-stat-label">Rata-rata Progress</span><div class="global-stat-value">${Math.round(avgProgress)}%</div></div>
-              <div class="global-stat-item"><span class="global-stat-label">Selesai</span><div class="global-stat-value" style="color:#14633b;">${taskCount.selesai || 0}</div></div>
-              <div class="global-stat-item"><span class="global-stat-label">Berlangsung</span><div class="global-stat-value" style="color:#9e5e04;">${taskCount.berlangsung || 0}</div></div>
-              <div class="global-stat-item"><span class="global-stat-label">Rencana</span><div class="global-stat-value" style="color:#0a5585;">${taskCount.rencana || 0}</div></div>
-              <div class="global-stat-item"><span class="global-stat-label">Kendala</span><div class="global-stat-value" style="color:#b13e2d;">${taskCount.kendala || 0}</div></div>
+              <div class="global-stat-item" data-stat="total">
+                <span class="global-stat-label">Total Tugas</span>
+                <div class="global-stat-value">${totalTasks}</div>
+              </div>
+              <div class="global-stat-item" data-stat="selesai">
+                <span class="global-stat-label">Selesai</span>
+                <div class="global-stat-value" style="color:#14633b;">${taskCount.selesai || 0}</div>
+              </div>
+              <div class="global-stat-item" data-stat="berlangsung">
+                <span class="global-stat-label">Berlangsung</span>
+                <div class="global-stat-value" style="color:#9e5e04;">${taskCount.berlangsung || 0}</div>
+              </div>
+              <div class="global-stat-item" data-stat="rencana">
+                <span class="global-stat-label">Rencana</span>
+                <div class="global-stat-value" style="color:#0a5585;">${taskCount.rencana || 0}</div>
+              </div>
+              <div class="global-stat-item" data-stat="kendala">
+                <span class="global-stat-label">Kendala</span>
+                <div class="global-stat-value" style="color:#b13e2d;">${taskCount.kendala || 0}</div>
+              </div>
             </div>
         `;
 
@@ -1793,6 +2012,22 @@
           html += `<div style="margin-top:16px; color: var(--color-text-light);"><i class="fas fa-check-circle"></i> Tidak ada kendala saat ini.</div>`;
         }
         html += `</div>`;
+
+        setTimeout(() => {
+          const statItems = document.querySelectorAll('.global-stat-item');
+          statItems.forEach(item => {
+            const stat = item.getAttribute('data-stat');
+            const showTooltip = (e) => {
+              e.stopPropagation();
+              showStatTooltip(stat, e, statsData);
+            };
+            item.removeEventListener('mouseenter', showTooltip);
+            item.removeEventListener('click', showTooltip);
+            item.addEventListener('mouseenter', showTooltip);
+            item.addEventListener('click', showTooltip);
+          });
+        }, 50);
+
         return html;
       }
 
@@ -1804,7 +2039,6 @@
           return;
         }
 
-        // Tampilkan dashboard global di atas daftar rapat
         let html = renderGlobalDashboard(workspaceId);
         html += '<div class="meeting-list" style="padding:0; margin-top:24px;"><h3 style="margin-bottom:16px; font-size:1.1rem;">Daftar Rapat dalam Grup</h3>';
         workspaceMeetings.forEach(m => {
@@ -1845,7 +2079,7 @@
         });
       }
 
-      // ========== RENDER DETAIL (dengan deadline) ==========
+      // ========== RENDER DETAIL ==========
       function renderDetail(meeting) {
         const content = document.getElementById('contentArea');
         const headerTitle = document.getElementById('meetingTitle');
@@ -2145,11 +2379,6 @@
         document.getElementById('meetingDateInput').value = '';
         document.getElementById('meetingInfoInput').value = '';
         document.getElementById('meetingWorkspaceSelect').value = currentWorkspaceId || 'private';
-        copyFromLastMeetingCheck.checked = false;
-        copyFromLastMeetingCheck.disabled = false;
-        // Trigger change untuk mengecek template
-        const event = new Event('change');
-        workspaceSelect.dispatchEvent(event);
         delete document.getElementById('saveMeetingModal').dataset.editId;
         meetingModal.classList.add('active');
       });
@@ -2163,9 +2392,6 @@
         document.getElementById('meetingDateInput').value = m.date;
         document.getElementById('meetingInfoInput').value = m.info || '';
         document.getElementById('meetingWorkspaceSelect').value = m.workspaceId || 'private';
-        copyFromLastMeetingCheck.checked = false;
-        copyFromLastMeetingCheck.disabled = true;
-        templateOptionGroup.style.display = 'none';
         document.getElementById('saveMeetingModal').dataset.editId = m.id;
         meetingModal.classList.add('active');
       });
@@ -2181,18 +2407,16 @@
         const title = document.getElementById('meetingNameInput').value.trim();
         const date = document.getElementById('meetingDateInput').value;
         const info = document.getElementById('meetingInfoInput').value.trim();
-        const workspaceSelect = document.getElementById('meetingWorkspaceSelect').value;
-        const workspaceId = workspaceSelect === 'private' ? null : workspaceSelect;
+        const workspaceSelectVal = document.getElementById('meetingWorkspaceSelect').value;
+        const workspaceId = workspaceSelectVal === 'private' ? null : workspaceSelectVal;
         if (!title || !date) return alert('Judul dan tanggal harus diisi');
 
         const editId = document.getElementById('saveMeetingModal').dataset.editId;
         let sections = [];
-        if (!editId && copyFromLastMeetingCheck.checked && workspaceId !== null) {
-          // Ambil rapat terakhir di grup
+        if (!editId && workspaceId !== null) {
           const lastMeeting = getLastMeetingInWorkspace(workspaceId);
           if (lastMeeting && lastMeeting.sections) {
-            // Salin sections dan tasks, berikan ID baru, reset progress dan status?
-            // Kita akan salin semua field, tetapi progress tetap, status tetap, deadline tetap. (User bisa edit nanti)
+            // Salin persis tanpa perubahan apapun
             sections = lastMeeting.sections.map(section => ({
               id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
               name: section.name,
