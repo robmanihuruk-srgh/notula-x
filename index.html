@@ -1055,7 +1055,7 @@
     </div>
   </div>
 
-  <!-- MODAL RAPAT (tanpa checkbox template) -->
+  <!-- MODAL RAPAT -->
   <div class="modal" id="meetingModal">
     <div class="modal-content">
       <h3 id="modalMeetingTitle">Rapat baru</h3>
@@ -1221,6 +1221,7 @@
       let unsubscribeWorkspaces = null;
       let selectedMeetingIds = new Set();
       let selectedWorkspaceIds = new Set();
+      let seedingInProgress = false; // flag untuk mencegah seeding ganda
 
       // ========== DATA DEFAULT LENGKAP (rapat 1 & 9 Maret) ==========
       const defaultMeetings = [
@@ -1321,96 +1322,12 @@
       // ========== THEME MANAGEMENT ==========
       const themeStyles = document.getElementById('theme-style');
       const themes = {
-        orange: `
-          :root {
-            --color-primary: #f97316;
-            --color-primary-dark: #e05e0f;
-            --color-secondary: #1e4a6d;
-            --color-secondary-light: #2b6f9e;
-            --color-bg-light: #f4f7fb;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #e2e8f0;
-            --color-text: #1e293b;
-            --color-text-light: #54708f;
-            --color-accent: #f97316;
-          }
-        `,
-        green: `
-          :root {
-            --color-primary: #16a34a;
-            --color-primary-dark: #12833a;
-            --color-secondary: #1e3a5f;
-            --color-secondary-light: #2b4f7a;
-            --color-bg-light: #f0f9f0;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #d0e0d0;
-            --color-text: #1e293b;
-            --color-text-light: #4a6f5e;
-            --color-accent: #16a34a;
-          }
-        `,
-        purple: `
-          :root {
-            --color-primary: #9333ea;
-            --color-primary-dark: #7e22ce;
-            --color-secondary: #0f3b5e;
-            --color-secondary-light: #1e4b72;
-            --color-bg-light: #f5f0fa;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #d9d0e8;
-            --color-text: #1e293b;
-            --color-text-light: #6b4f8c;
-            --color-accent: #9333ea;
-          }
-        `,
-        red: `
-          :root {
-            --color-primary: #e63946;
-            --color-primary-dark: #c62a36;
-            --color-secondary: #2c3e50;
-            --color-secondary-light: #3e5a6f;
-            --color-bg-light: #fef2f2;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #e2e8f0;
-            --color-text: #1e293b;
-            --color-text-light: #6c757d;
-            --color-accent: #e63946;
-          }
-        `,
-        yellow: `
-          :root {
-            --color-primary: #f4d03f;
-            --color-primary-dark: #e5c02c;
-            --color-secondary: #1e4a6d;
-            --color-secondary-light: #2b6f9e;
-            --color-bg-light: #fffef7;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #e2e8f0;
-            --color-text: #1e293b;
-            --color-text-light: #7f8c8d;
-            --color-accent: #f4d03f;
-          }
-        `,
-        blue: `
-          :root {
-            --color-primary: #3498db;
-            --color-primary-dark: #2980b9;
-            --color-secondary: #2c3e50;
-            --color-secondary-light: #3e5a6f;
-            --color-bg-light: #eef6fc;
-            --color-card-bg: #ffffff;
-            --color-sidebar-bg: #ffffff;
-            --color-border: #d5e6f2;
-            --color-text: #1e293b;
-            --color-text-light: #4a6f8a;
-            --color-accent: #3498db;
-          }
-        `
+        orange: `:root { --color-primary: #f97316; --color-primary-dark: #e05e0f; --color-secondary: #1e4a6d; --color-secondary-light: #2b6f9e; --color-bg-light: #f4f7fb; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #54708f; --color-accent: #f97316; }`,
+        green: `:root { --color-primary: #16a34a; --color-primary-dark: #12833a; --color-secondary: #1e3a5f; --color-secondary-light: #2b4f7a; --color-bg-light: #f0f9f0; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d0e0d0; --color-text: #1e293b; --color-text-light: #4a6f5e; --color-accent: #16a34a; }`,
+        purple: `:root { --color-primary: #9333ea; --color-primary-dark: #7e22ce; --color-secondary: #0f3b5e; --color-secondary-light: #1e4b72; --color-bg-light: #f5f0fa; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d9d0e8; --color-text: #1e293b; --color-text-light: #6b4f8c; --color-accent: #9333ea; }`,
+        red: `:root { --color-primary: #e63946; --color-primary-dark: #c62a36; --color-secondary: #2c3e50; --color-secondary-light: #3e5a6f; --color-bg-light: #fef2f2; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #6c757d; --color-accent: #e63946; }`,
+        yellow: `:root { --color-primary: #f4d03f; --color-primary-dark: #e5c02c; --color-secondary: #1e4a6d; --color-secondary-light: #2b6f9e; --color-bg-light: #fffef7; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #7f8c8d; --color-accent: #f4d03f; }`,
+        blue: `:root { --color-primary: #3498db; --color-primary-dark: #2980b9; --color-secondary: #2c3e50; --color-secondary-light: #3e5a6f; --color-bg-light: #eef6fc; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d5e6f2; --color-text: #1e293b; --color-text-light: #4a6f8a; --color-accent: #3498db; }`
       };
       function setTheme(theme) {
         themeStyles.innerHTML = themes[theme];
@@ -1444,7 +1361,6 @@
         resetMessage.innerText = '';
         resetPasswordModal.classList.add('active');
       });
-
       cancelResetModal.addEventListener('click', () => resetPasswordModal.classList.remove('active'));
       sendResetBtn.addEventListener('click', async () => {
         const email = resetEmailInput.value.trim();
@@ -1485,64 +1401,74 @@
       }
 
       async function seedDefaultData() {
-        if (!currentUser) return;
+        if (!currentUser || seedingInProgress) return;
+        seedingInProgress = true;
         try {
+          // Gunakan transaksi untuk memastikan hanya sekali
           const metaRef = db.collection('_metadata').doc('seeded');
-          const metaDoc = await metaRef.get();
-          if (metaDoc.exists) {
-            console.log('Data default sudah pernah ditambahkan.');
-            return;
-          }
-
-          let workspaceId;
-          const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
-          if (workspaceQuery.empty) {
-            const newWorkspace = {
-              name: 'Rapat Pesparawi Distrik VII',
-              description: 'Grup default untuk rapat Pesparawi',
-              createdBy: currentUser.uid,
-              members: [currentUser.uid],
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            const workspaceRef = await db.collection('workspaces').add(newWorkspace);
-            workspaceId = workspaceRef.id;
-          } else {
-            workspaceId = workspaceQuery.docs[0].id;
-          }
-
-          for (const m of defaultMeetings) {
-            const meetingQuery = await db.collection('meetings')
-              .where('title', '==', m.title)
-              .where('workspaceId', '==', workspaceId)
-              .get();
-            if (meetingQuery.empty) {
-              const meetingData = {
-                title: m.title,
-                date: m.date,
-                info: m.info,
-                workspaceId,
-                createdBy: currentUser.uid,
-                sections: m.sections.map(section => ({
-                  id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
-                  name: section.name,
-                  tasks: section.tasks.map(task => ({
-                    id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
-                    desc: task.desc,
-                    status: task.status,
-                    progress: task.progress,
-                    pic: task.pic,
-                    notes: task.notes,
-                    deadline: task.deadline || ''
-                  }))
-                }))
-              };
-              await db.collection('meetings').add(meetingData);
+          await db.runTransaction(async (transaction) => {
+            const metaDoc = await transaction.get(metaRef);
+            if (metaDoc.exists) {
+              console.log('Data default sudah pernah ditambahkan.');
+              seedingInProgress = false;
+              return;
             }
-          }
-          await metaRef.set({ seeded: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            
+            // Buat grup default jika belum ada
+            let workspaceId;
+            const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
+            if (workspaceQuery.empty) {
+              const newWorkspace = {
+                name: 'Rapat Pesparawi Distrik VII',
+                description: 'Grup default untuk rapat Pesparawi',
+                createdBy: currentUser.uid,
+                members: [currentUser.uid],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              };
+              const workspaceRef = await db.collection('workspaces').add(newWorkspace);
+              workspaceId = workspaceRef.id;
+            } else {
+              workspaceId = workspaceQuery.docs[0].id;
+            }
+
+            // Tambahkan rapat default (cek ulang apakah sudah ada)
+            for (const m of defaultMeetings) {
+              const meetingQuery = await db.collection('meetings')
+                .where('title', '==', m.title)
+                .where('workspaceId', '==', workspaceId)
+                .get();
+              if (meetingQuery.empty) {
+                const meetingData = {
+                  title: m.title,
+                  date: m.date,
+                  info: m.info,
+                  workspaceId,
+                  createdBy: currentUser.uid,
+                  sections: m.sections.map(section => ({
+                    id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                    name: section.name,
+                    tasks: section.tasks.map(task => ({
+                      id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                      desc: task.desc,
+                      status: task.status,
+                      progress: task.progress,
+                      pic: task.pic,
+                      notes: task.notes,
+                      deadline: task.deadline || ''
+                    }))
+                  }))
+                };
+                await db.collection('meetings').add(meetingData);
+              }
+            }
+            // Tandai seeding selesai
+            transaction.set(metaRef, { seeded: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+          });
           console.log('Seeding data default selesai.');
         } catch (error) {
           console.error('Gagal menambahkan data default:', error);
+        } finally {
+          seedingInProgress = false;
         }
       }
 
