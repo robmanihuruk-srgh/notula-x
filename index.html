@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap) ===== */
+    /* ===== CSS (lengkap, tidak diubah) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -1448,7 +1448,8 @@
                 if (meeting) renderDetail(meeting);
                 else currentMeetingId = null;
               } else {
-                document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di sidebar, atau buat rapat baru melalui tombol "Rapat baru".</div>';
+                // Perubahan teks: menghilangkan kata "sidebar"
+                document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
               }
             }
             updateButtonsByRole();
@@ -1499,7 +1500,8 @@
             currentWorkspaceId = null;
             currentMeetingId = null;
             renderWorkspaceList();
-            document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di sidebar, atau buat rapat baru melalui tombol "Rapat baru".</div>';
+            // Perubahan teks: menghilangkan kata "sidebar"
+            document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
           } else {
             renderWorkspaceList();
           }
@@ -2202,7 +2204,8 @@
           if (currentWorkspaceId && !workspaces.find(w => w.id === currentWorkspaceId)) {
             currentWorkspaceId = null;
             renderWorkspaceList();
-            document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di sidebar, atau buat rapat baru melalui tombol "Rapat baru".</div>';
+            // Perubahan teks: menghilangkan kata "sidebar"
+            document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
           }
         } catch (error) {
           alert('Gagal menghapus: ' + error.message);
