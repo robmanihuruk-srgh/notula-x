@@ -30,7 +30,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap) ===== */
+    /* ===== CSS ===== */
     * {
       margin: 0;
       padding: 0;
@@ -393,6 +393,38 @@
       width: 28px;
       color: var(--color-primary);
     }
+    
+    /* MODIFIKASI: CSS Log Aktivitas */
+    .log-card {
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 24px;
+    }
+    .log-card h4 {
+        font-size: 0.95rem;
+        color: var(--color-secondary);
+        margin-bottom: 12px;
+    }
+    .log-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--color-text-light);
+    }
+    .log-list li {
+        margin-bottom: 6px;
+        display: flex;
+        gap: 8px;
+    }
+    .log-time {
+        color: #94a3b8;
+        font-family: monospace;
+        min-width: 45px;
+    }
+
     .dashboard-card {
       background: var(--color-card-bg);
       border-radius: 24px;
@@ -472,15 +504,6 @@
       color: var(--color-text-light);
       cursor: pointer;
       pointer-events: auto;
-    }
-    @media (max-width: 768px) {
-      .stat-tooltip {
-        width: 90%;
-        max-width: 320px;
-        left: 5% !important;
-        top: 50% !important;
-        transform: translateY(-50%);
-      }
     }
     .progress-section-list {
       margin: 20px 0 16px;
@@ -963,7 +986,7 @@
       margin-top: 4px;
     }
     @media print {
-      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .btn-delete-meeting, .theme-switcher, .user-info { display: none !important; }
+      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .btn-delete-meeting, .theme-switcher, .user-info, .log-card { display: none !important; }
       body, .main-panel, .content { background: white; overflow: visible; height: auto; }
       .content { padding: 0.5in; }
       .section-card { break-inside: avoid; border: 1px solid #ccc; }
@@ -1219,7 +1242,7 @@
       let selectedMeetingIds = new Set();
       let selectedWorkspaceIds = new Set();
 
-      // ========== DATA DEFAULT LENGKAP (rapat 1 & 9 Maret) ==========
+      // ========== DATA DEFAULT LENGKAP ==========
       const defaultMeetings = [
         {
           title: 'Rapat Koordinasi Panitia Pesparawi – 1 Maret 2026',
@@ -1396,17 +1419,14 @@
         document.getElementById('userRole').innerText = userRole;
       }
 
-      // Fungsi seeding data default (menambahkan grup dan rapat)
       async function seedDefaultData() {
         if (!currentUser) return;
         try {
-          // Cek apakah grup default sudah ada
           let workspaceId = null;
           const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
           if (!workspaceQuery.empty) {
             workspaceId = workspaceQuery.docs[0].id;
           } else {
-            // Buat grup default
             const newWorkspace = {
               name: 'Rapat Pesparawi Distrik VII',
               description: 'Grup default untuk rapat Pesparawi',
@@ -1418,7 +1438,6 @@
             workspaceId = workspaceRef.id;
           }
 
-          // Tambahkan dua rapat default jika belum ada
           for (const m of defaultMeetings) {
             const meetingQuery = await db.collection('meetings')
               .where('title', '==', m.title)
@@ -1446,7 +1465,6 @@
                 }))
               };
               await db.collection('meetings').add(meetingData);
-              console.log(`Rapat default "${m.title}" ditambahkan.`);
             }
           }
         } catch (error) {
@@ -1454,26 +1472,20 @@
         }
       }
 
-      // Fungsi reset data default (hapus grup dan rapat, lalu tambah ulang)
       async function resetDefaultData() {
         if (userRole !== 'admin') return;
         if (!confirm('Reset data default? Semua grup "Rapat Pesparawi Distrik VII" dan rapat di dalamnya akan dihapus, lalu ditambahkan ulang. Data lain tidak terpengaruh.')) return;
         try {
-          // Cari semua workspace dengan nama yang sama
           const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
           for (const doc of workspaceQuery.docs) {
-            // Hapus semua rapat dalam grup
             const meetingsInGroup = await db.collection('meetings').where('workspaceId', '==', doc.id).get();
             for (const m of meetingsInGroup.docs) {
               await db.collection('meetings').doc(m.id).delete();
             }
-            // Hapus grup
             await db.collection('workspaces').doc(doc.id).delete();
           }
-          // Seeding ulang
           await seedDefaultData();
           alert('Data default berhasil direset!');
-          // Refresh tampilan
           window.location.reload();
         } catch (error) {
           console.error('Reset gagal:', error);
@@ -1543,6 +1555,57 @@
         catch (e) { loginError.innerText = e.message; }
       });
       document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+      // ========== HELPERS FOR LATEST MEETING & LOGS ==========
+      
+      // Mengecek apakah rapat ini adalah rapat terakhir di grupnya
+      function isMeetingLatest(meeting) {
+        if (!meeting) return false;
+        let latest = null;
+        if (meeting.workspaceId) {
+          latest = getLastMeetingInWorkspace(meeting.workspaceId);
+        } else {
+          latest = getLastPrivateMeeting();
+        }
+        return latest && latest.id === meeting.id;
+      }
+
+      // Menambahkan log ke Firestore
+      async function addLog(meetingId, message) {
+        if (!meetingId || !currentUser) return;
+        const newLog = {
+          user: currentUser.email,
+          msg: message,
+          time: new Date().toISOString()
+        };
+        try {
+          await db.collection('meetings').doc(meetingId).update({
+            logs: firebase.firestore.FieldValue.arrayUnion(newLog)
+          });
+        } catch (e) {
+          console.error("Gagal menyimpan log: ", e);
+        }
+      }
+
+      // Render daftar log terbaru
+      function renderLogs(meeting) {
+        const logs = meeting.logs || [];
+        if (logs.length === 0) return '';
+        
+        // Urutkan berdasarkan waktu paling baru ke lama, dan ambil 5 teratas
+        const sortedLogs = [...logs].sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 5);
+        let html = `<div class="log-card">
+          <h4><i class="fas fa-history"></i> Riwayat Aktivitas Terakhir</h4>
+          <ul class="log-list">`;
+        
+        sortedLogs.forEach(log => {
+            const time = new Date(log.time).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+            const shortEmail = log.user.split('@')[0];
+            html += `<li><span class="log-time">${time}</span> <strong>${escapeHtml(shortEmail)}</strong> ${escapeHtml(log.msg)}</li>`;
+        });
+        html += `</ul></div>`;
+        return html;
+      }
 
       // ========== WORKSPACE ==========
       async function deleteWorkspace(workspaceId) {
@@ -1773,7 +1836,6 @@
         return sorted[0];
       }
 
-      // FUNGSI BARU: Ambil rapat terakhir di Pribadi
       function getLastPrivateMeeting() {
         const privateMeetings = meetings.filter(m => !m.workspaceId && m.createdBy === currentUser?.uid);
         if (privateMeetings.length === 0) return null;
@@ -1787,7 +1849,7 @@
 
       const workspaceSelect = document.getElementById('meetingWorkspaceSelect');
 
-      // ========== DASHBOARD GLOBAL dan tooltip ==========
+      // ========== DASHBOARD GLOBAL ==========
       let activeTooltip = null;
 
       function showStatTooltip(statType, event, statsData) {
@@ -1866,7 +1928,6 @@
       }
 
       function renderGlobalDashboard(workspaceId) {
-        // PERUBAHAN: Hanya ambil dari rapat terakhir
         const latestMeeting = getLastMeetingInWorkspace(workspaceId);
 
         let totalTasks = 0;
@@ -2053,23 +2114,31 @@
         const headerDate = document.getElementById('meetingDate');
         headerTitle.innerText = meeting.title;
         headerDate.innerHTML = `<i class="far fa-calendar-alt"></i> ${formatDate(meeting.date)}`;
+        
+        // Penentuan hak akses khusus di rapat ini
+        const canEdit = userRole === 'admin' || isMeetingLatest(meeting);
 
         let html = `
           <div class="info-card">
-            <div style="font-weight:600; margin-bottom:10px; color:var(--color-secondary);"><i class="fas fa-info-circle"></i> Informasi rapat</div>
+            <div style="font-weight:600; margin-bottom:10px; color:var(--color-secondary);"><i class="fas fa-info-circle"></i> Informasi rapat ${!canEdit ? '<span style="color:#e63946; font-size:0.8rem; font-weight:normal; margin-left:8px;">(Read-Only)</span>' : ''}</div>
             <div class="info-grid">
               <div class="info-item"><i class="fas fa-tag"></i> ${meeting.info || 'Tidak ada catatan'}</div>
             </div>
           </div>
         `;
+        
         html += renderDashboard(meeting);
+        
+        // Render Logs
+        html += renderLogs(meeting);
+
         html += `
           <div class="section-header">
             <h3><i class="fas fa-layer-group"></i> ${selectedSectionFilter === 'ALL' ? 'Semua Seksi' : 'Detail Seksi'}</h3>
-            <button class="btn-add-section ${userRole!=='admin'?'disabled':''}" id="addSectionBtn" ${userRole!=='admin'?'disabled':''}><i class="fas fa-plus"></i> Seksi baru</button>
+            <button class="btn-add-section ${!canEdit ? 'disabled' : ''}" id="addSectionBtn" ${!canEdit ? 'disabled' : ''}><i class="fas fa-plus"></i> Seksi baru</button>
           </div>
         `;
-        html += renderFilteredSections(meeting);
+        html += renderFilteredSections(meeting, canEdit);
 
         content.innerHTML = html;
 
@@ -2161,7 +2230,7 @@
         return html;
       }
 
-      function renderFilteredSections(meeting) {
+      function renderFilteredSections(meeting, canEdit) {
         if (!meeting.sections) return '';
         let sectionsToRender = meeting.sections;
         if (selectedSectionFilter !== 'ALL') {
@@ -2171,12 +2240,12 @@
 
         let html = '';
         sectionsToRender.forEach(section => {
-          html += renderSectionCard(meeting.id, section);
+          html += renderSectionCard(meeting.id, section, canEdit);
         });
         return html;
       }
 
-      function renderSectionCard(meetingId, section) {
+      function renderSectionCard(meetingId, section, canEdit) {
         let tasksHtml = '';
         section.tasks?.forEach(task => {
           const statusClass = `status-${task.status}`;
@@ -2196,8 +2265,8 @@
                 </div>
                 ${deadline ? `<div class="task-deadline"><i class="fas fa-calendar-alt"></i> ${deadlineStr}</div>` : ''}
                 <div class="task-actions">
-                  <button id="edit-task-${task.id}" title="Edit" ${userRole!=='admin'?'disabled':''}><i class="fas fa-pencil-alt"></i></button>
-                  <button id="del-task-${task.id}" title="Hapus" ${userRole!=='admin'?'disabled':''}><i class="fas fa-trash"></i></button>
+                  <button id="edit-task-${task.id}" title="Edit" ${!canEdit ? 'disabled' : ''}><i class="fas fa-pencil-alt"></i></button>
+                  <button id="del-task-${task.id}" title="Hapus" ${!canEdit ? 'disabled' : ''}><i class="fas fa-trash"></i></button>
                 </div>
               </div>
               ${task.notes ? `<div style="font-size:0.8rem; color:#6a7f9b; margin-top:6px; margin-left:110px;"><i class="fas fa-comment"></i> ${escapeHtml(task.notes)}</div>` : ''}
@@ -2210,14 +2279,14 @@
             <div class="section-title">
               <h4>${escapeHtml(section.name)}</h4>
               <div class="section-actions">
-                <button id="edit-section-${section.id}" title="Edit seksi" ${userRole!=='admin'?'disabled':''}><i class="fas fa-edit"></i></button>
-                <button id="del-section-${section.id}" title="Hapus seksi" ${userRole!=='admin'?'disabled':''}><i class="fas fa-times-circle"></i></button>
+                <button id="edit-section-${section.id}" title="Edit seksi" ${!canEdit ? 'disabled' : ''}><i class="fas fa-edit"></i></button>
+                <button id="del-section-${section.id}" title="Hapus seksi" ${!canEdit ? 'disabled' : ''}><i class="fas fa-times-circle"></i></button>
               </div>
             </div>
             <div class="task-list">
               ${tasksHtml || '<div style="color:#9fb3cc; padding:8px;">Belum ada tugas</div>'}
             </div>
-            <button class="add-task-btn ${userRole!=='admin'?'disabled':''}" id="add-task-${section.id}" ${userRole!=='admin'?'disabled':''}><i class="fas fa-plus-circle"></i> Tambah tugas</button>
+            <button class="add-task-btn ${!canEdit ? 'disabled' : ''}" id="add-task-${section.id}" ${!canEdit ? 'disabled' : ''}><i class="fas fa-plus-circle"></i> Tambah tugas</button>
           </div>
         `;
       }
@@ -2263,66 +2332,105 @@
       }
 
       async function saveSection(sectionData, meetingId) {
-        if (userRole !== 'admin') return;
         const meeting = meetings.find(m => m.id === meetingId);
         if (!meeting) return;
+        
+        const canEdit = userRole === 'admin' || isMeetingLatest(meeting);
+        if (!canEdit) return;
+
         if (!meeting.sections) meeting.sections = [];
+        
+        let isNew = false;
         if (sectionData.id) {
           const index = meeting.sections.findIndex(s => s.id === sectionData.id);
           if (index !== -1) meeting.sections[index] = sectionData;
         } else {
+          isNew = true;
           sectionData.id = 'sec_' + Date.now() + '_' + Math.random().toString(36);
           meeting.sections.push(sectionData);
         }
         try {
           await db.collection('meetings').doc(meetingId).update({ sections: meeting.sections });
+          
+          const actionMsg = isNew ? `menambahkan seksi baru` : `memperbarui seksi`;
+          await addLog(meetingId, `${actionMsg}: "${sectionData.name}"`);
         } catch (error) {
           alert('Gagal menyimpan seksi: ' + error.message);
         }
       }
 
       async function deleteSection(sectionId) {
-        if (userRole !== 'admin') return;
         const meeting = meetings.find(m => m.id === currentMeetingId);
         if (!meeting) return;
+        
+        const canEdit = userRole === 'admin' || isMeetingLatest(meeting);
+        if (!canEdit) return;
+
+        const section = meeting.sections.find(s => s.id === sectionId);
+        if (!section) return;
+
+        if (!confirm(`Hapus seksi "${section.name}"?`)) return;
+
         meeting.sections = meeting.sections.filter(s => s.id !== sectionId);
         try {
           await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+          await addLog(currentMeetingId, `menghapus seksi: "${section.name}"`);
         } catch (error) {
           alert('Gagal menghapus seksi: ' + error.message);
         }
       }
 
       async function saveTask(taskData, sectionId) {
-        if (userRole !== 'admin') return;
         const meeting = meetings.find(m => m.id === currentMeetingId);
         if (!meeting) return;
+        
+        const canEdit = userRole === 'admin' || isMeetingLatest(meeting);
+        if (!canEdit) return;
+
         const section = meeting.sections.find(s => s.id === sectionId);
         if (!section) return;
+        
         if (!section.tasks) section.tasks = [];
+        
+        let isNew = false;
         if (taskData.id) {
           const index = section.tasks.findIndex(t => t.id === taskData.id);
           if (index !== -1) section.tasks[index] = taskData;
         } else {
+          isNew = true;
           taskData.id = 'task_' + Date.now() + '_' + Math.random().toString(36);
           section.tasks.push(taskData);
         }
+        
         try {
           await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+          
+          const actionMsg = isNew ? `menambahkan tugas baru` : `memperbarui progress/tugas`;
+          await addLog(currentMeetingId, `${actionMsg}: "${taskData.desc}"`);
         } catch (error) {
           alert('Gagal menyimpan tugas: ' + error.message);
         }
       }
 
       async function deleteTask(sectionId, taskId) {
-        if (userRole !== 'admin') return;
         const meeting = meetings.find(m => m.id === currentMeetingId);
         if (!meeting) return;
+
+        const canEdit = userRole === 'admin' || isMeetingLatest(meeting);
+        if (!canEdit) return;
+
         const section = meeting.sections.find(s => s.id === sectionId);
         if (!section) return;
+        
+        const task = section.tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        if (!confirm('Hapus tugas ini?')) return;
+
         section.tasks = section.tasks.filter(t => t.id !== taskId);
         try {
           await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+          await addLog(currentMeetingId, `menghapus tugas: "${task.desc}"`);
         } catch (error) {
           alert('Gagal menghapus tugas: ' + error.message);
         }
@@ -2370,7 +2478,6 @@
 
       document.getElementById('cancelMeetingModal').addEventListener('click', closeAllModals);
 
-      // PERUBAHAN: Modifikasi logika pembuatan rapat untuk salin template
       document.getElementById('saveMeetingModal').addEventListener('click', async () => {
         if (userRole !== 'admin') return;
         const title = document.getElementById('meetingNameInput').value.trim();
@@ -2392,7 +2499,6 @@
           }
 
           if (lastMeeting && lastMeeting.sections) {
-            // Salin persis tanpa perubahan apapun, dengan ID unik baru
             sections = lastMeeting.sections.map(section => ({
               id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
               name: section.name,
@@ -2420,12 +2526,14 @@
       });
 
       function openSectionModal(sectionId) {
-        if (userRole !== 'admin') return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const canEdit = userRole === 'admin' || isMeetingLatest(meeting);
+        if (!canEdit) return;
+
         currentSectionId = sectionId;
         const modalTitle = document.getElementById('modalSectionTitle');
         const nameInput = document.getElementById('sectionNameInput');
         if (sectionId) {
-          const meeting = meetings.find(m => m.id === currentMeetingId);
           const sec = meeting?.sections.find(s => s.id === sectionId);
           if (sec) { nameInput.value = sec.name; modalTitle.innerText = 'Edit seksi'; }
         } else {
@@ -2437,13 +2545,13 @@
 
       document.getElementById('cancelSectionModal').addEventListener('click', closeAllModals);
       document.getElementById('saveSectionModal').addEventListener('click', async () => {
-        if (userRole !== 'admin') return;
         if (!currentMeetingId) return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const canEdit = userRole === 'admin' || isMeetingLatest(meeting);
+        if (!canEdit) return;
+
         const name = document.getElementById('sectionNameInput').value.trim();
         if (!name) return alert('Nama seksi harus diisi');
-
-        const meeting = meetings.find(m => m.id === currentMeetingId);
-        if (!meeting) return;
 
         const sectionData = { name, tasks: [] };
         if (currentSectionId) {
@@ -2456,11 +2564,12 @@
       });
 
       function openTaskModal(sectionId, taskId) {
-        if (userRole !== 'admin') return;
-        if (!currentMeetingId) return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const canEdit = userRole === 'admin' || isMeetingLatest(meeting);
+        if (!canEdit) return;
+
         currentSectionId = sectionId;
         currentTaskId = taskId;
-        const meeting = meetings.find(m => m.id === currentMeetingId);
         const section = meeting?.sections.find(s => s.id === sectionId);
         const task = taskId ? section?.tasks.find(t => t.id === taskId) : null;
 
@@ -2477,8 +2586,11 @@
 
       document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
       document.getElementById('saveTaskModal').addEventListener('click', async () => {
-        if (userRole !== 'admin') return;
         if (!currentMeetingId || !currentSectionId) return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const canEdit = userRole === 'admin' || isMeetingLatest(meeting);
+        if (!canEdit) return;
+
         const desc = document.getElementById('taskDescInput').value.trim();
         if (!desc) return alert('Deskripsi tugas harus diisi');
         const status = document.getElementById('taskStatusInput').value;
@@ -2494,9 +2606,7 @@
       });
 
       document.getElementById('deleteTaskBtn').addEventListener('click', async () => {
-        if (userRole !== 'admin') return;
         if (!currentMeetingId || !currentSectionId || !currentTaskId) return;
-        if (!confirm('Hapus tugas ini?')) return;
         await deleteTask(currentSectionId, currentTaskId);
         closeAllModals();
       });
@@ -2553,21 +2663,40 @@
       // ========== ROLE-BASED UI ==========
       function updateButtonsByRole() {
         const isAdmin = userRole === 'admin';
-        const editBtns = [
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const canEdit = isAdmin || isMeetingLatest(meeting);
+
+        // Tombol yang hanya untuk Admin (Struktur besar/hapus keseluruhan)
+        const adminBtns = [
           document.getElementById('newMeetingBtn'),
           document.getElementById('editMeetingBtn'),
           document.getElementById('deleteMeetingBtn'),
-          document.getElementById('addSectionBtn'),
           document.getElementById('deleteSelectedBtn'),
           document.getElementById('newWorkspaceBtn'),
-          document.getElementById('resetDefaultDataBtn'),
+          document.getElementById('resetDefaultDataBtn')
+        ].filter(Boolean);
+
+        adminBtns.forEach(btn => {
+          if (isAdmin) {
+            btn.classList.remove('disabled');
+            btn.disabled = false;
+          } else {
+            btn.classList.add('disabled');
+            btn.disabled = true;
+          }
+        });
+
+        // Tombol untuk isi Rapat (bisa dikelola Admin ATAU Member jika itu rapat terbaru)
+        const contentBtns = [
+          document.getElementById('addSectionBtn'),
           ...document.querySelectorAll('.btn-add-section'),
           ...document.querySelectorAll('.section-actions button'),
           ...document.querySelectorAll('.task-actions button'),
           ...document.querySelectorAll('.add-task-btn')
         ].filter(Boolean);
-        editBtns.forEach(btn => {
-          if (isAdmin) {
+
+        contentBtns.forEach(btn => {
+          if (canEdit) {
             btn.classList.remove('disabled');
             btn.disabled = false;
           } else {
