@@ -734,17 +734,26 @@
             meetings.sort((a, b) => (a.date < b.date ? 1 : -1));
 
             renderPrivateMeetings();
-            if (currentWorkspaceId) {
+            
+            // PRIORITAS RENDER: Memastikan tidak terpental ke halaman Dashboard (2.jpg)
+            if (currentMeetingId) {
+              const meeting = meetings.find(m => m.id === currentMeetingId);
+              if (meeting) {
+                renderDetail(meeting);
+              } else {
+                currentMeetingId = null;
+                if (currentWorkspaceId) {
+                  renderWorkspaceMeetings(currentWorkspaceId);
+                } else {
+                  document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.</div>';
+                }
+              }
+            } else if (currentWorkspaceId) {
               renderWorkspaceMeetings(currentWorkspaceId);
             } else {
-              if (currentMeetingId) {
-                const meeting = meetings.find(m => m.id === currentMeetingId && !m.workspaceId);
-                if (meeting) renderDetail(meeting);
-                else currentMeetingId = null;
-              } else {
-                document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
-              }
+              document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.</div>';
             }
+
             updateButtonsByRole();
             updateDeleteSelectedButton();
           }, error => console.error('Meetings listener error:', error));
@@ -775,7 +784,6 @@
 
       // ========== HELPERS FOR LATEST MEETING, LOGS & PERMISSIONS ==========
       
-      // Mengecek apakah rapat ini adalah rapat terakhir di grupnya
       function isMeetingLatest(meeting) {
         if (!meeting) return false;
         let latest = null;
@@ -787,7 +795,6 @@
         return latest && latest.id === meeting.id;
       }
 
-      // Mengecek apakah User Boleh Edit Seksi (Logika Read-Only/Member Section Baru)
       function canUserEditSection(meeting, section) {
         if (!meeting) return false;
         if (userRole === 'admin') return true;
@@ -801,7 +808,6 @@
         return emails.includes(currentUser?.email?.toLowerCase());
       }
 
-      // Menambahkan log ke Firestore
       async function addLog(meetingId, message) {
         if (!meetingId || !currentUser) return;
         const newLog = {
@@ -818,12 +824,10 @@
         }
       }
 
-      // Render daftar log terbaru
       function renderLogs(meeting) {
         const logs = meeting.logs || [];
         if (logs.length === 0) return '';
         
-        // Urutkan berdasarkan waktu paling baru ke lama, dan ambil 5 teratas
         const sortedLogs = [...logs].sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 5);
         let html = `<div class="log-card">
           <h4><i class="fas fa-history"></i> Riwayat Aktivitas Terakhir</h4>
@@ -858,7 +862,7 @@
             currentWorkspaceId = null;
             currentMeetingId = null;
             renderWorkspaceList();
-            document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
+            document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.</div>';
           } else {
             renderWorkspaceList();
           }
@@ -1223,7 +1227,6 @@
         const rencanaList = Object.keys(rencanaBySection).map(name => ({ name, count: rencanaBySection[name] }));
         const kendalaList = Object.keys(kendalaBySection).map(name => ({ name, count: kendalaBySection[name] }));
         
-        // MODIFIKASI: Tooltip rata-rata progress per seksi
         const avgProgressList = Object.keys(sectionTotals).map(name => {
            const avg = sectionTotals[name] > 0 ? (progressSumBySection[name] / sectionTotals[name]) : 0;
            return { name, count: Math.round(avg) + '%' };
@@ -1344,7 +1347,7 @@
             el.addEventListener('click', (e) => {
               if (e.target !== cb) {
                 currentMeetingId = m.id;
-                renderWorkspaceMeetings(workspaceId);
+                // PERBAIKAN BUG: Menghapus panggilan renderWorkspaceMeetings ganda agar tampilan tidak berkedip ke dashboard
                 renderDetail(m);
               }
             });
@@ -1764,6 +1767,7 @@
           const existing = meetings.find(m => m.id === editId);
           if (existing) meetingData.sections = existing.sections;
         }
+        
         await saveMeeting(meetingData);
         closeAllModals();
       });
@@ -1793,6 +1797,7 @@
       }
 
       document.getElementById('cancelSectionModal').addEventListener('click', closeAllModals);
+      
       document.getElementById('saveSectionModal').addEventListener('click', async () => {
         if (!currentMeetingId) return;
         const meeting = meetings.find(m => m.id === currentMeetingId);
@@ -1811,6 +1816,7 @@
           const existing = meeting.sections.find(s => s.id === currentSectionId);
           if (existing) sectionData.tasks = existing.tasks;
         }
+        
         await saveSection(sectionData, currentMeetingId);
         closeAllModals();
       });
@@ -1836,6 +1842,7 @@
       }
 
       document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
+      
       document.getElementById('saveTaskModal').addEventListener('click', async () => {
         if (!currentMeetingId || !currentSectionId) return;
         const meeting = meetings.find(m => m.id === currentMeetingId);
@@ -1852,6 +1859,7 @@
 
         const taskData = { desc, status, progress, pic, notes, deadline };
         if (currentTaskId) taskData.id = currentTaskId;
+        
         await saveTask(taskData, currentSectionId);
         closeAllModals();
       });
@@ -1899,7 +1907,7 @@
           if (currentWorkspaceId && !workspaces.find(w => w.id === currentWorkspaceId)) {
             currentWorkspaceId = null;
             renderWorkspaceList();
-            document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
+            document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.</div>';
           }
         } catch (error) {
           alert('Gagal menghapus: ' + error.message);
