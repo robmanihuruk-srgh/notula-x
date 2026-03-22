@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOTULA — Sistem Monitor Rapat</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0F1117;
+    --bg2: #161922;
+    --bg3: #1E2330;
+    --bg4: #252B3B;
+    --card: #1A1F2E;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.13);
+    --text: #F0F2F8;
+    --text2: #8B93B0;
+    --text3: #5A6380;
+    --accent: #5B8AF0;
+    --accent2: #7B6CF6;
+    --green: #34D399;
+    --yellow: #FBBF24;
+    --red: #F87171;
+    --orange: #FB923C;
+    --teal: #2DD4BF;
+    --pink: #F472B6;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-lg: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --font: 'Plus Jakarta Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: 260px; background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 100; transition: transform 0.3s;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-mark {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .logo-sub { font-size: 11px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+  .nav-section-label { font-size: 10px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; padding: 12px 10px 6px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    cursor: pointer; font-size: 13.5px; font-weight: 500;
+    color: var(--text2); transition: all 0.15s; margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: rgba(91,138,240,0.15); color: var(--accent); }
+  .nav-item .nav-icon { width: 18px; text-align: center; font-size: 15px; }
+  .nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+  .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+  .user-pill { display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0; }
+  .user-name { font-size: 13px; font-weight: 500; }
+  .user-role { font-size: 11px; color: var(--text3); }
+
+  /* ===== MAIN ===== */
+  .main { margin-left: 260px; min-height: 100vh; }
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(15,17,23,0.85); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 32px; display: flex; align-items: center; gap: 16px;
+  }
+  .topbar-title { font-size: 15px; font-weight: 600; flex: 1; }
+  .topbar-search {
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 8px 14px;
+    font-family: var(--font); font-size: 13px; color: var(--text);
+    width: 220px; outline: none;
+  }
+  .topbar-search::placeholder { color: var(--text3); }
+  .topbar-search:focus { border-color: var(--accent); }
+  .btn {
+    padding: 8px 18px; border-radius: var(--radius-sm);
+    font-family: var(--font); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; border: none; display: flex; align-items: center; gap: 7px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4A79E0; transform: translateY(-1px); }
+  .btn-ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
+  .btn-ghost:hover { background: var(--bg4); color: var(--text); }
+  .btn-danger { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+  .btn-danger:hover { background: rgba(248,113,113,0.25); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-icon { padding: 7px; border-radius: var(--radius-sm); }
+
+  /* ===== CONTENT ===== */
+  .content { padding: 28px 32px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ===== STATS ROW ===== */
+  .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 20px; position: relative; overflow: hidden;
+  }
+  .stat-card::after { content: ''; position: absolute; top: -30px; right: -20px; width: 80px; height: 80px; border-radius: 50%; opacity: 0.07; }
+  .stat-card.blue::after { background: var(--accent); }
+  .stat-card.green::after { background: var(--green); }
+  .stat-card.yellow::after { background: var(--yellow); }
+  .stat-card.purple::after { background: var(--accent2); }
+  .stat-label { font-size: 11px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-size: 30px; font-weight: 700; line-height: 1; }
+  .stat-value.blue { color: var(--accent); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-value.purple { color: var(--accent2); }
+  .stat-delta { font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+  /* ===== MEETING LIST ===== */
+  .meeting-list { display: flex; flex-direction: column; gap: 12px; }
+  .meeting-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 20px 24px;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: flex-start; gap: 18px;
+  }
+  .meeting-card:hover { border-color: var(--border2); transform: translateY(-2px); box-shadow: var(--shadow); }
+  .meeting-card.selected { border-color: var(--accent); background: rgba(91,138,240,0.06); }
+  .meeting-date-block {
+    background: var(--bg3); border-radius: var(--radius-sm);
+    padding: 10px 14px; text-align: center; min-width: 62px; flex-shrink: 0;
+  }
+  .meeting-day { font-size: 26px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .meeting-month { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .meeting-info { flex: 1; }
+  .meeting-title { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+  .meeting-meta { font-size: 12px; color: var(--text2); display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+  .meeting-meta span { display: flex; align-items: center; gap: 5px; }
+  .meeting-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .tag-blue { background: rgba(91,138,240,0.15); color: var(--accent); }
+  .tag-green { background: rgba(52,211,153,0.15); color: var(--green); }
+  .tag-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .tag-red { background: rgba(248,113,113,0.15); color: var(--red); }
+  .tag-purple { background: rgba(123,108,246,0.15); color: var(--accent2); }
+  .tag-teal { background: rgba(45,212,191,0.15); color: var(--teal); }
+  .meeting-progress-wrap { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 100px; }
+  .progress-label { font-size: 11px; color: var(--text3); }
+  .progress-bar-bg { width: 100px; height: 5px; background: var(--bg3); border-radius: 10px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 10px; transition: width 0.5s; }
+
+  /* ===== DETAIL PANEL ===== */
+  .detail-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); margin-top: 24px; overflow: hidden;
+  }
+  .detail-header { padding: 24px 28px; border-bottom: 1px solid var(--border); }
+  .detail-title { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 8px; }
+  .detail-meta { display: flex; gap: 24px; flex-wrap: wrap; }
+  .detail-meta-item { font-size: 12.5px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+  .detail-tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 28px; }
+  .dtab { padding: 13px 18px; font-size: 13px; font-weight: 500; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; margin-bottom: -1px; }
+  .dtab:hover { color: var(--text2); }
+  .dtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .detail-body { padding: 24px 28px; }
+
+  /* ===== AGENDA TABLE ===== */
+  .agenda-table { width: 100%; border-collapse: collapse; }
+  .agenda-table th { text-align: left; font-size: 11px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; padding: 0 0 12px; border-bottom: 1px solid var(--border); }
+  .agenda-table td { padding: 14px 0 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 13.5px; }
+  .agenda-table tr:last-child td { border-bottom: none; }
+  .agenda-num { font-weight: 700; color: var(--text3); font-size: 12px; width: 32px; }
+  .agenda-topic { font-weight: 600; color: var(--text); padding-right: 16px; min-width: 120px; }
+  .agenda-desc { color: var(--text2); line-height: 1.6; }
+  .agenda-status { min-width: 100px; text-align: right; }
+
+  /* ===== TODO LIST ===== */
+  .todo-section-title { font-size: 13px; font-weight: 600; color: var(--accent); margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .todo-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 6px;
+    background: var(--bg3); border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .todo-item:hover { border-color: var(--border2); }
+  .todo-check {
+    width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
+    border: 1.5px solid var(--border2); margin-top: 1px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; background: transparent;
+  }
+  .todo-check.done { background: var(--green); border-color: var(--green); }
+  .todo-check.done::after { content: '✓'; color: #fff; font-size: 11px; font-weight: 700; }
+  .todo-text { flex: 1; font-size: 13px; color: var(--text2); line-height: 1.5; }
+  .todo-text.done { text-decoration: line-through; color: var(--text3); }
+  .todo-assignee { font-size: 11px; color: var(--text3); background: var(--bg4); padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+
+  /* ===== KENDALA ===== */
+  .kendala-item {
+    display: flex; gap: 14px; padding: 14px; background: rgba(248,113,113,0.05);
+    border: 1px solid rgba(248,113,113,0.15); border-radius: var(--radius-sm); margin-bottom: 10px;
+  }
+  .kendala-num { width: 24px; height: 24px; border-radius: 50%; background: rgba(248,113,113,0.15); color: var(--red); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .kendala-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+  /* ===== PROGRESS TRACKER ===== */
+  .progress-table { width: 100%; }
+  .prog-row { display: grid; grid-template-columns: 130px 1fr 120px 100px; gap: 16px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .prog-row:last-child { border-bottom: none; }
+  .prog-row-header { font-size: 10px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+  .prog-seksi { font-size: 13px; font-weight: 600; }
+  .prog-status { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .prog-pct { text-align: right; font-size: 20px; font-weight: 700; }
+  .prog-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .mini-bar-bg { width: 100%; height: 4px; background: var(--bg3); border-radius: 10px; margin-top: 6px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; border-radius: 10px; }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200;
+    display: none; align-items: center; justify-content: center; padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius-lg); width: 100%; max-width: 680px;
+    max-height: 90vh; overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-header { padding: 22px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .modal-body { padding: 24px 28px; }
+  .modal-footer { padding: 16px 28px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+  .form-group { margin-bottom: 18px; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--text2); letter-spacing: 0.5px; margin-bottom: 7px; display: block; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    font-family: var(--font); font-size: 13.5px; color: var(--text);
+    outline: none; transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+  .form-select { cursor: pointer; }
+  .form-select option { background: var(--bg2); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .close-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text2); width: 32px; height: 32px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.15s; }
+  .close-btn:hover { background: var(--bg4); color: var(--text); }
+
+  /* ===== SECTION HEADERS ===== */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+  .section-heading { font-size: 20px; font-weight: 700; }
+  .section-sub { font-size: 13px; color: var(--text3); margin-top: 3px; }
+  .section-actions { display: flex; gap: 10px; }
+
+  /* ===== FILTER BAR ===== */
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+  .filter-chip {
+    font-size: 12px; font-weight: 500; padding: 6px 14px;
+    border-radius: 20px; cursor: pointer; transition: all 0.15s;
+    background: var(--bg3); color: var(--text2); border: 1px solid var(--border);
+  }
+  .filter-chip:hover { border-color: var(--border2); color: var(--text); }
+  .filter-chip.active { background: rgba(91,138,240,0.15); color: var(--accent); border-color: rgba(91,138,240,0.4); }
+
+  /* ===== EMPTY STATE ===== */
+  .empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+  .empty-icon { font-size: 40px; margin-bottom: 14px; opacity: 0.5; }
+  .empty-text { font-size: 14px; }
+
+  /* ===== NOTIFICATION ===== */
+  .notif {
+    position: fixed; top: 20px; right: 20px; z-index: 999;
+    background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    padding: 14px 20px; font-size: 13px; color: var(--text);
+    box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { transform: translateX(80px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .notif.success { border-left: 3px solid var(--green); }
+  .notif.error { border-left: 3px solid var(--red); }
+
+  /* ===== DASHBOARD EXTRAS ===== */
+  .upcoming-item {
+    display: flex; align-items: center; gap: 14px; padding: 12px 16px;
+    background: var(--bg3); border-radius: var(--radius-sm); border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .upcoming-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card-block { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+  .card-block-title { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  /* ===== STATUS BADGE ===== */
+  .status { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px; }
+  .status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
+  .status-selesai { background: rgba(52,211,153,0.15); color: var(--green); }
+  .status-selesai::before { background: var(--green); }
+  .status-berlangsung { background: rgba(91,138,240,0.15); color: var(--accent); }
+  .status-berlangsung::before { background: var(--accent); }
+  .status-rencana { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .status-rencana::before { background: var(--yellow); }
+  .status-terkendala { background: rgba(248,113,113,0.15); color: var(--red); }
+  .status-terkendala::before { background: var(--red); }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 10px; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 1024px) {
+    .stats-grid { grid-template-columns: repeat(2,1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+    .prog-row { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+
+  .inline-edit { border: none; background: transparent; font-family: var(--font); color: var(--text); outline: none; width: 100%; }
+  .range-input { width: 100%; accent-color: var(--accent); }
+  .pct-display { font-size: 13px; font-weight: 600; color: var(--accent); min-width: 36px; text-align: right; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .progress-ring { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+  .progress-ring-text { position: absolute; font-size: 13px; font-weight: 700; color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">NOTULA</div>
+    <div class="logo-sub">Sistem Monitor Rapat</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Menu Utama</div>
+    <div class="nav-item active" onclick="showSection('dashboard',this)">
+      <span class="nav-icon">⬡</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showSection('rapat',this)">
+      <span class="nav-icon">📋</span> Daftar Rapat
+      <span class="nav-badge" id="nb-rapat">2</span>
+    </div>
+    <div class="nav-item" onclick="showSection('progress',this)">
+      <span class="nav-icon">◎</span> Monitor Progress
+    </div>
+    <div class="nav-item" onclick="showSection('todo',this)">
+      <span class="nav-icon">✓</span> To Do List
+      <span class="nav-badge" id="nb-todo">0</span>
+    </div>
+    <div class="nav-item" onclick="showSection('kendala',this)">
+      <span class="nav-icon">⚠</span> Kendala
+    </div>
+    <div class="nav-section-label">Lainnya</div>
+    <div class="nav-item" onclick="showSection('anggota',this)">
+      <span class="nav-icon">👤</span> Anggota Tim
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="user-avatar">VS</div>
+      <div>
+        <div class="user-name">Vany Sinaga</div>
+        <div class="user-role">Sekretaris</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <button class="btn btn-ghost btn-icon" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;" id="menu-btn">☰</button>
+    <span class="topbar-title" id="topbar-title">Dashboard</span>
+    <input class="topbar-search" type="text" placeholder="🔍  Cari rapat, agenda, topik..." oninput="globalSearch(this.value)" />
+    <button class="btn btn-primary" onclick="openModal('modal-rapat')">＋ Rapat Baru</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="section active" id="section-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-label">Total Rapat</div>
+          <div class="stat-value blue" id="stat-total">2</div>
+          <div class="stat-delta">Maret 2026</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">To Do Selesai</div>
+          <div class="stat-value green" id="stat-done">0</div>
+          <div class="stat-delta">dari <span id="stat-done-total">0</span> item</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">Kendala Aktif</div>
+          <div class="stat-value yellow" id="stat-kendala">6</div>
+          <div class="stat-delta">Perlu penanganan</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-label">Avg. Progress</div>
+          <div class="stat-value purple" id="stat-progress">0%</div>
+          <div class="stat-delta">Semua seksi</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card-block">
+          <div class="card-block-title">📋 Rapat Terbaru</div>
+          <div id="db-rapat-list"></div>
+        </div>
+        <div class="card-block">
+          <div class="card-block-title">⚡ Aktivitas To Do</div>
+          <div id="db-todo-summary"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;" class="card-block">
+        <div class="card-block-title">⚠ Kendala Terkini</div>
+        <div id="db-kendala-list"></div>
+      </div>
+    </div>
+
+    <!-- ===== DAFTAR RAPAT ===== -->
+    <div class="section" id="section-rapat">
+      <div class="section-header">
+        <div>
+          <div class="section-heading">Daftar Rapat</div>
+          <div class="section-sub">Semua notulen rapat koordinasi</div>
+        </div>
+        <div class="section-actions">
+          <button class="btn btn-ghost" onclick="exportData()">↓ Export</button>
+          <button class="btn btn-primary" onclick="openModal('modal-rapat')">＋ Rapat Baru</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <span style="font-size:12px;color:var(--text3);">Filter:</span>
+        <div class="filter-chip active" onclick="filterRapat('all',this)">Semua</div>
+        <div class="filter-chip" onclick="filterRapat('selesai',this)">Selesai</div>
+        <div class="filter-chip" onclick="filterRapat('berlangsung',this)">Berlangsung</div>
+      </div>
+      <div class="meeting-list" id="rapat-list"></div>
+
+      <!-- DETAIL RAPAT -->
+      <div class="detail-panel" id="detail-panel" style="display:none;">
+        <div class="detail-header">
+          <div class="detail-title" id="dp-title"></div>
+          <div class="detail-meta" id="dp-meta"></div>
+        </div>
+        <div class="detail-tabs">
+          <div class="dtab active" onclick="showDTab('agenda',this)">Agenda & Pembahasan</div>
+          <div class="dtab" onclick="showDTab('todo',this)">To Do List</div>
+          <div class="dtab" onclick="showDTab('progress',this)">Progress Seksi</div>
+          <div class="dtab" onclick="showDTab('kendala-tab',this)">Kendala</div>
+        </div>
+        <div class="detail-body">
+          <div class="tab-content active" id="dtab-agenda"></div>
+          <div class="tab-content" id="dtab-todo"></div>
+          <div class="tab-content" id="dtab-progress"></div>
+          <div class="tab-content" id="dtab-kendala-tab"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MONITOR PROGRESS ===== -->
+    <div class="section" id="section-progress">
+      <div class="section-header">
+        <div>
+          <div class="section-heading">Monitor Progress Seksi</div>
+          <div class="section-sub">Pantau perkembangan setiap seksi panitia</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-progress')">+ Update Progress</button>
+      </div>
+      <div id="progress-global-list"></div>
+    </div>
+
+    <!-- ===== TODO ===== -->
+    <div class="section" id="section-todo">
+      <div class="section-header">
+        <div>
+          <div class="section-heading">To Do List</div>
+          <div class="section-sub">Semua tugas dari seluruh rapat</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-todo')">＋ Tambah Tugas</button>
+      </div>
+      <div class="filter-bar">
+        <span style="font-size:12px;color:var(--text3);">Status:</span>
+        <div class="filter-chip active" onclick="filterTodo('all',this)">Semua</div>
+        <div class="filter-chip" onclick="filterTodo('pending',this)">Belum Selesai</div>
+        <div class="filter-chip" onclick="filterTodo('done',this)">Selesai</div>
+      </div>
+      <div id="global-todo-list"></div>
+    </div>
+
+    <!-- ===== KENDALA ===== -->
+    <div class="section" id="section-kendala">
+      <div class="section-header">
+        <div>
+          <div class="section-heading">Daftar Kendala</div>
+          <div class="section-sub">Hambatan & masalah yang perlu diselesaikan</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-kendala')">＋ Tambah Kendala</button>
+      </div>
+      <div id="kendala-global-list"></div>
+    </div>
+
+    <!-- ===== ANGGOTA ===== -->
+    <div class="section" id="section-anggota">
+      <div class="section-header">
+        <div><div class="section-heading">Anggota Tim</div></div>
+        <button class="btn btn-primary" onclick="openModal('modal-anggota')">＋ Tambah Anggota</button>
+      </div>
+      <div id="anggota-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;"></div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Modal: Rapat Baru -->
+<div class="modal-overlay" id="modal-rapat">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-rapat-title">Buat Rapat Baru</span>
+      <button class="close-btn" onclick="closeModal('modal-rapat')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="rapat-edit-id" value="">
+      <div class="form-group">
+        <label class="form-label">Nama Rapat *</label>
+        <input class="form-input" id="f-nama" placeholder="Contoh: Rapat Koordinasi Panitia..." />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tanggal *</label>
+          <input class="form-input" id="f-tanggal" type="date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Waktu</label>
+          <input class="form-input" id="f-waktu" type="time" placeholder="09:00" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Lokasi</label>
+          <input class="form-input" id="f-lokasi" placeholder="Lokasi rapat..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="f-status">
+            <option value="berlangsung">Berlangsung</option>
+            <option value="selesai">Selesai</option>
+            <option value="rencana">Direncanakan</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pimpinan Rapat</label>
+        <input class="form-input" id="f-pimpinan" placeholder="Nama pimpinan..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notulen</label>
+        <input class="form-input" id="f-notulen" placeholder="Nama notulen..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Peserta</label>
+        <input class="form-input" id="f-peserta" placeholder="Nama peserta (pisahkan dengan koma)..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Catatan / Ringkasan</label>
+        <textarea class="form-textarea" id="f-catatan" placeholder="Ringkasan rapat atau hal penting lainnya..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-rapat')">Batal</button>
+      <button class="btn btn-primary" onclick="saveRapat()">Simpan Rapat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Todo -->
+<div class="modal-overlay" id="modal-todo">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">Tambah Tugas</span>
+      <button class="close-btn" onclick="closeModal('modal-todo')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Tugas *</label>
+        <input class="form-input" id="ft-tugas" placeholder="Deskripsi tugas..." />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Seksi / PIC</label>
+          <select class="form-select" id="ft-seksi">
+            <option value="">Pilih Seksi</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rapat Terkait</label>
+          <select class="form-select" id="ft-rapat">
+            <option value="">Pilih Rapat</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Deadline</label>
+        <input class="form-input" id="ft-deadline" type="date" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-todo')">Batal</button>
+      <button class="btn btn-primary" onclick="saveTodo()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Kendala -->
+<div class="modal-overlay" id="modal-kendala">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">Tambah Kendala</span>
+      <button class="close-btn" onclick="closeModal('modal-kendala')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Deskripsi Kendala *</label>
+        <textarea class="form-textarea" id="fk-desc" placeholder="Jelaskan kendala yang dihadapi..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Seksi Terkait</label>
+          <select class="form-select" id="fk-seksi">
+            <option value="">Pilih Seksi</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rapat</label>
+          <select class="form-select" id="fk-rapat">
+            <option value="">Pilih Rapat</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="fk-status">
+          <option value="aktif">Aktif</option>
+          <option value="selesai">Terselesaikan</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-kendala')">Batal</button>
+      <button class="btn btn-primary" onclick="saveKendala()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Progress Update -->
+<div class="modal-overlay" id="modal-progress">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">Update Progress Seksi</span>
+      <button class="close-btn" onclick="closeModal('modal-progress')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Seksi</label>
+        <select class="form-select" id="fp-seksi">
+          <option value="">Pilih Seksi</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Progress (%)</label>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <input type="range" class="range-input" id="fp-pct" min="0" max="100" value="0" oninput="document.getElementById('fp-pct-disp').textContent=this.value+'%'" style="flex:1;" />
+          <span class="pct-display" id="fp-pct-disp">0%</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="fp-status">
+          <option value="rencana">Direncanakan</option>
+          <option value="berlangsung">Sedang Berlangsung</option>
+          <option value="selesai">Selesai</option>
+          <option value="terkendala">Terkendala</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Catatan Update</label>
+        <textarea class="form-textarea" id="fp-catatan" placeholder="Apa yang sudah, sedang, dan akan dilakukan..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-progress')">Batal</button>
+      <button class="btn btn-primary" onclick="saveProgress()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Anggota -->
+<div class="modal-overlay" id="modal-anggota">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <span class="modal-title">Tambah Anggota</span>
+      <button class="close-btn" onclick="closeModal('modal-anggota')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nama Lengkap *</label>
+        <input class="form-input" id="fa-nama" placeholder="Nama anggota..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Jabatan / Seksi</label>
+        <input class="form-input" id="fa-jabatan" placeholder="Ketua, Sekretaris, Seksi Acara..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">No. HP / Kontak</label>
+        <input class="form-input" id="fa-kontak" placeholder="08xx..." />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-anggota')">Batal</button>
+      <button class="btn btn-primary" onclick="saveAnggota()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Agenda -->
+<div class="modal-overlay" id="modal-agenda">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <span class="modal-title">Tambah Agenda</span>
+      <button class="close-btn" onclick="closeModal('modal-agenda')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="fa2-rapat-id" />
+      <div class="form-group">
+        <label class="form-label">Topik *</label>
+        <input class="form-input" id="fa2-topik" placeholder="Nama topik agenda..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pembahasan / Notulen</label>
+        <textarea class="form-textarea" style="min-height:130px;" id="fa2-pembahasan" placeholder="Isi pembahasan, keputusan, dan catatan penting..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Seksi Terkait</label>
+        <select class="form-select" id="fa2-seksi">
+          <option value="">Tidak ada</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-agenda')">Batal</button>
+      <button class="btn btn-primary" onclick="saveAgenda()">Simpan Agenda</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let currentFilter = 'all';
+let currentRapatId = null;
+let todoFilter = 'all';
+
+// ===== DATA STORE =====
+let DB = {
+  rapat: [],
+  agenda: [],
+  todo: [],
+  kendala: [],
+  progress: {},
+  anggota: [],
+  seksi: ['Seksi Acara','Koordinator Lomba','Seksi Perlengkapan','Seksi Konsumsi','Seksi Humas','Seksi Keamanan','Seksi Kesehatan','Seksi Dana','Bendahara','Sekretariat'],
+  nextId: 100
+};
+
+function genId() { return 'id_' + (DB.nextId++); }
+
+// ===== SEED DATA FROM NOTULA.XLSX =====
+function seedData() {
+  // Rapat 1: 1 Maret 2026
+  const r1 = genId();
+  DB.rapat.push({
+    id: r1, nama: 'Rapat Koordinasi Panitia Pesparawi Sekolah Minggu Distrik VII',
+    tanggal: '2026-03-01', hari: 'Minggu', waktu: '10:00',
+    lokasi: 'Online / Sekretariat', status: 'selesai',
+    pimpinan: 'St. Helen Sijabat', notulen: 'Vany Sinaga',
+    peserta: 'St. Helen Sijabat, Vany Sinaga, Seksi Acara, Seksi Perlengkapan, Seksi Lomba, Seksi Humpubdok, Seksi Dana, Bendahara, Sekretariat',
+    catatan: 'Rapat perdana koordinasi persiapan Pesparawi SM Distrik VII'
+  });
+
+  // Agenda Rapat 1
+  const agendas1 = [
+    { topik: 'RAB Setiap Seksi', pembahasan: 'Yang sudah mengirimkan RAB: Seksi Acara, Seksi Humpubdok, Seksi Konsumsi. Yang belum: Seksi Perlengkapan (masih survey), Seksi Keamanan (menunggu tempat), Seksi Kesehatan akan ditindaklanjuti. Deadline penyerahan RAB ke bendahara: Jumat, 6 Maret. Bendahara akan cross-cek dan dirapatkan Senin, 9 Maret.', seksi: 'Bendahara' },
+    { topik: 'Seksi Perlengkapan', pembahasan: 'Seksi perlengkapan masih akan survey beberapa tempat & vendor untuk menentukan RAB.', seksi: 'Seksi Perlengkapan' },
+    { topik: 'Seksi Lomba', pembahasan: '1. Tanggal pelaksanaan 20 Juni 2026\n2. Aturan lomba mengikuti aturan sinode dengan penyesuaian: Peserta Story Telling maks 2 orang/resort, tidak boleh merangkap.\n3. Nada dasar lagu koor tidak boleh diganti.\n4. Sie Acara mencari juri yang kompeten.\n5. Seksi Acara menerjemahkan aturan lomba dari Sinode ke Bahasa Indonesia. Deadline: Senin, 3 Maret.', seksi: 'Koordinator Lomba' },
+    { topik: 'Seksi Humpubdok', pembahasan: '• Sie Humpubdok diusulkan untuk mengkoordinir setiap resort membuat video teaser Pesparawi Distrik VII.\n• Konten video teaser berisi ajakan untuk mengikuti/memeriahkan Pesparawi Distrik VII.\n• Video teaser di-upload di medsos SM Distrik VII & SM resort & jemaat.\n• Aktivasi medsos SM Distrik VII (IG & FB).', seksi: 'Seksi Humas' },
+    { topik: 'Seksi Dana', pembahasan: 'Sumber Pemasukan:\n1. Galangan Jemaat & hari H\n2. Proposal\n3. Bazar\n4. Sponsor\n5. Penjualan kupon/merchandise\n6. Biaya pendaftaran\n7. Iklan sponsor di acara & medsos D7', seksi: 'Seksi Dana' },
+    { topik: 'Bendahara', pembahasan: 'Rekening Panitia Pesparawi SM masih OTP (On The Process) / menunggu proses pembuatan.', seksi: 'Bendahara' },
+    { topik: 'Sekretariat', pembahasan: 'To Do List:\n1. Surat pemberitahuan ke resort → menunggu ketentuan lomba\n2. Flyer Pesparawi SM Distrik VII → menunggu ketentuan lomba\n3. Proposal → menunggu RAB, Norek, Ketentuan Lomba\n4. Surat permohonan galangan ke jemaat → koordinasi dengan Praeses & Korpel', seksi: 'Sekretariat' },
+    { topik: 'Informasi', pembahasan: '• Rapat berikutnya akan dilakukan setiap hari Senin.\n• Materi rapat Senin, 9 Maret 2026:\n  1. Pematangan proposal: tempat pelaksanaan\n  2. RAB\n  3. Update masing-masing seksi', seksi: '' }
+  ];
+  agendas1.forEach((a,i) => {
+    DB.agenda.push({ id: genId(), rapatId: r1, no: i+1, topik: a.topik, pembahasan: a.pembahasan, seksi: a.seksi });
+  });
+
+  // Rapat 2: 9 Maret 2026
+  const r2 = genId();
+  DB.rapat.push({
+    id: r2, nama: 'Rapat Koordinasi Panitia Pesparawi Sekolah Minggu Distrik VII',
+    tanggal: '2026-03-09', hari: 'Senin', waktu: '19:00',
+    lokasi: 'Online / Sekretariat', status: 'selesai',
+    pimpinan: 'St. Helen Sijabat', notulen: 'Vany Sinaga',
+    peserta: 'St. Helen Sijabat, Vany Sinaga, Semua Seksi Panitia',
+    catatan: 'Total anggaran ±Rp 330 juta. Tempat gedung SMESCO ±Rp 61 juta. Tanggal 20 Juni 2026. Jumlah peserta 741 orang dari 13 resort.'
+  });
+
+  // Agenda Rapat 2
+  const agendas2 = [
+    { topik: 'Total Anggaran', pembahasan: 'Total anggaran yang dibutuhkan untuk kegiatan Pesparawi Sekolah Minggu GKPS Distrik VII mencapai sekitar Rp 330 juta.', seksi: 'Bendahara' },
+    { topik: 'Tempat Gedung', pembahasan: 'Tempat gedung SMESCO dengan biaya sewa ± Rp 61 juta (diskon 15% kemungkinan dikonversikan ke overtime).', seksi: 'Seksi Perlengkapan' },
+    { topik: 'Tanggal Pelaksanaan', pembahasan: 'Tanggal pelaksanaan: 20 Juni 2026.', seksi: '' },
+    { topik: 'Sistem Pendaftaran', pembahasan: 'Sistem pendaftaran peserta akan dikelola oleh Seksi Lomba dengan formulir detail termasuk kebutuhan alat musik.', seksi: 'Koordinator Lomba' },
+    { topik: 'Konsumsi', pembahasan: 'Konsumsi untuk peserta hanya makan siang dan snack (sarapan ditiadakan). Total anggaran konsumsi Rp 56,38 juta.', seksi: 'Seksi Konsumsi' },
+    { topik: 'Seragam Panitia', pembahasan: 'Seragam panitia menggunakan konsep stola dengan anggaran Rp 5 juta (belum masuk anggaran Sie Acara).', seksi: 'Seksi Acara' },
+    { topik: 'Jumlah Peserta', pembahasan: 'Jumlah peserta diperkirakan 741 orang dari 13 resort: Koor 40×13 + VG 15×13 + Story Telling 26.', seksi: '' }
+  ];
+  agendas2.forEach((a,i) => {
+    DB.agenda.push({ id: genId(), rapatId: r2, no: i+1, topik: a.topik, pembahasan: a.pembahasan, seksi: a.seksi });
+  });
+
+  // Todo dari Rapat 2
+  const todos = [
+    { seksi: 'Seksi Acara', tugas: 'Finalisasi daftar juri', rapatId: r2 },
+    { seksi: 'Seksi Acara', tugas: 'Koordinasi dengan artis tamu (Ziva, Bastian, atau Grace)', rapatId: r2 },
+    { seksi: 'Seksi Acara', tugas: 'Menyiapkan rundown acara detail', rapatId: r2 },
+    { seksi: 'Seksi Acara', tugas: 'Koordinasi dengan GKPS TV untuk kebutuhan dokumentasi', rapatId: r2 },
+    { seksi: 'Koordinator Lomba', tugas: 'Menyiapkan formulir pendaftaran detail termasuk kebutuhan alat musik', rapatId: r2 },
+    { seksi: 'Koordinator Lomba', tugas: 'Follow up ke Sinode untuk detail aturan teknis lomba (durasi, kriteria, dll)', rapatId: r2 },
+    { seksi: 'Koordinator Lomba', tugas: 'Koordinasi dengan Sekretariat untuk sistem pendaftaran', rapatId: r2 },
+    { seksi: 'Koordinator Lomba', tugas: 'Menyiapkan informasi teknis untuk technical meeting', rapatId: r2 },
+    { seksi: 'Seksi Perlengkapan', tugas: 'Koordinasi dengan Panitia untuk survey lokasi SMESCO (16 April 2026)', rapatId: r2 },
+    { seksi: 'Seksi Perlengkapan', tugas: 'Koordinasi dgn B\' John untuk pembayaran DP ke SMESCO', rapatId: r2 },
+    { seksi: 'Seksi Perlengkapan', tugas: 'Koordinasi dengan Yamaha untuk sewa piano dan sistem pembagian biaya', rapatId: r2 },
+    { seksi: 'Seksi Perlengkapan', tugas: 'Finalisasi kebutuhan meja dan kursi (termasuk VIP dan bazaar)', rapatId: r2 },
+    { seksi: 'Seksi Perlengkapan', tugas: 'Koordinasi dengan Helyfijiana untuk kebutuhan backdrop dan banner', rapatId: r2 },
+    { seksi: 'Seksi Humas', tugas: 'Koordinasi dengan Bang Dani Sinaga untuk GKPS TV dan live streaming', rapatId: r2 },
+    { seksi: 'Seksi Humas', tugas: 'Finalisasi desain banner, backdrop, dan photobooth dengan Bang Robert', rapatId: r2 },
+    { seksi: 'Seksi Humas', tugas: 'Menyiapkan flyer pendaftaran dengan nomor kontak yang jelas', rapatId: r2 },
+    { seksi: 'Seksi Humas', tugas: 'Koordinasi merchandise (jika ada) dengan Seksi Dana', rapatId: r2 },
+    { seksi: 'Seksi Keamanan', tugas: 'Koordinasi dengan pengelola gedung SMESCO untuk aturan keamanan', rapatId: r2 },
+    { seksi: 'Seksi Keamanan', tugas: 'Koordinasi dengan Polres/Polsek setempat jika diperlukan', rapatId: r2 },
+    { seksi: 'Seksi Keamanan', tugas: 'Survey lokasi untuk identifikasi area yang perlu pengamanan', rapatId: r2 },
+    { seksi: 'Seksi Keamanan', tugas: 'Menyiapkan sistem parkir dan pengaturan lalu lintas', rapatId: r2 },
+    { seksi: 'Seksi Konsumsi', tugas: 'Revisi RAB konsumsi berdasarkan jumlah panitia yang dikurangi', rapatId: r2 },
+    { seksi: 'Seksi Konsumsi', tugas: 'Konfirmasi menu dengan katering dan pastikan termasuk buah & air mineral', rapatId: r2 },
+    { seksi: 'Seksi Konsumsi', tugas: 'Menyiapkan konsumsi untuk H-1 (GR & loading barang)', rapatId: r2 },
+    { seksi: 'Seksi Konsumsi', tugas: 'Koordinasi sistem pembagian konsumsi', rapatId: r2 },
+    { seksi: 'Seksi Kesehatan', tugas: 'Koordinasi dengan pihak rumah sakit/klinik terdekat untuk ambulans standby', rapatId: r2 },
+    { seksi: 'Seksi Kesehatan', tugas: 'Menyiapkan kotak P3K dan obat-obatan', rapatId: r2 },
+    { seksi: 'Seksi Kesehatan', tugas: 'Finalisasi anggaran kesehatan (sementara Rp 20,6 juta)', rapatId: r2 },
+    { seksi: 'Seksi Dana', tugas: 'Koordinasi dengan anggota & ketua SM resort untuk strategi penggalangan dana', rapatId: r2 },
+    { seksi: 'Seksi Dana', tugas: 'Finalisasi konsep merchandise (kaos, payung, stiker, dll) jika ada', rapatId: r2 },
+    { seksi: 'Seksi Dana', tugas: 'Koordinasi sistem bazaar', rapatId: r2 },
+    { seksi: 'Seksi Dana', tugas: 'Menyiapkan sistem pelaporan penerimaan dana dari setiap gereja', rapatId: r2 },
+    { seksi: 'Bendahara', tugas: 'Finalisasi total RAB dan menyusun proposal lengkap', rapatId: r2 },
+    { seksi: 'Bendahara', tugas: 'Menyiapkan nomor rekening panitia untuk penerimaan dana', rapatId: r2 },
+    { seksi: 'Bendahara', tugas: 'Koordinasi dengan Seksi Dana untuk strategi penggalangan dana', rapatId: r2 },
+    { seksi: 'Sekretariat', tugas: 'Finalisasi proposal lengkap', rapatId: r2 },
+    { seksi: 'Sekretariat', tugas: 'Koordinasi dengan Seksi Lomba untuk sistem pendaftaran', rapatId: r2 },
+    { seksi: 'Sekretariat', tugas: 'Menyiapkan sertifikat dan piala untuk peserta', rapatId: r2 },
+    { seksi: 'Sekretariat', tugas: 'Menyiapkan surat permohonan dana ke Preses untuk diteruskan ke resort-resort', rapatId: r2 }
+  ];
+  todos.forEach(t => {
+    DB.todo.push({ id: genId(), tugas: t.tugas, seksi: t.seksi, rapatId: t.rapatId, done: false, deadline: '' });
+  });
+
+  // Kendala dari Rapat 2
+  const kendalaList = [
+    'Belum ada kepastian jadwal technical meeting dari Sinode untuk memberikan aturan detail perlombaan.',
+    'Belum ada konfirmasi final artis tamu yang akan tampil.',
+    'Sistem bazaar dan merchandise belum jelas mekanismenya (pemasukan vs biaya sewa meja).',
+    'Belum ada koordinasi dengan pihak keamanan setempat (Polres/Polsek) untuk pengamanan acara.',
+    'Waktu yang terbatas untuk finalisasi proposal sebelum pengajuan dana ke gereja-gereja (target awal April).',
+    'Belum ada kejelasan mengenai sewa piano dan pembagian biaya antar peserta yang menggunakan.'
+  ];
+  kendalaList.forEach((k,i) => {
+    DB.kendala.push({ id: genId(), desc: k, seksi: '', rapatId: r2, status: 'aktif' });
+  });
+
+  // Progress dari Rapat 2
+  const progressData = [
+    { seksi: 'Seksi Acara', pct: 35, status: 'berlangsung', catatan: 'Menyusun RAB acara Rp 105,5 juta. Koordinasi dengan seksi perlengkapan untuk panggung. Belum ada keputusan artis tamu.' },
+    { seksi: 'Koordinator Lomba', pct: 25, status: 'berlangsung', catatan: 'Mengidentifikasi kebutuhan aturan teknis lomba. Menunggu informasi teknis dari Sinode.' },
+    { seksi: 'Seksi Perlengkapan', pct: 40, status: 'berlangsung', catatan: 'Dapat penawaran dari SMESCO. Negosiasi harga sewa gedung. Survey lokasi 16 April 2026.' },
+    { seksi: 'Seksi Konsumsi', pct: 45, status: 'berlangsung', catatan: 'RAB konsumsi Rp 56,38 juta. Koordinasi dengan katering. Revisi jumlah peserta dan menu.' },
+    { seksi: 'Seksi Humas', pct: 30, status: 'berlangsung', catatan: 'Menyusun konsep banner dan backdrop. Koordinasi dengan Bang Robert untuk desain. Budget sementara Rp 37 juta.' },
+    { seksi: 'Bendahara', pct: 50, status: 'berlangsung', catatan: 'Mengumpulkan RAB dari semua seksi. Menyusun proposal bersama Sekretariat. Masih ada pos yang belum final.' },
+    { seksi: 'Sekretariat', pct: 35, status: 'berlangsung', catatan: 'Surat ke resort sedang diproses. Menyusun proposal bersama Bendahara. Flyer menunggu finalisasi no telp.' },
+    { seksi: 'Seksi Keamanan', pct: 10, status: 'rencana', catatan: 'Menunggu konfirmasi lokasi sebelum koordinasi keamanan.' },
+    { seksi: 'Seksi Kesehatan', pct: 20, status: 'rencana', catatan: 'Finalisasi anggaran sementara Rp 20,6 juta. Belum koordinasi dengan RS.' },
+    { seksi: 'Seksi Dana', pct: 25, status: 'berlangsung', catatan: 'Merencanakan strategi penggalangan dana. Konsep merchandise belum final.' }
+  ];
+  progressData.forEach(p => {
+    DB.progress[p.seksi] = { pct: p.pct, status: p.status, catatan: p.catatan };
+  });
+
+  // Anggota
+  const anggotaData = [
+    { nama: 'St. Helen Sijabat', jabatan: 'Ketua Panitia', kontak: '' },
+    { nama: 'Vany Sinaga', jabatan: 'Sekretaris', kontak: '' },
+    { nama: 'B\' Korpel', jabatan: 'Bendahara', kontak: '' },
+    { nama: 'B\' John', jabatan: 'Seksi Perlengkapan', kontak: '' },
+    { nama: 'Bang Robert', jabatan: 'Seksi Humas (Desain)', kontak: '' },
+    { nama: 'Bang Dani Sinaga', jabatan: 'GKPS TV / Live Streaming', kontak: '' },
+    { nama: 'Helyfijiana', jabatan: 'Seksi Perlengkapan (Backdrop)', kontak: '' }
+  ];
+  anggotaData.forEach(a => {
+    DB.anggota.push({ id: genId(), nama: a.nama, jabatan: a.jabatan, kontak: a.kontak });
+  });
+}
+
+// ===== INIT =====
+seedData();
+renderAll();
+
+function renderAll() {
+  renderDashboard();
+  renderRapatList();
+  renderProgressGlobal();
+  renderGlobalTodo();
+  renderKendalaGlobal();
+  renderAnggota();
+  updateStats();
+  updateDropdowns();
+  updateBadges();
+}
+
+// ===== NAVIGATION =====
+function showSection(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  el.classList.add('active');
+  const titles = { dashboard:'Dashboard', rapat:'Daftar Rapat', progress:'Monitor Progress', todo:'To Do List', kendala:'Kendala', anggota:'Anggota Tim' };
+  document.getElementById('topbar-title').textContent = titles[id] || id;
+}
+
+// ===== STATS =====
+function updateStats() {
+  document.getElementById('stat-total').textContent = DB.rapat.length;
+  const done = DB.todo.filter(t=>t.done).length;
+  const total = DB.todo.length;
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('stat-done-total').textContent = total;
+  document.getElementById('stat-kendala').textContent = DB.kendala.filter(k=>k.status==='aktif').length;
+  const pcts = Object.values(DB.progress).map(p=>p.pct);
+  const avg = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : 0;
+  document.getElementById('stat-progress').textContent = avg + '%';
+  updateBadges();
+}
+
+function updateBadges() {
+  document.getElementById('nb-rapat').textContent = DB.rapat.length;
+  const pending = DB.todo.filter(t=>!t.done).length;
+  document.getElementById('nb-todo').textContent = pending;
+}
+
+// ===== DROPDOWNS =====
+function updateDropdowns() {
+  const selects = ['ft-seksi','fk-seksi','fp-seksi','fa2-seksi'];
+  selects.forEach(sid => {
+    const el = document.getElementById(sid);
+    if(!el) return;
+    const prev = el.value;
+    while(el.options.length > 1) el.remove(1);
+    DB.seksi.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s; el.appendChild(o);
+    });
+    el.value = prev;
+  });
+  ['ft-rapat','fk-rapat'].forEach(sid => {
+    const el = document.getElementById(sid);
+    if(!el) return;
+    while(el.options.length > 1) el.remove(1);
+    DB.rapat.forEach(r => {
+      const o = document.createElement('option');
+      o.value = r.id;
+      o.textContent = formatTanggal(r.tanggal) + ' — ' + r.nama.substring(0,30)+'...';
+      el.appendChild(o);
+    });
+  });
+}
+
+// ===== FORMAT HELPERS =====
+function formatTanggal(d) {
+  if(!d) return '-';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+}
+function getDay(d) {
+  if(!d) return '--';
+  return new Date(d+'T00:00:00').getDate();
+}
+function getMonth(d) {
+  if(!d) return '';
+  return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{month:'short'});
+}
+function statusClass(s) {
+  return { selesai:'tag-green', berlangsung:'tag-blue', rencana:'tag-yellow', terkendala:'tag-red' }[s] || 'tag-blue';
+}
+function statusLabel(s) {
+  return { selesai:'Selesai', berlangsung:'Berlangsung', rencana:'Direncanakan', terkendala:'Terkendala' }[s] || s;
+}
+function getProgressColor(pct) {
+  if(pct >= 80) return 'var(--green)';
+  if(pct >= 50) return 'var(--accent)';
+  if(pct >= 25) return 'var(--yellow)';
+  return 'var(--red)';
+}
+function initials(name) {
+  if(!name) return '?';
+  return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  // Recent rapat
+  const cont = document.getElementById('db-rapat-list');
+  if(!DB.rapat.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Belum ada rapat</div></div>'; return; }
+  cont.innerHTML = DB.rapat.slice(-3).reverse().map(r => `
+    <div class="upcoming-item" onclick="quickViewRapat('${r.id}')" style="cursor:pointer;">
+      <div class="upcoming-dot" style="background:${r.status==='selesai'?'var(--green)':r.status==='berlangsung'?'var(--accent)':'var(--yellow)'};"></div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;">${r.nama.substring(0,45)}${r.nama.length>45?'...':''}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">${formatTanggal(r.tanggal)} · ${r.waktu||'-'}</div>
+      </div>
+      <span class="tag ${statusClass(r.status)}">${statusLabel(r.status)}</span>
+    </div>`).join('');
+
+  // Todo summary
+  const tc = document.getElementById('db-todo-summary');
+  const bySecsi = {};
+  DB.todo.forEach(t => {
+    if(!bySecsi[t.seksi]) bySecsi[t.seksi] = {done:0,total:0};
+    bySecsi[t.seksi].total++;
+    if(t.done) bySecsi[t.seksi].done++;
+  });
+  const topSecsi = Object.entries(bySecsi).sort((a,b)=>b[1].total-a[1].total).slice(0,5);
+  tc.innerHTML = topSecsi.map(([s,v]) => {
+    const pct = v.total ? Math.round(v.done/v.total*100) : 0;
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+        <span style="color:var(--text2);">${s}</span>
+        <span style="color:var(--text3);">${v.done}/${v.total}</span>
+      </div>
+      <div class="progress-bar-bg" style="width:100%;height:4px;background:var(--bg3);border-radius:10px;overflow:hidden;">
+        <div class="progress-bar-fill" style="width:${pct}%;height:100%;background:${getProgressColor(pct)};border-radius:10px;"></div>
+      </div></div>`;
+  }).join('') || '<div style="font-size:13px;color:var(--text3);">Belum ada tugas</div>';
+
+  // Kendala
+  const kc = document.getElementById('db-kendala-list');
+  const aktif = DB.kendala.filter(k=>k.status==='aktif').slice(0,4);
+  kc.innerHTML = aktif.map((k,i) => `
+    <div class="kendala-item">
+      <div class="kendala-num">${i+1}</div>
+      <div class="kendala-text">${k.desc}</div>
+    </div>`).join('') || '<div style="font-size:13px;color:var(--text3);padding:10px 0;">Tidak ada kendala aktif</div>';
+}
+
+function quickViewRapat(id) {
+  showSection('rapat', document.querySelector('.nav-item:nth-child(2)'));
+  setTimeout(() => viewRapat(id), 100);
+}
+
+// ===== RAPAT LIST =====
+function renderRapatList() {
+  const cont = document.getElementById('rapat-list');
+  let list = DB.rapat;
+  if(currentFilter !== 'all') list = list.filter(r=>r.status===currentFilter);
+  if(!list.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Tidak ada rapat</div></div>'; return; }
+  cont.innerHTML = list.slice().reverse().map(r => {
+    const todoR = DB.todo.filter(t=>t.rapatId===r.id);
+    const doneR = todoR.filter(t=>t.done).length;
+    const pct = todoR.length ? Math.round(doneR/todoR.length*100) : 0;
+    const agCount = DB.agenda.filter(a=>a.rapatId===r.id).length;
+    return `<div class="meeting-card" id="mc-${r.id}" onclick="viewRapat('${r.id}')">
+      <div class="meeting-date-block">
+        <div class="meeting-day">${getDay(r.tanggal)}</div>
+        <div class="meeting-month">${getMonth(r.tanggal)}</div>
+      </div>
+      <div class="meeting-info">
+        <div class="meeting-title">${r.nama}</div>
+        <div class="meeting-meta">
+          <span>📅 ${r.hari||''} ${formatTanggal(r.tanggal)}</span>
+          <span>⏱ ${r.waktu||'-'}</span>
+          <span>📍 ${r.lokasi||'-'}</span>
+          <span>📋 ${agCount} Agenda</span>
+        </div>
+        <div class="meeting-tags">
+          <span class="tag ${statusClass(r.status)}">${statusLabel(r.status)}</span>
+          ${r.pimpinan?`<span class="tag tag-teal">Pimpinan: ${r.pimpinan}</span>`:''}
+        </div>
+      </div>
+      <div class="meeting-progress-wrap">
+        <div class="progress-label">To Do: ${doneR}/${todoR.length}</div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;background:${getProgressColor(pct)};"></div></div>
+        <div style="font-size:11px;color:var(--text3);">${pct}% selesai</div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editRapat('${r.id}')">✏ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteRapat('${r.id}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterRapat(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderRapatList();
+}
+
+function viewRapat(id) {
+  currentRapatId = id;
+  document.querySelectorAll('.meeting-card').forEach(c=>c.classList.remove('selected'));
+  const mc = document.getElementById('mc-'+id);
+  if(mc) mc.classList.add('selected');
+  const r = DB.rapat.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('detail-panel').style.display = 'block';
+  document.getElementById('dp-title').textContent = r.nama;
+  document.getElementById('dp-meta').innerHTML = `
+    <span class="detail-meta-item">📅 ${formatTanggal(r.tanggal)}</span>
+    <span class="detail-meta-item">⏱ ${r.waktu||'-'}</span>
+    <span class="detail-meta-item">📍 ${r.lokasi||'-'}</span>
+    <span class="detail-meta-item">👤 Pimpinan: ${r.pimpinan||'-'}</span>
+    <span class="detail-meta-item">✍ Notulen: ${r.notulen||'-'}</span>
+    <span class="tag ${statusClass(r.status)}" style="margin-left:auto;">${statusLabel(r.status)}</span>`;
+  renderDTab(id);
+  document.getElementById('detail-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function renderDTab(rapatId) {
+  renderAgendaTab(rapatId);
+  renderTodoTab(rapatId);
+  renderProgressTab(rapatId);
+  renderKendalaTab(rapatId);
+}
+
+function renderAgendaTab(rid) {
+  const agendas = DB.agenda.filter(a=>a.rapatId===rid);
+  const cont = document.getElementById('dtab-agenda');
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+    <button class="btn btn-primary btn-sm" onclick="openAgendaModal('${rid}')">＋ Tambah Agenda</button>
+  </div>`;
+  if(!agendas.length) { cont.innerHTML = html + '<div class="empty"><div class="empty-icon">📝</div><div class="empty-text">Belum ada agenda</div></div>'; return; }
+  html += `<table class="agenda-table">
+    <thead><tr>
+      <th style="width:32px;">No</th>
+      <th style="min-width:120px;">Topik</th>
+      <th>Pembahasan</th>
+      <th style="width:110px;">Seksi</th>
+      <th style="width:80px;"></th>
+    </tr></thead><tbody>`;
+  agendas.forEach((a,i) => {
+    html += `<tr>
+      <td class="agenda-num">${i+1}</td>
+      <td class="agenda-topic">${a.topik}</td>
+      <td class="agenda-desc" style="white-space:pre-line;">${a.pembahasan}</td>
+      <td>${a.seksi?`<span class="tag tag-teal" style="font-size:10px;">${a.seksi}</span>`:''}</td>
+      <td><button class="btn btn-danger btn-sm btn-icon" onclick="deleteAgenda('${a.id}','${rid}')">✕</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  cont.innerHTML = html;
+}
+
+function renderTodoTab(rid) {
+  const todos = DB.todo.filter(t=>t.rapatId===rid);
+  const cont = document.getElementById('dtab-todo');
+  const bySeksi = {};
+  todos.forEach(t => {
+    if(!bySeksi[t.seksi||'Umum']) bySeksi[t.seksi||'Umum'] = [];
+    bySeksi[t.seksi||'Umum'].push(t);
+  });
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+    <button class="btn btn-primary btn-sm" onclick="openTodoModal('${rid}')">＋ Tambah Tugas</button>
+  </div>`;
+  if(!todos.length) { cont.innerHTML = html + '<div class="empty"><div class="empty-text">Belum ada tugas</div></div>'; return; }
+  Object.entries(bySeksi).forEach(([seksi, items]) => {
+    html += `<div class="todo-section-title">${seksi}</div>`;
+    items.forEach(t => {
+      html += `<div class="todo-item" id="ti-${t.id}">
+        <div class="todo-check ${t.done?'done':''}" onclick="toggleTodo('${t.id}','${rid}')"></div>
+        <div class="todo-text ${t.done?'done':''}">${t.tugas}</div>
+        ${t.deadline?`<span class="todo-assignee">⏰ ${formatTanggal(t.deadline)}</span>`:''}
+        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteTodo('${t.id}','${rid}')" style="flex-shrink:0;">✕</button>
+      </div>`;
+    });
+  });
+  cont.innerHTML = html;
+}
+
+function renderProgressTab(rid) {
+  const cont = document.getElementById('dtab-progress');
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-progress')">+ Update Progress</button>
+  </div>
+  <div class="prog-row prog-row-header">
+    <div>Seksi</div><div>Status & Catatan</div><div>Progress</div><div></div>
+  </div>`;
+  DB.seksi.forEach(s => {
+    const p = DB.progress[s] || { pct:0, status:'rencana', catatan:'' };
+    html += `<div class="prog-row">
+      <div class="prog-seksi">${s}</div>
+      <div>
+        <span class="status status-${p.status}">${statusLabel(p.status)}</span>
+        ${p.catatan?`<div style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">${p.catatan.substring(0,120)}${p.catatan.length>120?'...':''}</div>`:''}
+      </div>
+      <div class="prog-pct" style="color:${getProgressColor(p.pct)};">${p.pct}%
+        <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${p.pct}%;background:${getProgressColor(p.pct)};"></div></div>
+      </div>
+      <div class="prog-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editProgress('${s}')">Edit</button>
+      </div>
+    </div>`;
+  });
+  cont.innerHTML = html;
+}
+
+function renderKendalaTab(rid) {
+  const kendala = DB.kendala.filter(k=>k.rapatId===rid);
+  const cont = document.getElementById('dtab-kendala-tab');
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+    <button class="btn btn-primary btn-sm" onclick="openKendalaModal('${rid}')">＋ Tambah Kendala</button>
+  </div>`;
+  if(!kendala.length) { cont.innerHTML = html + '<div class="empty"><div class="empty-text">Tidak ada kendala</div></div>'; return; }
+  kendala.forEach((k,i) => {
+    html += `<div class="kendala-item" style="position:relative;">
+      <div class="kendala-num">${i+1}</div>
+      <div class="kendala-text">${k.desc}</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <span class="tag ${k.status==='selesai'?'tag-green':'tag-red'}">${k.status==='selesai'?'Selesai':'Aktif'}</span>
+        <button class="btn btn-ghost btn-sm" onclick="toggleKendala('${k.id}','${rid}')">${k.status==='selesai'?'Buka':'Tutup'}</button>
+      </div>
+    </div>`;
+  });
+  cont.innerHTML = html;
+}
+
+// ===== DETAIL TABS =====
+function showDTab(tab, el) {
+  document.querySelectorAll('.dtab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('dtab-'+tab).classList.add('active');
+}
+
+// ===== GLOBAL PROGRESS =====
+function renderProgressGlobal() {
+  const cont = document.getElementById('progress-global-list');
+  let html = `<div class="prog-row prog-row-header">
+    <div>Seksi</div><div>Status & Catatan</div><div>Progress</div><div>Aksi</div>
+  </div>`;
+  DB.seksi.forEach(s => {
+    const p = DB.progress[s] || { pct:0, status:'rencana', catatan:'' };
+    html += `<div class="prog-row" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:8px;">
+      <div class="prog-seksi" style="font-size:14px;">${s}</div>
+      <div>
+        <span class="status status-${p.status}">${statusLabel(p.status)}</span>
+        ${p.catatan?`<div style="font-size:12.5px;color:var(--text2);margin-top:8px;line-height:1.6;">${p.catatan}</div>`:'<div style="font-size:12px;color:var(--text3);margin-top:6px;">Belum ada update.</div>'}
+      </div>
+      <div class="prog-pct" style="color:${getProgressColor(p.pct)};font-size:28px;">${p.pct}%
+        <div class="mini-bar-bg" style="height:6px;"><div class="mini-bar-fill" style="width:${p.pct}%;height:6px;background:${getProgressColor(p.pct)};border-radius:10px;"></div></div>
+      </div>
+      <div class="prog-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editProgress('${s}')">✏ Edit</button>
+      </div>
+    </div>`;
+  });
+  cont.innerHTML = html;
+}
+
+// ===== GLOBAL TODO =====
+function renderGlobalTodo() {
+  const cont = document.getElementById('global-todo-list');
+  let list = DB.todo;
+  if(todoFilter==='done') list = list.filter(t=>t.done);
+  if(todoFilter==='pending') list = list.filter(t=>!t.done);
+  if(!list.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">Tidak ada tugas</div></div>'; return; }
+  const bySeksi = {};
+  list.forEach(t => {
+    const key = t.seksi||'Umum';
+    if(!bySeksi[key]) bySeksi[key] = [];
+    bySeksi[key].push(t);
+  });
+  let html = '';
+  Object.entries(bySeksi).sort().forEach(([seksi,items]) => {
+    const done = items.filter(t=>t.done).length;
+    html += `<div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:13px;font-weight:600;color:var(--accent);">${seksi}</span>
+        <span style="font-size:11px;color:var(--text3);">${done}/${items.length} selesai</span>
+      </div>`;
+    items.forEach(t => {
+      const rapat = DB.rapat.find(r=>r.id===t.rapatId);
+      html += `<div class="todo-item" id="gti-${t.id}">
+        <div class="todo-check ${t.done?'done':''}" onclick="toggleTodoGlobal('${t.id}')"></div>
+        <div class="todo-text ${t.done?'done':''}">${t.tugas}</div>
+        ${rapat?`<span class="todo-assignee">${getDay(rapat.tanggal)} ${getMonth(rapat.tanggal)}</span>`:''}
+        ${t.deadline?`<span class="todo-assignee">⏰ ${formatTanggal(t.deadline)}</span>`:''}
+        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteTodoGlobal('${t.id}')">✕</button>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  cont.innerHTML = html;
+  updateStats();
+}
+
+function filterTodo(f, el) {
+  todoFilter = f;
+  document.querySelectorAll('#section-todo .filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderGlobalTodo();
+}
+
+// ===== GLOBAL KENDALA =====
+function renderKendalaGlobal() {
+  const cont = document.getElementById('kendala-global-list');
+  if(!DB.kendala.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">⚠</div><div class="empty-text">Tidak ada kendala</div></div>'; return; }
+  let html = '';
+  const aktif = DB.kendala.filter(k=>k.status==='aktif');
+  const selesai = DB.kendala.filter(k=>k.status==='selesai');
+  if(aktif.length) {
+    html += `<div style="font-size:12px;font-weight:600;color:var(--red);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">Kendala Aktif (${aktif.length})</div>`;
+    aktif.forEach((k,i) => {
+      html += `<div class="kendala-item" style="position:relative;margin-bottom:10px;">
+        <div class="kendala-num">${i+1}</div>
+        <div>
+          <div class="kendala-text">${k.desc}</div>
+          ${k.seksi?`<span class="tag tag-teal" style="margin-top:6px;display:inline-block;font-size:10px;">${k.seksi}</span>`:''}
+        </div>
+        <div style="margin-left:auto;flex-shrink:0;">
+          <button class="btn btn-ghost btn-sm" onclick="toggleKendala('${k.id}',null)">Tandai Selesai</button>
+        </div>
+      </div>`;
+    });
+  }
+  if(selesai.length) {
+    html += `<div style="font-size:12px;font-weight:600;color:var(--green);letter-spacing:1.5px;text-transform:uppercase;margin:20px 0 10px;">Kendala Terselesaikan (${selesai.length})</div>`;
+    selesai.forEach((k,i) => {
+      html += `<div class="kendala-item" style="opacity:0.5;margin-bottom:8px;">
+        <div class="kendala-num" style="background:rgba(52,211,153,0.15);color:var(--green);">✓</div>
+        <div class="kendala-text" style="text-decoration:line-through;">${k.desc}</div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleKendala('${k.id}',null)" style="margin-left:auto;flex-shrink:0;">Buka Kembali</button>
+      </div>`;
+    });
+  }
+  cont.innerHTML = html;
+  updateStats();
+}
+
+// ===== ANGGOTA =====
+function renderAnggota() {
+  const cont = document.getElementById('anggota-list');
+  if(!DB.anggota.length) { cont.innerHTML = '<div class="empty"><div class="empty-text">Belum ada anggota</div></div>'; return; }
+  const colors = ['var(--accent)','var(--green)','var(--accent2)','var(--teal)','var(--orange)','var(--pink)'];
+  cont.innerHTML = DB.anggota.map((a,i) => `
+    <div class="card-block" style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 16px;">
+      <div class="user-avatar" style="width:50px;height:50px;font-size:16px;background:${colors[i%colors.length]};margin-bottom:12px;">${initials(a.nama)}</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${a.nama}</div>
+      <div style="font-size:12px;color:var(--text3);">${a.jabatan||'-'}</div>
+      ${a.kontak?`<div style="font-size:11px;color:var(--accent);margin-top:4px;">${a.kontak}</div>`:''}
+      <button class="btn btn-danger btn-sm" style="margin-top:12px;" onclick="deleteAnggota('${a.id}')">Hapus</button>
+    </div>`).join('');
+}
+
+// ===== MODAL OPENERS =====
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if(id==='modal-rapat') { resetRapatForm(); }
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function openAgendaModal(rapatId) {
+  document.getElementById('fa2-rapat-id').value = rapatId;
+  document.getElementById('fa2-topik').value = '';
+  document.getElementById('fa2-pembahasan').value = '';
+  document.getElementById('fa2-seksi').value = '';
+  document.getElementById('modal-agenda').classList.add('open');
+}
+
+function openTodoModal(rapatId) {
+  document.getElementById('ft-tugas').value = '';
+  document.getElementById('ft-seksi').value = '';
+  document.getElementById('ft-deadline').value = '';
+  const rs = document.getElementById('ft-rapat');
+  rs.value = rapatId || '';
+  document.getElementById('modal-todo').classList.add('open');
+}
+
+function openKendalaModal(rapatId) {
+  document.getElementById('fk-desc').value = '';
+  document.getElementById('fk-seksi').value = '';
+  document.getElementById('fk-status').value = 'aktif';
+  const rs = document.getElementById('fk-rapat');
+  rs.value = rapatId || '';
+  document.getElementById('modal-kendala').classList.add('open');
+}
+
+// ===== SAVE RAPAT =====
+function resetRapatForm() {
+  document.getElementById('rapat-edit-id').value = '';
+  document.getElementById('modal-rapat-title').textContent = 'Buat Rapat Baru';
+  ['f-nama','f-tanggal','f-waktu','f-lokasi','f-pimpinan','f-notulen','f-peserta','f-catatan'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-status').value = 'berlangsung';
+}
+
+function editRapat(id) {
+  const r = DB.rapat.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('rapat-edit-id').value = id;
+  document.getElementById('modal-rapat-title').textContent = 'Edit Rapat';
+  document.getElementById('f-nama').value = r.nama;
+  document.getElementById('f-tanggal').value = r.tanggal;
+  document.getElementById('f-waktu').value = r.waktu||'';
+  document.getElementById('f-lokasi').value = r.lokasi||'';
+  document.getElementById('f-status').value = r.status;
+  document.getElementById('f-pimpinan').value = r.pimpinan||'';
+  document.getElementById('f-notulen').value = r.notulen||'';
+  document.getElementById('f-peserta').value = r.peserta||'';
+  document.getElementById('f-catatan').value = r.catatan||'';
+  document.getElementById('modal-rapat').classList.add('open');
+}
+
+function saveRapat() {
+  const nama = document.getElementById('f-nama').value.trim();
+  const tanggal = document.getElementById('f-tanggal').value;
+  if(!nama || !tanggal) { notify('Nama dan tanggal wajib diisi!','error'); return; }
+  const editId = document.getElementById('rapat-edit-id').value;
+  const data = {
+    nama, tanggal, waktu: document.getElementById('f-waktu').value,
+    lokasi: document.getElementById('f-lokasi').value, status: document.getElementById('f-status').value,
+    pimpinan: document.getElementById('f-pimpinan').value, notulen: document.getElementById('f-notulen').value,
+    peserta: document.getElementById('f-peserta').value, catatan: document.getElementById('f-catatan').value,
+    hari: ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][new Date(tanggal+'T00:00:00').getDay()]
+  };
+  if(editId) {
+    const idx = DB.rapat.findIndex(r=>r.id===editId);
+    if(idx>=0) DB.rapat[idx] = {...DB.rapat[idx],...data};
+    notify('Rapat berhasil diperbarui!','success');
+  } else {
+    DB.rapat.push({id: genId(), ...data});
+    notify('Rapat baru berhasil dibuat!','success');
+  }
+  closeModal('modal-rapat');
+  renderAll();
+}
+
+function deleteRapat(id) {
+  if(!confirm('Hapus rapat ini? Agenda, to do, dan kendala terkait juga akan terhapus.')) return;
+  DB.rapat = DB.rapat.filter(r=>r.id!==id);
+  DB.agenda = DB.agenda.filter(a=>a.rapatId!==id);
+  DB.todo = DB.todo.filter(t=>t.rapatId!==id);
+  DB.kendala = DB.kendala.filter(k=>k.rapatId!==id);
+  document.getElementById('detail-panel').style.display = 'none';
+  currentRapatId = null;
+  renderAll();
+  notify('Rapat dihapus.','success');
+}
+
+// ===== SAVE AGENDA =====
+function saveAgenda() {
+  const topik = document.getElementById('fa2-topik').value.trim();
+  if(!topik) { notify('Topik wajib diisi!','error'); return; }
+  const rid = document.getElementById('fa2-rapat-id').value;
+  const existing = DB.agenda.filter(a=>a.rapatId===rid);
+  DB.agenda.push({
+    id: genId(), rapatId: rid,
+    no: existing.length+1,
+    topik, pembahasan: document.getElementById('fa2-pembahasan').value,
+    seksi: document.getElementById('fa2-seksi').value
+  });
+  closeModal('modal-agenda');
+  renderDTab(rid);
+  notify('Agenda ditambahkan!','success');
+}
+
+function deleteAgenda(id, rid) {
+  DB.agenda = DB.agenda.filter(a=>a.id!==id);
+  DB.agenda.filter(a=>a.rapatId===rid).forEach((a,i)=>a.no=i+1);
+  renderAgendaTab(rid);
+  notify('Agenda dihapus.','success');
+}
+
+// ===== SAVE TODO =====
+function saveTodo() {
+  const tugas = document.getElementById('ft-tugas').value.trim();
+  if(!tugas) { notify('Tugas wajib diisi!','error'); return; }
+  DB.todo.push({
+    id: genId(), tugas, done: false,
+    seksi: document.getElementById('ft-seksi').value,
+    rapatId: document.getElementById('ft-rapat').value,
+    deadline: document.getElementById('ft-deadline').value
+  });
+  closeModal('modal-todo');
+  if(currentRapatId) renderTodoTab(currentRapatId);
+  renderGlobalTodo();
+  updateStats();
+  notify('Tugas ditambahkan!','success');
+}
+
+function toggleTodo(id, rid) {
+  const t = DB.todo.find(x=>x.id===id);
+  if(t) t.done = !t.done;
+  renderTodoTab(rid);
+  renderGlobalTodo();
+  updateStats();
+  renderDashboard();
+}
+
+function toggleTodoGlobal(id) {
+  const t = DB.todo.find(x=>x.id===id);
+  if(t) t.done = !t.done;
+  if(currentRapatId) renderTodoTab(currentRapatId);
+  renderGlobalTodo();
+  updateStats();
+  renderDashboard();
+}
+
+function deleteTodo(id, rid) {
+  DB.todo = DB.todo.filter(t=>t.id!==id);
+  renderTodoTab(rid);
+  renderGlobalTodo();
+  updateStats();
+}
+
+function deleteTodoGlobal(id) {
+  DB.todo = DB.todo.filter(t=>t.id!==id);
+  renderGlobalTodo();
+  updateStats();
+}
+
+// ===== SAVE KENDALA =====
+function saveKendala() {
+  const desc = document.getElementById('fk-desc').value.trim();
+  if(!desc) { notify('Deskripsi kendala wajib diisi!','error'); return; }
+  DB.kendala.push({
+    id: genId(), desc, status: document.getElementById('fk-status').value,
+    seksi: document.getElementById('fk-seksi').value,
+    rapatId: document.getElementById('fk-rapat').value
+  });
+  closeModal('modal-kendala');
+  if(currentRapatId) renderKendalaTab(currentRapatId);
+  renderKendalaGlobal();
+  updateStats();
+  renderDashboard();
+  notify('Kendala ditambahkan!','success');
+}
+
+function toggleKendala(id, rid) {
+  const k = DB.kendala.find(x=>x.id===id);
+  if(k) k.status = k.status==='aktif' ? 'selesai' : 'aktif';
+  if(rid) renderKendalaTab(rid);
+  renderKendalaGlobal();
+  updateStats();
+  renderDashboard();
+}
+
+// ===== SAVE PROGRESS =====
+function editProgress(seksi) {
+  const p = DB.progress[seksi] || { pct:0, status:'rencana', catatan:'' };
+  document.getElementById('fp-seksi').value = seksi;
+  document.getElementById('fp-pct').value = p.pct;
+  document.getElementById('fp-pct-disp').textContent = p.pct + '%';
+  document.getElementById('fp-status').value = p.status;
+  document.getElementById('fp-catatan').value = p.catatan;
+  document.getElementById('modal-progress').classList.add('open');
+}
+
+function saveProgress() {
+  const seksi = document.getElementById('fp-seksi').value;
+  if(!seksi) { notify('Pilih seksi terlebih dahulu!','error'); return; }
+  DB.progress[seksi] = {
+    pct: parseInt(document.getElementById('fp-pct').value),
+    status: document.getElementById('fp-status').value,
+    catatan: document.getElementById('fp-catatan').value
+  };
+  closeModal('modal-progress');
+  renderProgressGlobal();
+  if(currentRapatId) renderProgressTab(currentRapatId);
+  updateStats();
+  renderDashboard();
+  notify('Progress diperbarui!','success');
+}
+
+// ===== SAVE ANGGOTA =====
+function saveAnggota() {
+  const nama = document.getElementById('fa-nama').value.trim();
+  if(!nama) { notify('Nama wajib diisi!','error'); return; }
+  DB.anggota.push({ id: genId(), nama, jabatan: document.getElementById('fa-jabatan').value, kontak: document.getElementById('fa-kontak').value });
+  closeModal('modal-anggota');
+  renderAnggota();
+  notify('Anggota ditambahkan!','success');
+}
+
+function deleteAnggota(id) {
+  DB.anggota = DB.anggota.filter(a=>a.id!==id);
+  renderAnggota();
+}
+
+// ===== GLOBAL SEARCH =====
+function globalSearch(q) {
+  q = q.toLowerCase().trim();
+  if(!q) { renderRapatList(); return; }
+  const cont = document.getElementById('rapat-list');
+  const matched = DB.rapat.filter(r =>
+    r.nama.toLowerCase().includes(q) ||
+    (r.catatan||'').toLowerCase().includes(q) ||
+    (r.pimpinan||'').toLowerCase().includes(q) ||
+    (r.lokasi||'').toLowerCase().includes(q)
+  );
+  if(!matched.length) { cont.innerHTML = '<div class="empty"><div class="empty-text">Tidak ada hasil untuk "'+q+'"</div></div>'; return; }
+  showSection('rapat', document.querySelector('.nav-item:nth-child(2)'));
+  currentFilter = 'all';
+  const el = document.querySelector('#section-rapat .filter-chip');
+  if(el) { document.querySelectorAll('#section-rapat .filter-chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); }
+}
+
+// ===== EXPORT =====
+function exportData() {
+  const data = {
+    rapat: DB.rapat, agenda: DB.agenda, todo: DB.todo,
+    kendala: DB.kendala, progress: DB.progress, anggota: DB.anggota,
+    exportDate: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'notula-export-' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  notify('Data berhasil diekspor!','success');
+}
+
+// ===== NOTIFICATION =====
+function notify(msg, type='success') {
+  const n = document.createElement('div');
+  n.className = `notif ${type}`;
+  n.innerHTML = `<span>${type==='success'?'✓':'✕'}</span> ${msg}`;
+  document.body.appendChild(n);
+  setTimeout(() => n.style.opacity='0', 2800);
+  setTimeout(() => n.remove(), 3200);
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if(e.target===o) closeModal(o.id); });
+});
+</script>
+</body>
+</html>
