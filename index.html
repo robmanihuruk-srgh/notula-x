@@ -1896,7 +1896,8 @@
               else if (task.status === 'rencana') rencanaBySection[section.name]++;
               else if (task.status === 'kendala') {
                 kendalaBySection[section.name]++;
-                const key = `${meeting.id}|${task.id}`;
+                const taskKey = task.id ? task.id : task.desc;
+                const key = `${meeting.id}|${section.id}|${taskKey}`;
                 if (!seenKendalaKeys.has(key)) {
                   seenKendalaKeys.add(key);
                   kendalaTasks.push({
