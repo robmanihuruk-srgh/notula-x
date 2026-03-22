@@ -734,17 +734,26 @@
             meetings.sort((a, b) => (a.date < b.date ? 1 : -1));
 
             renderPrivateMeetings();
-            if (currentWorkspaceId) {
+            
+            // FIX: Prioritaskan render detail jika sedang membuka rapat tertentu
+            if (currentMeetingId) {
+              const meeting = meetings.find(m => m.id === currentMeetingId);
+              if (meeting) {
+                renderDetail(meeting);
+              } else {
+                currentMeetingId = null;
+                if (currentWorkspaceId) {
+                  renderWorkspaceMeetings(currentWorkspaceId);
+                } else {
+                  document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
+                }
+              }
+            } else if (currentWorkspaceId) {
               renderWorkspaceMeetings(currentWorkspaceId);
             } else {
-              if (currentMeetingId) {
-                const meeting = meetings.find(m => m.id === currentMeetingId && !m.workspaceId);
-                if (meeting) renderDetail(meeting);
-                else currentMeetingId = null;
-              } else {
-                document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
-              }
+              document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.<br>Klik salah satu rapat di daftar Grup Saya atau Rapat Pribadi, atau buat rapat baru melalui tombol "Rapat baru".</div>';
             }
+
             updateButtonsByRole();
             updateDeleteSelectedButton();
           }, error => console.error('Meetings listener error:', error));
