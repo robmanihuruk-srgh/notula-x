@@ -1876,6 +1876,9 @@
         let rencanaBySection = {};
         let kendalaBySection = {};
 
+        // Set untuk deduplikasi kendalaTasks berdasarkan meetingId + taskId
+        const seenKendalaKeys = new Set();
+
         workspaceMeetings.forEach(meeting => {
           meeting.sections?.forEach(section => {
             if (!sectionTotals[section.name]) sectionTotals[section.name] = 0;
@@ -1893,13 +1896,17 @@
               else if (task.status === 'rencana') rencanaBySection[section.name]++;
               else if (task.status === 'kendala') {
                 kendalaBySection[section.name]++;
-                kendalaTasks.push({
-                  taskDesc: task.desc,
-                  meetingTitle: meeting.title,
-                  meetingDate: meeting.date,
-                  pic: task.pic || '-',
-                  notes: task.notes || ''
-                });
+                const key = `${meeting.id}|${task.id}`;
+                if (!seenKendalaKeys.has(key)) {
+                  seenKendalaKeys.add(key);
+                  kendalaTasks.push({
+                    taskDesc: task.desc,
+                    meetingTitle: meeting.title,
+                    meetingDate: meeting.date,
+                    pic: task.pic || '-',
+                    notes: task.notes || ''
+                  });
+                }
               }
             });
           });
