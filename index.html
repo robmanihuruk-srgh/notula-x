@@ -1443,10 +1443,10 @@
                 workspaceId,
                 createdBy: currentUser.uid,
                 sections: m.sections.map(section => ({
-                  id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                  id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
                   name: section.name,
                   tasks: section.tasks.map(task => ({
-                    id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                    id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
                     desc: task.desc,
                     status: task.status,
                     progress: task.progress,
@@ -1876,7 +1876,7 @@
         let rencanaBySection = {};
         let kendalaBySection = {};
 
-        // Set untuk deduplikasi kendalaTasks berdasarkan meetingId + taskId
+        // Set untuk deduplikasi kendalaTasks berdasarkan meetingId + sectionId + taskId
         const seenKendalaKeys = new Set();
 
         workspaceMeetings.forEach(meeting => {
@@ -1951,6 +1951,10 @@
               <div class="global-stat-item" data-stat="kendala">
                 <span class="global-stat-label">Kendala</span>
                 <div class="global-stat-value" style="color:#b13e2d;">${taskCount.kendala || 0}</div>
+              </div>
+              <div class="global-stat-item" data-stat="avg-progress">
+                <span class="global-stat-label">Rata-rata Progress</span>
+                <div class="global-stat-value">${Math.round(avgProgress)}%</div>
               </div>
             </div>
         `;
@@ -2375,12 +2379,12 @@
         if (!editId && workspaceId !== null) {
           const lastMeeting = getLastMeetingInWorkspace(workspaceId);
           if (lastMeeting && lastMeeting.sections) {
-            // Salin persis tanpa perubahan apapun
+            // Salin persis tanpa perubahan apapun, dengan ID baru
             sections = lastMeeting.sections.map(section => ({
-              id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+              id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
               name: section.name,
               tasks: section.tasks.map(task => ({
-                id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
                 desc: task.desc,
                 status: task.status,
                 progress: task.progress,
