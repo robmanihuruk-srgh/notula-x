@@ -4,16 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
-  <!-- Font & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <!-- Libraries untuk export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -995,7 +992,6 @@
   </style>
 </head>
 <body>
-  <!-- Login Overlay -->
   <div id="loginOverlay">
     <div class="login-card">
       <h2><i class="fas fa-book-open" style="color: var(--color-primary);"></i> Notula</h2>
@@ -1008,7 +1004,6 @@
     </div>
   </div>
 
-  <!-- MODAL RESET PASSWORD -->
   <div class="modal" id="resetPasswordModal">
     <div class="modal-content">
       <h3><i class="fas fa-key"></i> Reset Password</h3>
@@ -1025,7 +1020,6 @@
     </div>
   </div>
 
-  <!-- MODAL BUAT WORKSPACE -->
   <div class="modal" id="workspaceModal">
     <div class="modal-content">
       <h3><i class="fas fa-users"></i> Buat Grup Baru</h3>
@@ -1044,7 +1038,6 @@
     </div>
   </div>
 
-  <!-- MODAL KELOLA ANGGOTA -->
   <div class="modal" id="manageMembersModal">
     <div class="modal-content">
       <h3><i class="fas fa-user-friends"></i> Kelola Anggota</h3>
@@ -1062,7 +1055,6 @@
     </div>
   </div>
 
-  <!-- MODAL RAPAT -->
   <div class="modal" id="meetingModal">
     <div class="modal-content">
       <h3 id="modalMeetingTitle">Rapat baru</h3>
@@ -1091,7 +1083,6 @@
     </div>
   </div>
 
-  <!-- MODAL SEKSI -->
   <div class="modal" id="sectionModal">
     <div class="modal-content">
       <h3 id="modalSectionTitle">Tambah seksi</h3>
@@ -1106,7 +1097,6 @@
     </div>
   </div>
 
-  <!-- MODAL TASK -->
   <div class="modal" id="taskModal">
     <div class="modal-content">
       <h3 id="modalTaskTitle">Tugas / item</h3>
@@ -1149,7 +1139,6 @@
     </div>
   </div>
 
-  <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-header">
       <h1><i class="fas fa-book-open"></i> Notula</h1>
@@ -1784,6 +1773,18 @@
         return sorted[0];
       }
 
+      // FUNGSI BARU: Ambil rapat terakhir di Pribadi
+      function getLastPrivateMeeting() {
+        const privateMeetings = meetings.filter(m => !m.workspaceId && m.createdBy === currentUser?.uid);
+        if (privateMeetings.length === 0) return null;
+        return [...privateMeetings].sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+          return b.id.localeCompare(a.id);
+        })[0];
+      }
+
       const workspaceSelect = document.getElementById('meetingWorkspaceSelect');
 
       // ========== DASHBOARD GLOBAL dan tooltip ==========
@@ -1865,7 +1866,9 @@
       }
 
       function renderGlobalDashboard(workspaceId) {
-        const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
+        // PERUBAHAN: Hanya ambil dari rapat terakhir
+        const latestMeeting = getLastMeetingInWorkspace(workspaceId);
+
         let totalTasks = 0;
         let totalProgress = 0;
         let taskCount = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
@@ -1876,34 +1879,35 @@
         let rencanaBySection = {};
         let kendalaBySection = {};
 
-        // Set untuk deduplikasi kendalaTasks berdasarkan meetingId + sectionId + taskId
         const seenKendalaKeys = new Set();
 
-        workspaceMeetings.forEach(meeting => {
-          meeting.sections?.forEach(section => {
+        if (latestMeeting && latestMeeting.sections) {
+          latestMeeting.sections.forEach(section => {
             if (!sectionTotals[section.name]) sectionTotals[section.name] = 0;
             if (!selesaiBySection[section.name]) selesaiBySection[section.name] = 0;
             if (!berlangsungBySection[section.name]) berlangsungBySection[section.name] = 0;
             if (!rencanaBySection[section.name]) rencanaBySection[section.name] = 0;
             if (!kendalaBySection[section.name]) kendalaBySection[section.name] = 0;
+            
             section.tasks?.forEach(task => {
               totalTasks++;
               totalProgress += task.progress || 0;
               taskCount[task.status] = (taskCount[task.status] || 0) + 1;
               sectionTotals[section.name]++;
+              
               if (task.status === 'selesai') selesaiBySection[section.name]++;
               else if (task.status === 'berlangsung') berlangsungBySection[section.name]++;
               else if (task.status === 'rencana') rencanaBySection[section.name]++;
               else if (task.status === 'kendala') {
                 kendalaBySection[section.name]++;
                 const taskKey = task.id ? task.id : task.desc;
-                const key = `${meeting.id}|${section.id}|${taskKey}`;
+                const key = `${latestMeeting.id}|${section.id}|${taskKey}`;
                 if (!seenKendalaKeys.has(key)) {
                   seenKendalaKeys.add(key);
                   kendalaTasks.push({
                     taskDesc: task.desc,
-                    meetingTitle: meeting.title,
-                    meetingDate: meeting.date,
+                    meetingTitle: latestMeeting.title,
+                    meetingDate: latestMeeting.date,
                     pic: task.pic || '-',
                     notes: task.notes || ''
                   });
@@ -1911,7 +1915,7 @@
               }
             });
           });
-        });
+        }
 
         const avgProgress = totalTasks ? (totalProgress / totalTasks) : 0;
         const sectionsList = Object.keys(sectionTotals).map(name => ({ name, count: sectionTotals[name] }));
@@ -1930,7 +1934,7 @@
 
         let html = `
           <div class="global-dashboard">
-            <h3><i class="fas fa-chart-line"></i> Dashboard Progres Keseluruhan</h3>
+            <h3><i class="fas fa-chart-line"></i> Dashboard Progres Keseluruhan (Update Terakhir)</h3>
             <div class="global-stats">
               <div class="global-stat-item" data-stat="total">
                 <span class="global-stat-label">Total Tugas</span>
@@ -2365,6 +2369,8 @@
       });
 
       document.getElementById('cancelMeetingModal').addEventListener('click', closeAllModals);
+
+      // PERUBAHAN: Modifikasi logika pembuatan rapat untuk salin template
       document.getElementById('saveMeetingModal').addEventListener('click', async () => {
         if (userRole !== 'admin') return;
         const title = document.getElementById('meetingNameInput').value.trim();
@@ -2376,15 +2382,22 @@
 
         const editId = document.getElementById('saveMeetingModal').dataset.editId;
         let sections = [];
-        if (!editId && workspaceId !== null) {
-          const lastMeeting = getLastMeetingInWorkspace(workspaceId);
+        
+        if (!editId) {
+          let lastMeeting = null;
+          if (workspaceId !== null) {
+            lastMeeting = getLastMeetingInWorkspace(workspaceId);
+          } else {
+            lastMeeting = getLastPrivateMeeting();
+          }
+
           if (lastMeeting && lastMeeting.sections) {
-            // Salin persis tanpa perubahan apapun, dengan ID baru
+            // Salin persis tanpa perubahan apapun, dengan ID unik baru
             sections = lastMeeting.sections.map(section => ({
-              id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
+              id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
               name: section.name,
               tasks: section.tasks.map(task => ({
-                id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
+                id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
                 desc: task.desc,
                 status: task.status,
                 progress: task.progress,
