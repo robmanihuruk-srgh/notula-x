@@ -33,7 +33,7 @@
     }
   </style>
   <style>
-    /* ===== CSS (lengkap, dengan tambahan tombol reset) ===== */
+    /* ===== CSS (lengkap) ===== */
     * {
       margin: 0;
       padding: 0;
@@ -1465,23 +1465,23 @@
         }
       }
 
-      // Fungsi reset data default (hapus grup default dan semua rapat di dalamnya, lalu tambah ulang)
+      // Fungsi reset data default (hapus grup dan rapat, lalu tambah ulang)
       async function resetDefaultData() {
         if (userRole !== 'admin') return;
         if (!confirm('Reset data default? Semua grup "Rapat Pesparawi Distrik VII" dan rapat di dalamnya akan dihapus, lalu ditambahkan ulang. Data lain tidak terpengaruh.')) return;
         try {
-          // Cari grup default
+          // Cari semua workspace dengan nama yang sama
           const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
           for (const doc of workspaceQuery.docs) {
             // Hapus semua rapat dalam grup
-            const meetingsInGroup = meetings.filter(m => m.workspaceId === doc.id);
-            for (const m of meetingsInGroup) {
+            const meetingsInGroup = await db.collection('meetings').where('workspaceId', '==', doc.id).get();
+            for (const m of meetingsInGroup.docs) {
               await db.collection('meetings').doc(m.id).delete();
             }
             // Hapus grup
             await db.collection('workspaces').doc(doc.id).delete();
           }
-          // Panggil seeding ulang
+          // Seeding ulang
           await seedDefaultData();
           alert('Data default berhasil direset!');
           // Refresh tampilan
