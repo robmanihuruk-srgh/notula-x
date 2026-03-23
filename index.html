@@ -1511,6 +1511,9 @@
       function renderSectionCard(meetingId, section) {
         const meeting = meetings.find(m => m.id === meetingId);
         const canEditSec = canUserEditSection(meeting, section);
+        
+        // FIX HAK AKSES MENGHAPUS: Hanya Admin dan Pembuat Rapat
+        const canDeleteSec = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
 
         let tasksHtml = '';
         section.tasks?.forEach(task => {
@@ -1551,7 +1554,7 @@
               </div>
               <div class="section-actions">
                 <button id="edit-section-${section.id}" title="Edit seksi" ${!canEditSec ? 'disabled class="disabled"' : ''}><i class="fas fa-edit"></i></button>
-                <button id="del-section-${section.id}" title="Hapus seksi" ${!canEditSec ? 'disabled class="disabled"' : ''}><i class="fas fa-times-circle"></i></button>
+                <button id="del-section-${section.id}" title="Hapus seksi" ${!canDeleteSec ? 'disabled class="disabled"' : ''}><i class="fas fa-times-circle"></i></button>
               </div>
             </div>
             <div class="task-list">
@@ -1630,7 +1633,13 @@
         const section = meeting.sections.find(s => s.id === sectionId);
         if (!section) return;
 
-        if (!canUserEditSection(meeting, section)) return alert('Akses ditolak');
+        // FIX HAK AKSES MENGHAPUS VALIDASI DI SINI JUGA
+        const isAdmin = userRole === 'admin';
+        const isCreator = meeting.createdBy === currentUser?.uid;
+        if (!isAdmin && !isCreator) {
+            return alert('Akses ditolak: Hanya Admin atau Pembuat Rapat yang berhak menghapus seksi.');
+        }
+
         if (!confirm(`Hapus seksi "${section.name}"?`)) return;
 
         meeting.sections = meeting.sections.filter(s => s.id !== sectionId);
