@@ -37,6 +37,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .login-desc{font-size:13px;color:var(--text2);margin-bottom:28px;}
 .login-err{font-size:12.5px;color:var(--red);margin-top:10px;min-height:18px;}
 .login-footer{text-align:center;font-size:12px;color:var(--text3);margin-top:24px;}
+.login-link{color:var(--accent);cursor:pointer;text-decoration:underline;background:none;border:none;font-family:var(--font);font-size:12px;padding:0;}
+.login-link:hover{color:#4A79E0;}
 .btn-login{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
 .btn-login:hover{background:#4A79E0;transform:translateY(-1px);}
 .btn-login:disabled{opacity:.6;cursor:not-allowed;transform:none;}
@@ -306,7 +308,61 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   .topbar{padding:10px 12px;}
 }
 </style>
-  <!-- Firebase SDK (compat) — loaded in head, blocking, guarantees global availability -->
+  <!-- Modal Lupa Password -->
+<div class="modal-overlay" id="modal-forgot">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <span class="modal-title">Lupa Password</span>
+      <button class="close-btn" onclick="closeModal('modal-forgot')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.6;">
+        Masukkan email akun Anda. Kami akan mengirimkan link untuk mereset password ke email tersebut.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input class="form-input" id="forgot-email" type="email" placeholder="nama@email.com" />
+      </div>
+      <div id="forgot-msg" style="font-size:12.5px;min-height:18px;margin-top:6px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-forgot')">Batal</button>
+      <button class="btn btn-primary" onclick="doForgotPassword()">Kirim Link Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ganti Password -->
+<div class="modal-overlay" id="modal-change-pass">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <span class="modal-title">Ganti Password</span>
+      <button class="close-btn" onclick="closeModal('modal-change-pass')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="notice notice-info" style="margin-bottom:18px;">ℹ Untuk keamanan, masukkan password lama Anda terlebih dahulu.</div>
+      <div class="form-group">
+        <label class="form-label">Password Lama *</label>
+        <input class="form-input" id="cp-old" type="password" placeholder="Password saat ini" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password Baru *</label>
+        <input class="form-input" id="cp-new" type="password" placeholder="Minimal 6 karakter" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Konfirmasi Password Baru *</label>
+        <input class="form-input" id="cp-confirm" type="password" placeholder="Ulangi password baru" />
+      </div>
+      <div id="cp-msg" style="font-size:12.5px;min-height:18px;margin-top:6px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-change-pass')">Batal</button>
+      <button class="btn btn-primary" onclick="doChangePassword()">Simpan Password Baru</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (compat) — loaded in head, blocking, guarantees global availability -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -339,6 +395,9 @@ input[type=range]{flex:1;accent-color:var(--accent);}
     <button class="btn-login" id="btn-login" onclick="doLogin()">
       <span id="btn-login-text">Masuk</span>
     </button>
+    <div style="text-align:center;margin-top:14px;">
+      <button class="login-link" onclick="openModal('modal-forgot')">Lupa password?</button>
+    </div>
     <div class="login-footer">Hubungi Admin jika belum punya akun.</div>
   </div>
 </div>
@@ -372,6 +431,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
       </div>
       <button class="btn-logout" onclick="doLogout()">Keluar</button>
     </div>
+    <button onclick="openModal('modal-change-pass')" style="width:100%;margin-top:10px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-family:var(--font);font-size:12px;padding:7px;border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">🔑 Ganti Password</button>
   </div>
 </aside>
 
@@ -679,7 +739,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   <div class="modal" style="max-width:480px;">
     <div class="modal-header"><span class="modal-title">Undang Pengguna Baru</span><button class="close-btn" onclick="closeModal('modal-user')">×</button></div>
     <div class="modal-body">
-      <div class="notice notice-info">ℹ Pastikan email valid. Password bisa diubah pengguna setelah login pertama.</div>
+      <div class="notice notice-info">ℹ Pastikan email valid. Pengguna dapat ganti password melalui menu profil di sidebar setelah login.</div>
       <div class="form-group"><label class="form-label">Nama Lengkap *</label><input class="form-input" id="mu-nama" placeholder="Nama anggota..." /></div>
       <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="mu-email" type="email" placeholder="email@domain.com" /></div>
       <div class="form-group"><label class="form-label">Password Sementara *</label><input class="form-input" id="mu-pass" type="password" placeholder="Min. 6 karakter" /></div>
@@ -847,6 +907,16 @@ function showLoginPage() {
   document.getElementById('login-page').style.display    = 'flex';
   document.getElementById('main-app').style.display      = 'none';
   document.getElementById('bottom-nav').style.display    = 'none';
+  // Reset login form ke state awal agar tidak stuck "Memuat..."
+  var btn  = document.getElementById('btn-login');
+  var txt  = document.getElementById('btn-login-text');
+  var err  = document.getElementById('login-err');
+  if (btn) btn.disabled = false;
+  if (txt) txt.textContent = 'Masuk';
+  if (err) err.textContent = '';
+  // Kosongkan field password saja (email tetap untuk kenyamanan)
+  var passEl = document.getElementById('li-pass');
+  if (passEl) passEl.value = '';
 }
 
 function showApp() {
@@ -908,7 +978,91 @@ function doLogin() {
 function doLogout() {
   unsubListeners.forEach(function(u) { u(); });
   unsubListeners = [];
+  isFirstAktLoad = true;
+  localRapat = []; localAgenda = []; localTodo = []; localKendala = [];
+  localProgress = {}; localUsers = []; localAnggota = []; localAktivitas = [];
   auth.signOut();
+}
+
+// ── LUPA PASSWORD ──
+function doForgotPassword() {
+  var email  = document.getElementById('forgot-email').value.trim();
+  var msgEl  = document.getElementById('forgot-msg');
+  if (!email) { msgEl.style.color = 'var(--red)'; msgEl.textContent = 'Email wajib diisi.'; return; }
+  msgEl.style.color = 'var(--text3)';
+  msgEl.textContent = 'Mengirim...';
+  auth.sendPasswordResetEmail(email)
+    .then(function() {
+      msgEl.style.color = 'var(--green)';
+      msgEl.textContent = '✓ Link reset password telah dikirim ke ' + email + '. Cek inbox atau folder spam Anda.';
+      document.getElementById('forgot-email').value = '';
+    })
+    .catch(function(e) {
+      msgEl.style.color = 'var(--red)';
+      var msgs = {
+        'auth/user-not-found':  'Email tidak terdaftar di sistem.',
+        'auth/invalid-email':   'Format email tidak valid.',
+        'auth/too-many-requests': 'Terlalu banyak permintaan. Coba lagi nanti.'
+      };
+      msgEl.textContent = msgs[e.code] || e.message;
+    });
+}
+
+// ── GANTI PASSWORD ──
+function doChangePassword() {
+  var oldPass  = document.getElementById('cp-old').value;
+  var newPass  = document.getElementById('cp-new').value;
+  var confirm  = document.getElementById('cp-confirm').value;
+  var msgEl    = document.getElementById('cp-msg');
+  msgEl.textContent = '';
+  if (!oldPass || !newPass || !confirm) {
+    msgEl.style.color = 'var(--red)';
+    msgEl.textContent = 'Semua field wajib diisi.';
+    return;
+  }
+  if (newPass.length < 6) {
+    msgEl.style.color = 'var(--red)';
+    msgEl.textContent = 'Password baru minimal 6 karakter.';
+    return;
+  }
+  if (newPass !== confirm) {
+    msgEl.style.color = 'var(--red)';
+    msgEl.textContent = 'Konfirmasi password tidak cocok.';
+    return;
+  }
+  if (oldPass === newPass) {
+    msgEl.style.color = 'var(--red)';
+    msgEl.textContent = 'Password baru tidak boleh sama dengan password lama.';
+    return;
+  }
+  msgEl.style.color = 'var(--text3)';
+  msgEl.textContent = 'Memverifikasi...';
+  // Re-authenticate with old password first
+  var credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, oldPass);
+  currentUser.reauthenticateWithCredential(credential)
+    .then(function() {
+      msgEl.textContent = 'Menyimpan...';
+      return currentUser.updatePassword(newPass);
+    })
+    .then(function() {
+      msgEl.style.color = 'var(--green)';
+      msgEl.textContent = '✓ Password berhasil diubah!';
+      document.getElementById('cp-old').value     = '';
+      document.getElementById('cp-new').value     = '';
+      document.getElementById('cp-confirm').value = '';
+      setTimeout(function() { closeModal('modal-change-pass'); msgEl.textContent = ''; }, 2000);
+      logAktivitas('change_password', 'Mengganti password akun', 'Password');
+    })
+    .catch(function(e) {
+      msgEl.style.color = 'var(--red)';
+      var msgs = {
+        'auth/wrong-password':       'Password lama salah.',
+        'auth/weak-password':        'Password baru terlalu lemah.',
+        'auth/requires-recent-login':'Sesi terlalu lama. Keluar lalu masuk kembali.',
+        'auth/too-many-requests':    'Terlalu banyak percobaan. Coba lagi nanti.'
+      };
+      msgEl.textContent = msgs[e.code] || e.message;
+    });
 }
 
 // ── REALTIME LISTENERS ──
@@ -1470,6 +1624,18 @@ function openModal(id) {
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'modal-rapat') document.getElementById('mr-id').value = '';
+  if (id === 'modal-change-pass') {
+    var fields = ['cp-old','cp-new','cp-confirm'];
+    fields.forEach(function(f){ var el=document.getElementById(f); if(el) el.value=''; });
+    var msgEl = document.getElementById('cp-msg');
+    if (msgEl) msgEl.textContent = '';
+  }
+  if (id === 'modal-forgot') {
+    var fEl = document.getElementById('forgot-email');
+    if (fEl) fEl.value = '';
+    var fMsg = document.getElementById('forgot-msg');
+    if (fMsg) fMsg.textContent = '';
+  }
 }
 
 function openAgendaModal(rid) {
