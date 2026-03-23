@@ -979,10 +979,24 @@
         document.getElementById('manageMembersModal').classList.add('active');
       };
 
+      // FUNGSI BARU UNTUK HAPUS DAN TAMBAH ANGGOTA (OPTIMISTIC UPDATE)
       window.removeMember = async (workspaceId, uid) => {
         if (!confirm('Hapus anggota ini?')) return;
-        const workspaceRef = db.collection('workspaces').doc(workspaceId);
-        await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayRemove(uid) });
+        try {
+          const workspaceRef = db.collection('workspaces').doc(workspaceId);
+          await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayRemove(uid) });
+          
+          alert('Anggota berhasil dihapus!'); // Menampilkan konfirmasi berhasil dihapus
+          
+          // Memperbarui data lokal agar langsung hilang dari tampilan
+          const workspace = workspaces.find(w => w.id === workspaceId);
+          if (workspace) workspace.members = workspace.members.filter(id => id !== uid);
+          
+          // Render ulang daftar anggota secara real-time
+          openManageMembers(workspaceId);
+        } catch (error) {
+          alert('Gagal menghapus anggota: ' + error.message);
+        }
       };
 
       document.getElementById('addMemberBtn').addEventListener('click', async () => {
@@ -997,9 +1011,21 @@
         const uid = snapshot.docs[0].id;
         const workspaceId = document.getElementById('manageMembersModal').dataset.workspaceId;
         const workspaceRef = db.collection('workspaces').doc(workspaceId);
-        await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayUnion(uid) });
-        document.getElementById('memberEmailInput').value = '';
-        alert('Anggota berhasil ditambahkan!');
+        
+        try {
+          await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayUnion(uid) });
+          document.getElementById('memberEmailInput').value = '';
+          alert('Anggota berhasil ditambahkan!');
+          
+          // Memperbarui data lokal agar langsung muncul di tampilan
+          const workspace = workspaces.find(w => w.id === workspaceId);
+          if (workspace && !workspace.members.includes(uid)) workspace.members.push(uid);
+          
+          // Render ulang daftar anggota secara real-time
+          openManageMembers(workspaceId);
+        } catch (error) {
+          alert('Gagal menambahkan anggota: ' + error.message);
+        }
       });
 
       document.getElementById('closeMembersModal').addEventListener('click', () => {
