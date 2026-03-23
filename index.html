@@ -403,6 +403,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
         <div class="card card-pad"><div class="card-title">⚡ To Do per Seksi</div><div id="db-todo-summary"></div></div>
       </div>
       <div class="card card-pad" style="margin-top:18px;"><div class="card-title">⚠ Kendala Aktif</div><div id="db-kendala-list"></div></div>
+      <div class="card card-pad" style="margin-top:18px;"><div class="card-title">🔔 Aktivitas Terbaru</div><div id="db-aktivitas"><div style="font-size:13px;color:var(--text3);padding:8px 0;">Memuat...</div></div></div>
     </div>
 
     <!-- DAFTAR RAPAT -->
@@ -547,6 +548,16 @@ input[type=range]{flex:1;accent-color:var(--accent);}
             <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();printReport('todo')">🖨 Print</button>
           </div>
         </div>
+        <div class="card card-pad" style="cursor:pointer;" onclick="generateReport('kendala')">
+          <div style="font-size:28px;margin-bottom:10px;">⚠</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Laporan Kendala</div>
+          <div style="font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:14px;">Semua kendala aktif & terselesaikan beserta seksi dan rapat terkait.</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();exportReportExcel('kendala')">📊 Excel</button>
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();exportReportPDF('kendala')">📄 PDF</button>
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();printReport('kendala')">🖨 Print</button>
+          </div>
+        </div>
       </div>
       <div class="card card-pad">
         <div class="card-title" id="report-preview-title">📋 Preview Laporan</div>
@@ -602,9 +613,9 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 
 <div class="modal-overlay" id="modal-agenda">
   <div class="modal">
-    <div class="modal-header"><span class="modal-title">Tambah Agenda</span><button class="close-btn" onclick="closeModal('modal-agenda')">×</button></div>
+    <div class="modal-header"><span class="modal-title" id="ma-modal-title">Tambah Agenda</span><button class="close-btn" onclick="closeModal('modal-agenda')">×</button></div>
     <div class="modal-body">
-      <input type="hidden" id="ma-rapat-id" /><input type="hidden" id="ma-id" />
+      <input type="hidden" id="ma-rapat-id" /><input type="hidden" id="ma-id" /><input type="hidden" id="ma-mode" value="add" />
       <div class="form-group"><label class="form-label">Topik *</label><input class="form-input" id="ma-topik" placeholder="Nama topik..." /></div>
       <div class="form-group"><label class="form-label">Pembahasan *</label><textarea class="form-textarea" style="min-height:120px;" id="ma-pembahasan" placeholder="Isi pembahasan dan keputusan..."></textarea></div>
       <div class="form-group"><label class="form-label">Seksi Terkait</label><select class="form-select" id="ma-seksi"><option value="">— Tidak ada —</option></select></div>
@@ -750,13 +761,15 @@ var todoFilter     = 'all';
 var unsubListeners = [];
 
 // ── FIRESTORE LOCAL CACHE ──
-var localRapat    = [];
-var localAgenda   = [];
-var localTodo     = [];
-var localKendala  = [];
-var localProgress = {};
-var localUsers    = [];
-var localAnggota  = [];
+var localRapat      = [];
+var localAgenda     = [];
+var localTodo       = [];
+var localKendala    = [];
+var localProgress   = {};
+var localUsers      = [];
+var localAnggota    = [];
+var localAktivitas  = [];
+var isFirstAktLoad  = true;
 
 // ── PERMISSION SYSTEM ──
 function getRoleColor(role) {
@@ -946,6 +959,22 @@ function startListeners() {
       renderAnggota();
     })
   );
+  // Aktivitas listener — show toast to other users when rapat is updated
+  unsubListeners.push(
+    db.collection('aktivitas').orderBy('createdAt', 'desc').limit(20).onSnapshot(function(snap) {
+      var prev = localAktivitas.slice();
+      localAktivitas = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+      // Show toast for NEW activity from OTHER users (not first load)
+      if (!isFirstAktLoad && localAktivitas.length > prev.length) {
+        var newest = localAktivitas[0];
+        if (newest && newest.uid !== currentUser.uid) {
+          notify('📝 ' + (newest.nama||'Seseorang') + ' memperbarui "' + (newest.judul||'').substring(0,30) + '"', 'info');
+        }
+      }
+      isFirstAktLoad = false;
+      renderAktivitas();
+    })
+  );
 }
 
 // ── HELPERS ──
@@ -1133,14 +1162,19 @@ function renderAgendaTab(rid) {
   var html = can('create_agenda')
     ? '<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn btn-primary btn-sm" onclick="openAgendaModal(\'' + rid + '\')">＋ Agenda</button></div>' : '';
   if (!list.length) { cont.innerHTML = html + '<div class="empty"><div class="empty-text">Belum ada agenda.</div></div>'; return; }
+  var canEdit = can('create_agenda');
+  var canDel  = can('delete_agenda');
   html += '<table class="agenda-table"><thead><tr><th style="width:30px;">No</th><th style="min-width:100px;">Topik</th><th>Pembahasan</th><th style="min-width:90px;">Seksi</th>'
-    + (can('delete_agenda') ? '<th style="width:40px;"></th>' : '') + '</tr></thead><tbody>';
+    + (canEdit || canDel ? '<th style="width:80px;"></th>' : '') + '</tr></thead><tbody>';
   list.forEach(function(a, i) {
+    var actBtn = '';
+    if (canEdit) actBtn += '<button class="btn btn-ghost btn-sm btn-icon" onclick="editAgenda(\'' + a.id + '\')" title="Edit Agenda">✏</button>';
+    if (canDel)  actBtn += '<button class="btn btn-danger btn-sm btn-icon" onclick="delAgenda(\'' + a.id + '\',\'' + rid + '\')" title="Hapus">✕</button>';
     html += '<tr><td style="font-weight:700;color:var(--text3);font-size:12px;">' + (i+1) + '</td>'
       + '<td style="font-weight:600;padding-right:12px;vertical-align:top;">' + a.topik + '</td>'
       + '<td style="color:var(--text2);line-height:1.6;">' + (a.pembahasan||'').replace(/\n/g,'<br>') + '</td>'
       + '<td>' + (a.seksi ? '<span class="tag tag-teal" style="font-size:10px;">' + a.seksi + '</span>' : '') + '</td>'
-      + (can('delete_agenda') ? '<td><button class="btn btn-danger btn-sm btn-icon" onclick="delAgenda(\'' + a.id + '\',\'' + rid + '\')">✕</button></td>' : '')
+      + (actBtn ? '<td style="white-space:nowrap;">' + actBtn + '</td>' : '')
       + '</tr>';
   });
   html += '</tbody></table>';
@@ -1319,6 +1353,39 @@ function renderAnggota() {
   }).join('');
 }
 
+// ── AKTIVITAS ──
+function renderAktivitas() {
+  var cont = document.getElementById('db-aktivitas');
+  if (!cont) return;
+  if (!localAktivitas.length) {
+    cont.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px 0;">Belum ada aktivitas.</div>';
+    return;
+  }
+  cont.innerHTML = localAktivitas.slice(0, 8).map(function(a) {
+    var iconMap = { update_rapat:'✏', add_agenda:'📋', edit_agenda:'📝', delete_agenda:'🗑', add_todo:'✓', update_progress:'◎', add_kendala:'⚠', solve_kendala:'✅' };
+    var icon = iconMap[a.tipe] || '•';
+    var when = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().toLocaleString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    return '<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">'
+      + '<span style="font-size:14px;flex-shrink:0;margin-top:1px;">' + icon + '</span>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:12.5px;font-weight:500;color:var(--text);">' + (a.pesan||'—') + '</div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-top:2px;">' + (a.nama||'—') + ' · ' + when + '</div>'
+      + '</div></div>';
+  }).join('');
+}
+
+function logAktivitas(tipe, pesan, judul) {
+  if (!currentUser || !currentProfile) return;
+  db.collection('aktivitas').add({
+    tipe:     tipe,
+    pesan:    pesan,
+    judul:    judul || '',
+    uid:      currentUser.uid,
+    nama:     currentProfile.nama || currentUser.email,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(function(){});
+}
+
 // ── USERS TABLE ──
 function renderUsersTable() {
   var cont = document.getElementById('user-table-body');
@@ -1408,9 +1475,24 @@ function closeModal(id) {
 function openAgendaModal(rid) {
   document.getElementById('ma-rapat-id').value = rid;
   document.getElementById('ma-id').value = '';
+  document.getElementById('ma-mode').value = 'add';
+  document.getElementById('ma-modal-title').textContent = 'Tambah Agenda';
   document.getElementById('ma-topik').value = '';
   document.getElementById('ma-pembahasan').value = '';
   document.getElementById('ma-seksi').value = '';
+  openModal('modal-agenda');
+}
+
+function editAgenda(id) {
+  var a = localAgenda.filter(function(x) { return x.id === id; })[0];
+  if (!a) { notify('Data agenda tidak ditemukan', 'error'); return; }
+  document.getElementById('ma-rapat-id').value = a.rapatId;
+  document.getElementById('ma-id').value       = id;
+  document.getElementById('ma-mode').value     = 'edit';
+  document.getElementById('ma-modal-title').textContent = 'Edit Agenda';
+  document.getElementById('ma-topik').value      = a.topik      || '';
+  document.getElementById('ma-pembahasan').value = a.pembahasan || '';
+  document.getElementById('ma-seksi').value      = a.seksi      || '';
   openModal('modal-agenda');
 }
 function openTodoModal(rid) {
@@ -1523,7 +1605,11 @@ function saveRapat() {
   var editId = document.getElementById('mr-id').value;
   if (editId) {
     db.collection('rapat').doc(editId).update(data)
-      .then(function() { closeModal('modal-rapat'); notify('Rapat diperbarui!', 'success'); })
+      .then(function() {
+        closeModal('modal-rapat');
+        notify('Rapat diperbarui!', 'success');
+        logAktivitas('update_rapat', 'Memperbarui catatan rapat: ' + data.nama, data.nama);
+      })
       .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
   } else {
     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -1569,11 +1655,31 @@ function saveAgenda() {
   var topik      = document.getElementById('ma-topik').value.trim();
   var pembahasan = document.getElementById('ma-pembahasan').value.trim();
   if (!topik || !pembahasan) { notify('Topik dan pembahasan wajib diisi', 'error'); return; }
-  var rid = document.getElementById('ma-rapat-id').value;
-  var cnt = localAgenda.filter(function(a){return a.rapatId===rid;}).length;
-  db.collection('agenda').add({ rapatId:rid, no:cnt+1, topik:topik, pembahasan:pembahasan, seksi:document.getElementById('ma-seksi').value, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
-    .then(function() { closeModal('modal-agenda'); notify('Agenda ditambahkan!', 'success'); })
-    .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  var rid    = document.getElementById('ma-rapat-id').value;
+  var editId = document.getElementById('ma-id').value;
+  var mode   = document.getElementById('ma-mode').value;
+  var seksi  = document.getElementById('ma-seksi').value;
+  if (mode === 'edit' && editId) {
+    db.collection('agenda').doc(editId).update({
+      topik: topik, pembahasan: pembahasan, seksi: seksi,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentUser.uid
+    }).then(function() {
+      closeModal('modal-agenda');
+      notify('Agenda berhasil diperbarui!', 'success');
+      logAktivitas('edit_agenda', 'Mengedit agenda: ' + topik, topik);
+    }).catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  } else {
+    var cnt = localAgenda.filter(function(a){return a.rapatId===rid;}).length;
+    db.collection('agenda').add({
+      rapatId:rid, no:cnt+1, topik:topik, pembahasan:pembahasan, seksi:seksi,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid
+    }).then(function() {
+      closeModal('modal-agenda');
+      notify('Agenda ditambahkan!', 'success');
+      logAktivitas('add_agenda', 'Menambahkan agenda: ' + topik, topik);
+    }).catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  }
 }
 
 function delAgenda(id, rid) {
@@ -1610,7 +1716,12 @@ function saveKendala() {
   var desc = document.getElementById('mk-desc').value.trim();
   if (!desc) { notify('Deskripsi wajib diisi', 'error'); return; }
   db.collection('kendala').add({ desc:desc, status:'aktif', seksi:document.getElementById('mk-seksi').value, rapatId:document.getElementById('mk-rapat').value, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
-    .then(function() { closeModal('modal-kendala'); notify('Kendala ditambahkan!', 'success'); })
+    .then(function() {
+      closeModal('modal-kendala');
+      notify('Kendala ditambahkan!', 'success');
+      var descVal = document.getElementById('mk-desc').value.trim();
+      logAktivitas('add_kendala', 'Menambahkan kendala: ' + descVal.substring(0,50), descVal);
+    })
     .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
 }
 
@@ -1626,7 +1737,11 @@ function saveProgress() {
   if (!seksi) { notify('Pilih seksi terlebih dahulu', 'error'); return; }
   if (!canUpdateProgress(seksi)) { notify('Anda hanya bisa update progress seksi Anda sendiri', 'error'); return; }
   db.collection('progress').doc(seksi).set({ pct:parseInt(document.getElementById('mp-pct').value), status:document.getElementById('mp-status').value, catatan:document.getElementById('mp-catatan').value, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:currentUser.uid })
-    .then(function() { closeModal('modal-progress'); notify('Progress diperbarui!', 'success'); })
+    .then(function() {
+      closeModal('modal-progress');
+      notify('Progress diperbarui!', 'success');
+      logAktivitas('update_progress', 'Update progress ' + seksi + ': ' + parseInt(document.getElementById('mp-pct').value||0) + '%', seksi);
+    })
     .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
 }
 
@@ -1705,7 +1820,7 @@ function statusStr(s) {
 
 function buildReportHTML(type) {
   var now = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  var titles = { lengkap:'LAPORAN LENGKAP', pengguna:'LAPORAN PENGGUNA & ANGGOTA SEKSI', progress:'LAPORAN MONITOR PROGRESS SEKSI', todo:'LAPORAN TO DO LIST' };
+  var titles = { lengkap:'LAPORAN LENGKAP', pengguna:'LAPORAN PENGGUNA & ANGGOTA SEKSI', progress:'LAPORAN MONITOR PROGRESS SEKSI', todo:'LAPORAN TO DO LIST', kendala:'LAPORAN KENDALA' };
   var css = '<style>'
     + '.rpt{font-family:Arial,sans-serif;color:#111;font-size:13px;line-height:1.5;}'
     + '.rpt-hdr{text-align:center;border-bottom:2px solid #2563eb;padding-bottom:14px;margin-bottom:20px;}'
@@ -1781,6 +1896,39 @@ function buildReportHTML(type) {
   }
 
   // PENGGUNA section
+  // KENDALA standalone section
+  if (type === 'kendala') {
+    var aktifK  = localKendala.filter(function(k){return k.status==='aktif';});
+    var selesaiK= localKendala.filter(function(k){return k.status==='selesai';});
+    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Kendala Aktif (' + aktifK.length + ')</div>';
+    if (aktifK.length) {
+      html += '<table><thead><tr><th>#</th><th>Deskripsi Kendala</th><th>Seksi</th><th>Rapat Terkait</th><th>Status</th></tr></thead><tbody>';
+      aktifK.forEach(function(k, i) {
+        var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
+        html += '<tr><td>' + (i+1) + '</td><td>' + (k.desc||'—') + '</td><td>' + (k.seksi||'—') + '</td>'
+          + '<td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,35)+'...':'—') + '</td>'
+          + '<td><span class="badge b-aktif">Aktif</span></td></tr>';
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<p style="color:#6b7280;font-size:13px;padding:10px 0;">Tidak ada kendala aktif.</p>';
+    }
+    html += '</div><div class="rpt-sec"><div class="rpt-sec-ttl">Kendala Terselesaikan (' + selesaiK.length + ')</div>';
+    if (selesaiK.length) {
+      html += '<table><thead><tr><th>#</th><th>Deskripsi Kendala</th><th>Seksi</th><th>Rapat Terkait</th><th>Status</th></tr></thead><tbody>';
+      selesaiK.forEach(function(k, i) {
+        var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
+        html += '<tr><td>' + (i+1) + '</td><td style="text-decoration:line-through;color:#9ca3af;">' + (k.desc||'—') + '</td><td>' + (k.seksi||'—') + '</td>'
+          + '<td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,35)+'...':'—') + '</td>'
+          + '<td><span class="badge b-selesai">Selesai</span></td></tr>';
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<p style="color:#6b7280;font-size:13px;padding:10px 0;">Belum ada kendala yang terselesaikan.</p>';
+    }
+    html += '</div>';
+  }
+
   if (type === 'pengguna') {
     html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Pengguna Sistem (' + localUsers.length + ')</div><table><thead><tr><th>#</th><th>Nama</th><th>Email</th><th>Role</th><th>Seksi</th></tr></thead><tbody>';
     localUsers.forEach(function(u, i) {
@@ -1806,7 +1954,7 @@ function buildReportHTML(type) {
 }
 
 function generateReport(type) {
-  var labels = { lengkap:'📋 Preview Laporan Lengkap', pengguna:'👥 Preview Laporan Pengguna', progress:'◎ Preview Laporan Progress', todo:'✓ Preview Laporan To Do List' };
+  var labels = { lengkap:'📋 Preview Laporan Lengkap', pengguna:'👥 Preview Laporan Pengguna', progress:'◎ Preview Laporan Progress', todo:'✓ Preview Laporan To Do List', kendala:'⚠ Preview Laporan Kendala' };
   document.getElementById('report-preview-title').textContent = labels[type] || 'Preview';
   var body = document.getElementById('report-preview-body');
   body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);">Memuat preview...</div>';
@@ -1867,6 +2015,14 @@ function exportReportExcel(type) {
     localTodo.forEach(function(t, i) {
       var r = localRapat.filter(function(x){return x.id===t.rapatId;})[0];
       rows += [i+1, t.tugas, t.seksi, t.done?'Selesai':'Belum Selesai', t.deadline?fmtDate(t.deadline):'', r?r.nama:''].map(esc).join(',') + nl;
+    });
+  }
+  if (type === 'kendala') {
+    rows += 'LAPORAN KENDALA' + nl;
+    rows += ['No','Deskripsi Kendala','Seksi','Rapat Terkait','Status'].map(esc).join(',') + nl;
+    localKendala.forEach(function(k, i) {
+      var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
+      rows += [i+1, k.desc, k.seksi||'', r?r.nama:'', statusStr(k.status)].map(esc).join(',') + nl;
     });
   }
   if (type === 'pengguna') {
