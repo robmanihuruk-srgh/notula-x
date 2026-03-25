@@ -584,7 +584,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
     <div class="section" id="section-users">
       <div class="section-header">
         <div><div class="section-heading">Kelola Pengguna</div><div class="section-sub">Undang anggota & atur hak akses</div></div>
-        <button class="btn btn-primary" id="btn-user-new" onclick="openModal('modal-user')">＋ Undang Pengguna</button>
+        <button class="btn btn-primary" id="btn-user-new" onclick="openUserModal()">＋ Undang Pengguna</button>
       </div>
       <div class="notice notice-info">ℹ Pengguna baru akan mendapat akun dengan password yang Anda tentukan. Pastikan email valid.</div>
       <div class="card card-pad">
@@ -599,7 +599,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
     <div class="section" id="section-anggota">
       <div class="section-header">
         <div><div class="section-heading">Anggota Tim</div></div>
-        <button class="btn btn-primary" id="btn-anggota-new" onclick="openModal('modal-anggota')">＋ Tambah Anggota</button>
+        <button class="btn btn-primary" id="btn-anggota-new" onclick="openAnggotaModal()">＋ Tambah Anggota</button>
       </div>
       <div id="anggota-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;"></div>
     </div>
@@ -743,9 +743,8 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 
 <div class="modal-overlay" id="modal-kendala">
   <div class="modal" style="max-width:520px;">
-    <div class="modal-header"><span class="modal-title" id="mk-modal-title">Tambah Kendala</span><button class="close-btn" onclick="closeModal('modal-kendala')">×</button></div>
+    <div class="modal-header"><span class="modal-title">Tambah Kendala</span><button class="close-btn" onclick="closeModal('modal-kendala')">×</button></div>
     <div class="modal-body">
-      <input type="hidden" id="mk-edit-id" value="" />
       <div class="form-group"><label class="form-label">Deskripsi Kendala *</label><textarea class="form-textarea" id="mk-desc" placeholder="Jelaskan kendala..."></textarea></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Seksi</label><select class="form-select" id="mk-seksi"><option value="">— Umum —</option></select></div>
@@ -780,12 +779,15 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 
 <div class="modal-overlay" id="modal-user">
   <div class="modal" style="max-width:480px;">
-    <div class="modal-header"><span class="modal-title">Undang Pengguna Baru</span><button class="close-btn" onclick="closeModal('modal-user')">×</button></div>
+    <div class="modal-header"><span class="modal-title" id="mu-modal-title">Undang Pengguna Baru</span><button class="close-btn" onclick="closeModal('modal-user')">×</button></div>
     <div class="modal-body">
-      <div class="notice notice-info">ℹ Pastikan email valid. Pengguna dapat ganti password melalui menu profil di sidebar setelah login.</div>
+      <input type="hidden" id="mu-edit-uid" value="" />
+      <div class="notice notice-info" id="mu-notice-add">ℹ Pastikan email valid. Pengguna dapat ganti password melalui menu profil di sidebar setelah login.</div>
+      <div class="notice notice-info" id="mu-notice-edit" style="display:none;">ℹ Kosongkan password jika tidak ingin mengubah password pengguna.</div>
       <div class="form-group"><label class="form-label">Nama Lengkap *</label><input class="form-input" id="mu-nama" placeholder="Nama anggota..." /></div>
-      <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="mu-email" type="email" placeholder="email@domain.com" /></div>
-      <div class="form-group"><label class="form-label">Password Sementara *</label><input class="form-input" id="mu-pass" type="password" placeholder="Min. 6 karakter" /></div>
+      <div class="form-group" id="mu-email-group"><label class="form-label">Email *</label><input class="form-input" id="mu-email" type="email" placeholder="email@domain.com" /></div>
+      <div class="form-group" id="mu-email-display" style="display:none;"><label class="form-label">Email</label><div id="mu-email-text" style="font-size:13px;color:var(--text2);padding:8px 12px;background:var(--bg3);border-radius:var(--radius-sm);"></div></div>
+      <div class="form-group" id="mu-pass-group"><label class="form-label">Password Sementara *</label><input class="form-input" id="mu-pass" type="password" placeholder="Min. 6 karakter" /></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Role *</label>
           <select class="form-select" id="mu-role" onchange="toggleSeksiField()">
@@ -806,8 +808,9 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 
 <div class="modal-overlay" id="modal-anggota">
   <div class="modal" style="max-width:460px;">
-    <div class="modal-header"><span class="modal-title">Tambah Anggota</span><button class="close-btn" onclick="closeModal('modal-anggota')">×</button></div>
+    <div class="modal-header"><span class="modal-title" id="mang-modal-title">Tambah Anggota</span><button class="close-btn" onclick="closeModal('modal-anggota')">×</button></div>
     <div class="modal-body">
+      <input type="hidden" id="mang-edit-id" value="" />
       <div class="form-group"><label class="form-label">Nama *</label><input class="form-input" id="mang-nama" placeholder="Nama anggota..." /></div>
       <div class="form-group"><label class="form-label">Jabatan / Seksi</label><input class="form-input" id="mang-jabatan" placeholder="Ketua, Sekretaris, Seksi Acara..." /></div>
       <div class="form-group"><label class="form-label">No. HP</label><input class="form-input" id="mang-kontak" placeholder="08xx..." /></div>
@@ -894,8 +897,6 @@ function can(action) {
     delete_todo:     ['admin','notulen'],
     create_kendala:  ['admin','notulen','seksi'],
     toggle_kendala:  ['admin','notulen'],
-    edit_kendala:    ['admin','notulen'],
-    delete_kendala:  ['admin','notulen'],
     update_progress: ['admin','notulen','seksi'],
     manage_users:    ['admin'],
     manage_anggota:  ['admin','notulen']
@@ -1439,8 +1440,6 @@ function renderKendalaTab(rid) {
       + '<div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0;">'
       + '<span class="tag ' + (k.status==='selesai'?'tag-green':'tag-red') + '" style="font-size:10px;">' + (k.status==='selesai'?'Selesai':'Aktif') + '</span>'
       + (can('toggle_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="toggleKendala(\'' + k.id + '\',\'' + rid + '\')">' + (k.status==='selesai'?'Buka':'Tutup') + '</button>' : '')
-      + (can('edit_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="editKendala(\'' + k.id + '\')">✏</button>' : '')
-      + (can('delete_kendala') ? '<button class="btn btn-danger btn-sm btn-icon" onclick="delKendala(\'' + k.id + '\',\'' + rid + '\')">✕</button>' : '')
       + '</div></div>';
   });
   cont.innerHTML = html;
@@ -1520,11 +1519,7 @@ function renderKendalaGlobal() {
       html += '<div class="kendala-item">'
         + '<div class="kendala-num">' + (i+1) + '</div>'
         + '<div><div class="kendala-text">' + k.desc + '</div>' + (k.seksi?'<span class="tag tag-teal" style="font-size:10px;margin-top:6px;display:inline-block;">'+k.seksi+'</span>':'') + '</div>'
-        + '<div style="margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;">'
-        + (can('toggle_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="toggleKendala(\'' + k.id + '\',null)">Tandai Selesai</button>' : '')
-        + (can('edit_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="editKendala(\'' + k.id + '\')">✏</button>' : '')
-        + (can('delete_kendala') ? '<button class="btn btn-danger btn-sm btn-icon" onclick="delKendalaG(\'' + k.id + '\')">✕</button>' : '')
-        + '</div>'
+        + '<div style="margin-left:auto;flex-shrink:0;">' + (can('toggle_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="toggleKendala(\'' + k.id + '\',null)">Tandai Selesai</button>' : '') + '</div>'
         + '</div>';
     });
   }
@@ -1534,11 +1529,7 @@ function renderKendalaGlobal() {
       html += '<div class="kendala-item" style="opacity:.5;">'
         + '<div class="kendala-num" style="background:rgba(52,211,153,0.15);color:var(--green);">✓</div>'
         + '<div class="kendala-text" style="text-decoration:line-through;">' + k.desc + '</div>'
-        + '<div style="margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;">'
-        + (can('toggle_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="toggleKendala(\'' + k.id + '\',null)">Buka</button>' : '')
-        + (can('edit_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="editKendala(\'' + k.id + '\')">✏</button>' : '')
-        + (can('delete_kendala') ? '<button class="btn btn-danger btn-sm btn-icon" onclick="delKendalaG(\'' + k.id + '\')">✕</button>' : '')
-        + '</div>'
+        + (can('toggle_kendala') ? '<button class="btn btn-ghost btn-sm" style="margin-left:auto;flex-shrink:0;" onclick="toggleKendala(\'' + k.id + '\',null)">Buka</button>' : '')
         + '</div>';
     });
   }
@@ -1557,7 +1548,10 @@ function renderAnggota() {
       + '<div style="font-size:14px;font-weight:600;margin-bottom:3px;">' + a.nama + '</div>'
       + '<div style="font-size:12px;color:var(--text3);">' + (a.jabatan||'—') + '</div>'
       + (a.kontak ? '<div style="font-size:11px;color:var(--accent);margin-top:4px;">' + a.kontak + '</div>' : '')
-      + (can('manage_anggota') ? '<button class="btn btn-danger btn-sm" style="margin-top:12px;" onclick="delAnggota(\'' + a.id + '\')">Hapus</button>' : '')
+      + (can('manage_anggota') ? '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">'
+          + '<button class="btn btn-ghost btn-sm" onclick="editAnggota(\'' + a.id + '\')">✏ Edit</button>'
+          + '<button class="btn btn-danger btn-sm" onclick="delAnggota(\'' + a.id + '\')">✕ Hapus</button>'
+          + '</div>' : '')
       + '</div>';
   }).join('');
 }
@@ -1613,14 +1607,20 @@ function renderUsersTable() {
     var roleOpts = ['viewer','seksi','notulen','admin'].map(function(r) {
       return '<option value="' + r + '"' + (u.role === r ? ' selected' : '') + '>' + (ROLE_LABELS[r]||r) + '</option>';
     }).join('');
+    var roleCell = isSelf
+      ? '<span class="role-badge role-' + u.role + '">' + (ROLE_LABELS[u.role]||u.role) + '</span>'
+      : '<span class="role-badge role-' + u.role + '">' + (ROLE_LABELS[u.role]||u.role) + '</span>';
     var actionCell = isSelf
       ? '<span style="font-size:11px;color:var(--text3);">Anda</span>'
-      : '<select class="form-select" style="padding:4px 8px;font-size:11px;width:auto;display:inline-block;" data-uid="' + u.uid + '" onchange="changeUserRole(this.dataset.uid,this.value)">' + roleOpts + '</select>';
+      : '<div style="display:flex;gap:6px;justify-content:flex-end;">'
+          + '<button class="btn btn-ghost btn-sm" onclick="editUser(\'' + u.uid + '\')">✏ Edit</button>'
+          + '<button class="btn btn-danger btn-sm btn-icon" onclick="delUser(\'' + u.uid + '\')">✕</button>'
+          + '</div>';
     rows += '<tr>'
       + '<td><div style="width:32px;height:32px;border-radius:50%;background:' + getRoleColor(u.role) + ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">' + initials(u.nama||u.email) + '</div></td>'
       + '<td style="font-weight:600;">' + (u.nama||'—') + '</td>'
       + '<td style="color:var(--text2);font-size:12px;">' + (u.email||'—') + '</td>'
-      + '<td><span class="role-badge role-' + u.role + '">' + (ROLE_LABELS[u.role]||u.role) + '</span></td>'
+      + '<td>' + roleCell + '</td>'
       + '<td style="color:var(--text3);font-size:12px;">' + (u.seksi||'—') + '</td>'
       + '<td style="text-align:right;">' + actionCell + '</td>'
       + '</tr>';
@@ -1725,23 +1725,9 @@ function openTodoModal(rid) {
   openModal('modal-todo');
 }
 function openKendalaModal(rid) {
-  document.getElementById('mk-edit-id').value = '';
-  document.getElementById('mk-modal-title').textContent = 'Tambah Kendala';
   document.getElementById('mk-desc').value = '';
   document.getElementById('mk-seksi').value = '';
   document.getElementById('mk-rapat').value = rid || '';
-  openModal('modal-kendala');
-}
-
-function editKendala(id) {
-  if (!can('edit_kendala')) { notify('Tidak ada izin', 'error'); return; }
-  var k = localKendala.filter(function(x){return x.id===id;})[0];
-  if (!k) return;
-  document.getElementById('mk-edit-id').value = id;
-  document.getElementById('mk-modal-title').textContent = 'Edit Kendala';
-  document.getElementById('mk-desc').value = k.desc || '';
-  document.getElementById('mk-seksi').value = k.seksi || '';
-  document.getElementById('mk-rapat').value = k.rapatId || '';
   openModal('modal-kendala');
 }
 
@@ -1947,20 +1933,17 @@ function delTodo(id) { if (can('delete_todo')) db.collection('todo').doc(id).del
 function delTodoG(id) { if (can('delete_todo')) db.collection('todo').doc(id).delete(); }
 
 function saveKendala() {
-  var editId = document.getElementById('mk-edit-id').value;
+  if (!can('create_kendala')) { notify('Tidak ada izin', 'error'); return; }
   var desc = document.getElementById('mk-desc').value.trim();
   if (!desc) { notify('Deskripsi wajib diisi', 'error'); return; }
-  if (editId) {
-    if (!can('edit_kendala')) { notify('Tidak ada izin', 'error'); return; }
-    db.collection('kendala').doc(editId).update({ desc:desc, seksi:document.getElementById('mk-seksi').value, rapatId:document.getElementById('mk-rapat').value, updatedBy:currentUser.uid })
-      .then(function() { closeModal('modal-kendala'); notify('Kendala diperbarui!', 'success'); logAktivitas('add_kendala', 'Mengedit kendala: ' + desc.substring(0,50), desc); })
-      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
-  } else {
-    if (!can('create_kendala')) { notify('Tidak ada izin', 'error'); return; }
-    db.collection('kendala').add({ desc:desc, status:'aktif', seksi:document.getElementById('mk-seksi').value, rapatId:document.getElementById('mk-rapat').value, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
-      .then(function() { closeModal('modal-kendala'); notify('Kendala ditambahkan!', 'success'); logAktivitas('add_kendala', 'Menambahkan kendala: ' + desc.substring(0,50), desc); })
-      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
-  }
+  db.collection('kendala').add({ desc:desc, status:'aktif', seksi:document.getElementById('mk-seksi').value, rapatId:document.getElementById('mk-rapat').value, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
+    .then(function() {
+      closeModal('modal-kendala');
+      notify('Kendala ditambahkan!', 'success');
+      var descVal = document.getElementById('mk-desc').value.trim();
+      logAktivitas('add_kendala', 'Menambahkan kendala: ' + descVal.substring(0,50), descVal);
+    })
+    .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
 }
 
 function toggleKendala(id, rid) {
@@ -1968,18 +1951,6 @@ function toggleKendala(id, rid) {
   var k = localKendala.filter(function(x){return x.id===id;})[0];
   if (!k) return;
   db.collection('kendala').doc(id).update({ status: k.status==='aktif'?'selesai':'aktif', updatedBy: currentUser.uid });
-}
-
-function delKendala(id, rid) {
-  if (!can('delete_kendala')) { notify('Tidak ada izin', 'error'); return; }
-  if (!confirm('Hapus kendala ini?')) return;
-  db.collection('kendala').doc(id).delete().then(function() { notify('Kendala dihapus', 'success'); }).catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
-}
-
-function delKendalaG(id) {
-  if (!can('delete_kendala')) { notify('Tidak ada izin', 'error'); return; }
-  if (!confirm('Hapus kendala ini?')) return;
-  db.collection('kendala').doc(id).delete().then(function() { notify('Kendala dihapus', 'success'); }).catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
 }
 
 function saveProgress() {
@@ -2007,11 +1978,32 @@ function editProgress(seksi) {
 
 function saveAnggota() {
   if (!can('manage_anggota')) { notify('Tidak ada izin', 'error'); return; }
+  var editId = document.getElementById('mang-edit-id').value;
   var nama = document.getElementById('mang-nama').value.trim();
   if (!nama) { notify('Nama wajib diisi', 'error'); return; }
-  db.collection('anggota').add({ nama:nama, jabatan:document.getElementById('mang-jabatan').value, kontak:document.getElementById('mang-kontak').value, createdAt:firebase.firestore.FieldValue.serverTimestamp() })
-    .then(function() { closeModal('modal-anggota'); notify('Anggota ditambahkan!', 'success'); })
-    .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  var jabatan = document.getElementById('mang-jabatan').value;
+  var kontak = document.getElementById('mang-kontak').value;
+  if (editId) {
+    db.collection('anggota').doc(editId).update({ nama:nama, jabatan:jabatan, kontak:kontak })
+      .then(function() { closeModal('modal-anggota'); notify('Anggota diperbarui!', 'success'); })
+      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  } else {
+    db.collection('anggota').add({ nama:nama, jabatan:jabatan, kontak:kontak, createdAt:firebase.firestore.FieldValue.serverTimestamp() })
+      .then(function() { closeModal('modal-anggota'); notify('Anggota ditambahkan!', 'success'); })
+      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  }
+}
+
+function editAnggota(id) {
+  if (!can('manage_anggota')) { notify('Tidak ada izin', 'error'); return; }
+  var a = localAnggota.filter(function(x){return x.id===id;})[0];
+  if (!a) return;
+  document.getElementById('mang-edit-id').value = id;
+  document.getElementById('mang-modal-title').textContent = 'Edit Anggota';
+  document.getElementById('mang-nama').value = a.nama || '';
+  document.getElementById('mang-jabatan').value = a.jabatan || '';
+  document.getElementById('mang-kontak').value = a.kontak || '';
+  openModal('modal-anggota');
 }
 
 function delAnggota(id) {
@@ -2021,35 +2013,102 @@ function delAnggota(id) {
 
 function createUser() {
   if (!can('manage_users')) { notify('Tidak ada izin', 'error'); return; }
+  var editUid = document.getElementById('mu-edit-uid').value;
   var nama  = document.getElementById('mu-nama').value.trim();
-  var email = document.getElementById('mu-email').value.trim();
-  var pass  = document.getElementById('mu-pass').value;
   var role  = document.getElementById('mu-role').value;
   var seksi = document.getElementById('mu-seksi').value;
-  if (!nama || !email || !pass) { notify('Semua field wajib diisi', 'error'); return; }
-  if (pass.length < 6) { notify('Password minimal 6 karakter', 'error'); return; }
-  var secondary = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
-  secondary.auth().createUserWithEmailAndPassword(email, pass).then(function(cred) {
-    return db.collection('users').doc(cred.user.uid).set({ nama:nama, email:email, role:role, seksi:seksi, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
+  if (!nama) { notify('Nama wajib diisi', 'error'); return; }
+
+  if (editUid) {
+    // Mode edit - update data pengguna di Firestore
+    var updateData = { nama:nama, role:role, seksi:seksi };
+    db.collection('users').doc(editUid).update(updateData)
       .then(function() {
-        secondary.auth().signOut();
-        secondary.delete();
         closeModal('modal-user');
-        // Reset form
-        ['mu-nama','mu-email','mu-pass'].forEach(function(f){document.getElementById(f).value='';});
-        notify('Akun "' + nama + '" berhasil dibuat!', 'success');
-      });
-  }).catch(function(e) {
-    secondary.delete();
-    var msgs = { 'auth/email-already-in-use':'Email sudah terdaftar.', 'auth/weak-password':'Password terlalu lemah.' };
-    notify(msgs[e.code] || e.message, 'error');
-  });
+        notify('Data pengguna "' + nama + '" diperbarui!', 'success');
+      })
+      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  } else {
+    // Mode tambah baru
+    var email = document.getElementById('mu-email').value.trim();
+    var pass  = document.getElementById('mu-pass').value;
+    if (!email || !pass) { notify('Semua field wajib diisi', 'error'); return; }
+    if (pass.length < 6) { notify('Password minimal 6 karakter', 'error'); return; }
+    var secondary = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
+    secondary.auth().createUserWithEmailAndPassword(email, pass).then(function(cred) {
+      return db.collection('users').doc(cred.user.uid).set({ nama:nama, email:email, role:role, seksi:seksi, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
+        .then(function() {
+          secondary.auth().signOut();
+          secondary.delete();
+          closeModal('modal-user');
+          ['mu-nama','mu-email','mu-pass'].forEach(function(f){document.getElementById(f).value='';});
+          notify('Akun "' + nama + '" berhasil dibuat!', 'success');
+        });
+    }).catch(function(e) {
+      secondary.delete();
+      var msgs = { 'auth/email-already-in-use':'Email sudah terdaftar.', 'auth/weak-password':'Password terlalu lemah.' };
+      notify(msgs[e.code] || e.message, 'error');
+    });
+  }
 }
 
 function changeUserRole(uid, newRole) {
   if (!can('manage_users')) { notify('Tidak ada izin', 'error'); return; }
   db.collection('users').doc(uid).update({ role: newRole })
     .then(function() { notify('Role diperbarui!', 'success'); })
+    .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+}
+
+function openAnggotaModal() {
+  document.getElementById('mang-edit-id').value = '';
+  document.getElementById('mang-modal-title').textContent = 'Tambah Anggota';
+  document.getElementById('mang-nama').value = '';
+  document.getElementById('mang-jabatan').value = '';
+  document.getElementById('mang-kontak').value = '';
+  openModal('modal-anggota');
+}
+
+function openUserModal() {
+  document.getElementById('mu-edit-uid').value = '';
+  document.getElementById('mu-modal-title').textContent = 'Undang Pengguna Baru';
+  document.getElementById('mu-notice-add').style.display = 'block';
+  document.getElementById('mu-notice-edit').style.display = 'none';
+  document.getElementById('mu-nama').value = '';
+  document.getElementById('mu-email').value = '';
+  document.getElementById('mu-pass').value = '';
+  document.getElementById('mu-pass').placeholder = 'Min. 6 karakter';
+  document.getElementById('mu-email-group').style.display = 'block';
+  document.getElementById('mu-email-display').style.display = 'none';
+  document.getElementById('mu-role').value = 'viewer';
+  document.getElementById('mu-seksi').value = '';
+  toggleSeksiField();
+  openModal('modal-user');
+}
+
+function editUser(uid) {
+  if (!can('manage_users')) { notify('Tidak ada izin', 'error'); return; }
+  var u = localUsers.filter(function(x){return x.uid===uid;})[0];
+  if (!u) return;
+  document.getElementById('mu-edit-uid').value = uid;
+  document.getElementById('mu-modal-title').textContent = 'Edit Pengguna';
+  document.getElementById('mu-notice-add').style.display = 'none';
+  document.getElementById('mu-notice-edit').style.display = 'block';
+  document.getElementById('mu-nama').value = u.nama || '';
+  document.getElementById('mu-pass').value = '';
+  document.getElementById('mu-pass').placeholder = 'Kosongkan jika tidak diubah';
+  document.getElementById('mu-email-group').style.display = 'none';
+  document.getElementById('mu-email-display').style.display = 'block';
+  document.getElementById('mu-email-text').textContent = u.email || '';
+  document.getElementById('mu-role').value = u.role || 'viewer';
+  document.getElementById('mu-seksi').value = u.seksi || '';
+  toggleSeksiField();
+  openModal('modal-user');
+}
+
+function delUser(uid) {
+  if (!can('manage_users') || !confirm('Hapus pengguna ini? Akun tidak dapat dipulihkan.')) return;
+  db.collection('users').doc(uid).delete()
+    .then(function() { notify('Pengguna dihapus dari sistem.', 'success'); })
     .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
 }
 
@@ -2095,10 +2154,10 @@ function buildReportHTML(type) {
 
   // RAPAT section
   if (type === 'lengkap') {
-    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Rapat (' + localRapat.length + ')</div><table><thead><tr><th>#</th><th>Nama Rapat</th><th>Tanggal</th><th>Lokasi</th><th>Pimpinan</th><th>Notulen</th><th>Peserta</th><th>Status</th><th>Agenda</th></tr></thead><tbody>';
+    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Rapat (' + localRapat.length + ')</div><table><thead><tr><th>#</th><th>Nama Rapat</th><th>Tanggal</th><th>Lokasi</th><th>Pimpinan</th><th>Notulen</th><th>Status</th><th>Agenda</th></tr></thead><tbody>';
     localRapat.forEach(function(r, i) {
       var agCount = localAgenda.filter(function(a){return a.rapatId===r.id;}).length;
-      html += '<tr><td>' + (i+1) + '</td><td><strong>' + (r.nama||'—') + '</strong>' + (r.catatan ? '<br><span style="color:#6b7280;font-size:11px;">' + r.catatan.substring(0,80) + '</span>' : '') + '</td><td style="white-space:nowrap;">' + fmtDate(r.tanggal) + '</td><td>' + (r.lokasi||'—') + '</td><td>' + (r.pimpinan||'—') + '</td><td>' + (r.notulen||'—') + '</td><td style="font-size:11px;">' + (r.peserta||'—') + '</td><td><span class="badge b-' + r.status + '">' + statusStr(r.status) + '</span></td><td style="text-align:center;">' + agCount + '</td></tr>';
+      html += '<tr><td>' + (i+1) + '</td><td><strong>' + (r.nama||'—') + '</strong>' + (r.catatan ? '<br><span style="color:#6b7280;font-size:11px;">' + r.catatan.substring(0,80) + '</span>' : '') + '</td><td style="white-space:nowrap;">' + fmtDate(r.tanggal) + '</td><td>' + (r.lokasi||'—') + '</td><td>' + (r.pimpinan||'—') + '</td><td>' + (r.notulen||'—') + '</td><td><span class="badge b-' + r.status + '">' + statusStr(r.status) + '</span></td><td style="text-align:center;">' + agCount + '</td></tr>';
     });
     html += '</tbody></table></div>';
     // Agenda per rapat
