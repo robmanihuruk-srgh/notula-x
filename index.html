@@ -743,8 +743,9 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 
 <div class="modal-overlay" id="modal-kendala">
   <div class="modal" style="max-width:520px;">
-    <div class="modal-header"><span class="modal-title">Tambah Kendala</span><button class="close-btn" onclick="closeModal('modal-kendala')">×</button></div>
+    <div class="modal-header"><span class="modal-title" id="mk-modal-title">Tambah Kendala</span><button class="close-btn" onclick="closeModal('modal-kendala')">×</button></div>
     <div class="modal-body">
+      <input type="hidden" id="mk-edit-id" value="" />
       <div class="form-group"><label class="form-label">Deskripsi Kendala *</label><textarea class="form-textarea" id="mk-desc" placeholder="Jelaskan kendala..."></textarea></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Seksi</label><select class="form-select" id="mk-seksi"><option value="">— Umum —</option></select></div>
@@ -893,6 +894,8 @@ function can(action) {
     delete_todo:     ['admin','notulen'],
     create_kendala:  ['admin','notulen','seksi'],
     toggle_kendala:  ['admin','notulen'],
+    edit_kendala:    ['admin','notulen'],
+    delete_kendala:  ['admin','notulen'],
     update_progress: ['admin','notulen','seksi'],
     manage_users:    ['admin'],
     manage_anggota:  ['admin','notulen']
@@ -1436,6 +1439,8 @@ function renderKendalaTab(rid) {
       + '<div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0;">'
       + '<span class="tag ' + (k.status==='selesai'?'tag-green':'tag-red') + '" style="font-size:10px;">' + (k.status==='selesai'?'Selesai':'Aktif') + '</span>'
       + (can('toggle_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="toggleKendala(\'' + k.id + '\',\'' + rid + '\')">' + (k.status==='selesai'?'Buka':'Tutup') + '</button>' : '')
+      + (can('edit_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="editKendala(\'' + k.id + '\')">✏</button>' : '')
+      + (can('delete_kendala') ? '<button class="btn btn-danger btn-sm btn-icon" onclick="delKendala(\'' + k.id + '\',\'' + rid + '\')">✕</button>' : '')
       + '</div></div>';
   });
   cont.innerHTML = html;
@@ -1515,7 +1520,11 @@ function renderKendalaGlobal() {
       html += '<div class="kendala-item">'
         + '<div class="kendala-num">' + (i+1) + '</div>'
         + '<div><div class="kendala-text">' + k.desc + '</div>' + (k.seksi?'<span class="tag tag-teal" style="font-size:10px;margin-top:6px;display:inline-block;">'+k.seksi+'</span>':'') + '</div>'
-        + '<div style="margin-left:auto;flex-shrink:0;">' + (can('toggle_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="toggleKendala(\'' + k.id + '\',null)">Tandai Selesai</button>' : '') + '</div>'
+        + '<div style="margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;">'
+        + (can('toggle_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="toggleKendala(\'' + k.id + '\',null)">Tandai Selesai</button>' : '')
+        + (can('edit_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="editKendala(\'' + k.id + '\')">✏</button>' : '')
+        + (can('delete_kendala') ? '<button class="btn btn-danger btn-sm btn-icon" onclick="delKendalaG(\'' + k.id + '\')">✕</button>' : '')
+        + '</div>'
         + '</div>';
     });
   }
@@ -1525,7 +1534,11 @@ function renderKendalaGlobal() {
       html += '<div class="kendala-item" style="opacity:.5;">'
         + '<div class="kendala-num" style="background:rgba(52,211,153,0.15);color:var(--green);">✓</div>'
         + '<div class="kendala-text" style="text-decoration:line-through;">' + k.desc + '</div>'
-        + (can('toggle_kendala') ? '<button class="btn btn-ghost btn-sm" style="margin-left:auto;flex-shrink:0;" onclick="toggleKendala(\'' + k.id + '\',null)">Buka</button>' : '')
+        + '<div style="margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;">'
+        + (can('toggle_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="toggleKendala(\'' + k.id + '\',null)">Buka</button>' : '')
+        + (can('edit_kendala') ? '<button class="btn btn-ghost btn-sm" onclick="editKendala(\'' + k.id + '\')">✏</button>' : '')
+        + (can('delete_kendala') ? '<button class="btn btn-danger btn-sm btn-icon" onclick="delKendalaG(\'' + k.id + '\')">✕</button>' : '')
+        + '</div>'
         + '</div>';
     });
   }
@@ -1712,9 +1725,23 @@ function openTodoModal(rid) {
   openModal('modal-todo');
 }
 function openKendalaModal(rid) {
+  document.getElementById('mk-edit-id').value = '';
+  document.getElementById('mk-modal-title').textContent = 'Tambah Kendala';
   document.getElementById('mk-desc').value = '';
   document.getElementById('mk-seksi').value = '';
   document.getElementById('mk-rapat').value = rid || '';
+  openModal('modal-kendala');
+}
+
+function editKendala(id) {
+  if (!can('edit_kendala')) { notify('Tidak ada izin', 'error'); return; }
+  var k = localKendala.filter(function(x){return x.id===id;})[0];
+  if (!k) return;
+  document.getElementById('mk-edit-id').value = id;
+  document.getElementById('mk-modal-title').textContent = 'Edit Kendala';
+  document.getElementById('mk-desc').value = k.desc || '';
+  document.getElementById('mk-seksi').value = k.seksi || '';
+  document.getElementById('mk-rapat').value = k.rapatId || '';
   openModal('modal-kendala');
 }
 
@@ -1920,17 +1947,20 @@ function delTodo(id) { if (can('delete_todo')) db.collection('todo').doc(id).del
 function delTodoG(id) { if (can('delete_todo')) db.collection('todo').doc(id).delete(); }
 
 function saveKendala() {
-  if (!can('create_kendala')) { notify('Tidak ada izin', 'error'); return; }
+  var editId = document.getElementById('mk-edit-id').value;
   var desc = document.getElementById('mk-desc').value.trim();
   if (!desc) { notify('Deskripsi wajib diisi', 'error'); return; }
-  db.collection('kendala').add({ desc:desc, status:'aktif', seksi:document.getElementById('mk-seksi').value, rapatId:document.getElementById('mk-rapat').value, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
-    .then(function() {
-      closeModal('modal-kendala');
-      notify('Kendala ditambahkan!', 'success');
-      var descVal = document.getElementById('mk-desc').value.trim();
-      logAktivitas('add_kendala', 'Menambahkan kendala: ' + descVal.substring(0,50), descVal);
-    })
-    .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  if (editId) {
+    if (!can('edit_kendala')) { notify('Tidak ada izin', 'error'); return; }
+    db.collection('kendala').doc(editId).update({ desc:desc, seksi:document.getElementById('mk-seksi').value, rapatId:document.getElementById('mk-rapat').value, updatedBy:currentUser.uid })
+      .then(function() { closeModal('modal-kendala'); notify('Kendala diperbarui!', 'success'); logAktivitas('add_kendala', 'Mengedit kendala: ' + desc.substring(0,50), desc); })
+      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  } else {
+    if (!can('create_kendala')) { notify('Tidak ada izin', 'error'); return; }
+    db.collection('kendala').add({ desc:desc, status:'aktif', seksi:document.getElementById('mk-seksi').value, rapatId:document.getElementById('mk-rapat').value, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
+      .then(function() { closeModal('modal-kendala'); notify('Kendala ditambahkan!', 'success'); logAktivitas('add_kendala', 'Menambahkan kendala: ' + desc.substring(0,50), desc); })
+      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  }
 }
 
 function toggleKendala(id, rid) {
@@ -1938,6 +1968,18 @@ function toggleKendala(id, rid) {
   var k = localKendala.filter(function(x){return x.id===id;})[0];
   if (!k) return;
   db.collection('kendala').doc(id).update({ status: k.status==='aktif'?'selesai':'aktif', updatedBy: currentUser.uid });
+}
+
+function delKendala(id, rid) {
+  if (!can('delete_kendala')) { notify('Tidak ada izin', 'error'); return; }
+  if (!confirm('Hapus kendala ini?')) return;
+  db.collection('kendala').doc(id).delete().then(function() { notify('Kendala dihapus', 'success'); }).catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+}
+
+function delKendalaG(id) {
+  if (!can('delete_kendala')) { notify('Tidak ada izin', 'error'); return; }
+  if (!confirm('Hapus kendala ini?')) return;
+  db.collection('kendala').doc(id).delete().then(function() { notify('Kendala dihapus', 'success'); }).catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
 }
 
 function saveProgress() {
@@ -2053,10 +2095,10 @@ function buildReportHTML(type) {
 
   // RAPAT section
   if (type === 'lengkap') {
-    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Rapat (' + localRapat.length + ')</div><table><thead><tr><th>#</th><th>Nama Rapat</th><th>Tanggal</th><th>Lokasi</th><th>Pimpinan</th><th>Notulen</th><th>Status</th><th>Agenda</th></tr></thead><tbody>';
+    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Rapat (' + localRapat.length + ')</div><table><thead><tr><th>#</th><th>Nama Rapat</th><th>Tanggal</th><th>Lokasi</th><th>Pimpinan</th><th>Notulen</th><th>Peserta</th><th>Status</th><th>Agenda</th></tr></thead><tbody>';
     localRapat.forEach(function(r, i) {
       var agCount = localAgenda.filter(function(a){return a.rapatId===r.id;}).length;
-      html += '<tr><td>' + (i+1) + '</td><td><strong>' + (r.nama||'—') + '</strong>' + (r.catatan ? '<br><span style="color:#6b7280;font-size:11px;">' + r.catatan.substring(0,80) + '</span>' : '') + '</td><td style="white-space:nowrap;">' + fmtDate(r.tanggal) + '</td><td>' + (r.lokasi||'—') + '</td><td>' + (r.pimpinan||'—') + '</td><td>' + (r.notulen||'—') + '</td><td><span class="badge b-' + r.status + '">' + statusStr(r.status) + '</span></td><td style="text-align:center;">' + agCount + '</td></tr>';
+      html += '<tr><td>' + (i+1) + '</td><td><strong>' + (r.nama||'—') + '</strong>' + (r.catatan ? '<br><span style="color:#6b7280;font-size:11px;">' + r.catatan.substring(0,80) + '</span>' : '') + '</td><td style="white-space:nowrap;">' + fmtDate(r.tanggal) + '</td><td>' + (r.lokasi||'—') + '</td><td>' + (r.pimpinan||'—') + '</td><td>' + (r.notulen||'—') + '</td><td style="font-size:11px;">' + (r.peserta||'—') + '</td><td><span class="badge b-' + r.status + '">' + statusStr(r.status) + '</span></td><td style="text-align:center;">' + agCount + '</td></tr>';
     });
     html += '</tbody></table></div>';
     // Agenda per rapat
