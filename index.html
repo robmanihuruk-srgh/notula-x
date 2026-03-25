@@ -175,6 +175,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .kendala-item{display:flex;gap:12px;padding:12px 14px;background:rgba(248,113,113,0.05);border:1px solid rgba(248,113,113,0.15);border-radius:var(--radius-sm);margin-bottom:8px;}
 .kendala-num{width:22px;height:22px;border-radius:50%;background:rgba(248,113,113,0.15);color:var(--red);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
 .kendala-text{font-size:13px;color:var(--text2);line-height:1.6;flex:1;}
+/* PRIORITY BADGES */
+.pri-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;flex-shrink:0;}
+.pri-tinggi{background:rgba(248,113,113,0.15);color:#dc2626;}
+.pri-sedang{background:rgba(251,191,36,0.15);color:#b45309;}
+.pri-rendah{background:rgba(52,211,153,0.15);color:#059669;}
+/* DRAG HANDLE */
+.drag-handle{cursor:grab;color:var(--text3);font-size:14px;padding:0 4px;user-select:none;display:flex;align-items:center;}
+.drag-handle:active{cursor:grabbing;}
+.agenda-table tr.drag-over{background:rgba(91,138,240,0.08);}
+.agenda-table tr{transition:background .15s;}
 
 /* PROGRESS */
 .prog-row{display:grid;grid-template-columns:140px 1fr 90px 100px;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);}
@@ -584,7 +594,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
     <div class="section" id="section-users">
       <div class="section-header">
         <div><div class="section-heading">Kelola Pengguna</div><div class="section-sub">Undang anggota & atur hak akses</div></div>
-        <button class="btn btn-primary" id="btn-user-new" onclick="openUserModal()">＋ Undang Pengguna</button>
+        <button class="btn btn-primary" id="btn-user-new" onclick="openModal('modal-user')">＋ Undang Pengguna</button>
       </div>
       <div class="notice notice-info">ℹ Pengguna baru akan mendapat akun dengan password yang Anda tentukan. Pastikan email valid.</div>
       <div class="card card-pad">
@@ -599,7 +609,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
     <div class="section" id="section-anggota">
       <div class="section-header">
         <div><div class="section-heading">Anggota Tim</div></div>
-        <button class="btn btn-primary" id="btn-anggota-new" onclick="openAnggotaModal()">＋ Tambah Anggota</button>
+        <button class="btn btn-primary" id="btn-anggota-new" onclick="openModal('modal-anggota')">＋ Tambah Anggota</button>
       </div>
       <div id="anggota-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;"></div>
     </div>
@@ -720,7 +730,10 @@ input[type=range]{flex:1;accent-color:var(--accent);}
       <input type="hidden" id="ma-rapat-id" /><input type="hidden" id="ma-id" /><input type="hidden" id="ma-mode" value="add" />
       <div class="form-group"><label class="form-label">Topik *</label><input class="form-input" id="ma-topik" placeholder="Nama topik..." /></div>
       <div class="form-group"><label class="form-label">Pembahasan *</label><textarea class="form-textarea" style="min-height:120px;" id="ma-pembahasan" placeholder="Isi pembahasan dan keputusan..."></textarea></div>
-      <div class="form-group"><label class="form-label">Seksi Terkait</label><select class="form-select" id="ma-seksi"><option value="">— Tidak ada —</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Seksi Terkait</label><select class="form-select" id="ma-seksi"><option value="">— Tidak ada —</option></select></div>
+        <div class="form-group"><label class="form-label">Prioritas</label><select class="form-select" id="ma-prioritas"><option value="">— Pilih —</option><option value="tinggi">🔴 Tinggi</option><option value="sedang">🟡 Sedang</option><option value="rendah">🟢 Rendah</option></select></div>
+      </div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-agenda')">Batal</button><button class="btn btn-primary" onclick="saveAgenda()">Simpan</button></div>
   </div>
@@ -735,21 +748,28 @@ input[type=range]{flex:1;accent-color:var(--accent);}
         <div class="form-group"><label class="form-label">Seksi / PIC</label><select class="form-select" id="mt-seksi"><option value="">Pilih Seksi</option></select></div>
         <div class="form-group"><label class="form-label">Rapat Terkait</label><select class="form-select" id="mt-rapat"><option value="">Pilih Rapat</option></select></div>
       </div>
-      <div class="form-group"><label class="form-label">Deadline</label><input class="form-input" id="mt-deadline" type="date" /></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Deadline</label><input class="form-input" id="mt-deadline" type="date" /></div>
+        <div class="form-group"><label class="form-label">Prioritas</label><select class="form-select" id="mt-prioritas"><option value="">— Pilih —</option><option value="tinggi">🔴 Tinggi</option><option value="sedang">🟡 Sedang</option><option value="rendah">🟢 Rendah</option></select></div>
+      </div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-todo')">Batal</button><button class="btn btn-primary" onclick="saveTodo()">Simpan</button></div>
   </div>
 </div>
 
 <div class="modal-overlay" id="modal-kendala">
-  <div class="modal" style="max-width:520px;">
-    <div class="modal-header"><span class="modal-title">Tambah Kendala</span><button class="close-btn" onclick="closeModal('modal-kendala')">×</button></div>
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header"><span class="modal-title" id="mk-modal-title">Tambah Kendala</span><button class="close-btn" onclick="closeModal('modal-kendala')">×</button></div>
     <div class="modal-body">
+      <input type="hidden" id="mk-edit-id" value="" />
       <div class="form-group"><label class="form-label">Deskripsi Kendala *</label><textarea class="form-textarea" id="mk-desc" placeholder="Jelaskan kendala..."></textarea></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Seksi</label><select class="form-select" id="mk-seksi"><option value="">— Umum —</option></select></div>
-        <div class="form-group"><label class="form-label">Rapat</label><select class="form-select" id="mk-rapat"><option value="">Pilih Rapat</option></select></div>
+        <div class="form-group"><label class="form-label">Prioritas</label><select class="form-select" id="mk-prioritas"><option value="">— Pilih —</option><option value="tinggi">🔴 Tinggi</option><option value="sedang">🟡 Sedang</option><option value="rendah">🟢 Rendah</option></select></div>
       </div>
+      <div class="form-group"><label class="form-label">Rapat</label><select class="form-select" id="mk-rapat"><option value="">Pilih Rapat</option></select></div>
+      <div class="form-group"><label class="form-label">Solusi</label><textarea class="form-textarea" id="mk-solusi" placeholder="Tuliskan solusi yang diusulkan..." style="min-height:70px;"></textarea></div>
+      <div class="form-group"><label class="form-label">Rencana Penyelesaian</label><textarea class="form-textarea" id="mk-rencana" placeholder="Langkah-langkah penyelesaian dan target waktu..." style="min-height:70px;"></textarea></div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-kendala')">Batal</button><button class="btn btn-primary" onclick="saveKendala()">Simpan</button></div>
   </div>
@@ -779,15 +799,12 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 
 <div class="modal-overlay" id="modal-user">
   <div class="modal" style="max-width:480px;">
-    <div class="modal-header"><span class="modal-title" id="mu-modal-title">Undang Pengguna Baru</span><button class="close-btn" onclick="closeModal('modal-user')">×</button></div>
+    <div class="modal-header"><span class="modal-title">Undang Pengguna Baru</span><button class="close-btn" onclick="closeModal('modal-user')">×</button></div>
     <div class="modal-body">
-      <input type="hidden" id="mu-edit-uid" value="" />
-      <div class="notice notice-info" id="mu-notice-add">ℹ Pastikan email valid. Pengguna dapat ganti password melalui menu profil di sidebar setelah login.</div>
-      <div class="notice notice-info" id="mu-notice-edit" style="display:none;">ℹ Kosongkan password jika tidak ingin mengubah password pengguna.</div>
+      <div class="notice notice-info">ℹ Pastikan email valid. Pengguna dapat ganti password melalui menu profil di sidebar setelah login.</div>
       <div class="form-group"><label class="form-label">Nama Lengkap *</label><input class="form-input" id="mu-nama" placeholder="Nama anggota..." /></div>
-      <div class="form-group" id="mu-email-group"><label class="form-label">Email *</label><input class="form-input" id="mu-email" type="email" placeholder="email@domain.com" /></div>
-      <div class="form-group" id="mu-email-display" style="display:none;"><label class="form-label">Email</label><div id="mu-email-text" style="font-size:13px;color:var(--text2);padding:8px 12px;background:var(--bg3);border-radius:var(--radius-sm);"></div></div>
-      <div class="form-group" id="mu-pass-group"><label class="form-label">Password Sementara *</label><input class="form-input" id="mu-pass" type="password" placeholder="Min. 6 karakter" /></div>
+      <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="mu-email" type="email" placeholder="email@domain.com" /></div>
+      <div class="form-group"><label class="form-label">Password Sementara *</label><input class="form-input" id="mu-pass" type="password" placeholder="Min. 6 karakter" /></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Role *</label>
           <select class="form-select" id="mu-role" onchange="toggleSeksiField()">
@@ -808,9 +825,8 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 
 <div class="modal-overlay" id="modal-anggota">
   <div class="modal" style="max-width:460px;">
-    <div class="modal-header"><span class="modal-title" id="mang-modal-title">Tambah Anggota</span><button class="close-btn" onclick="closeModal('modal-anggota')">×</button></div>
+    <div class="modal-header"><span class="modal-title">Tambah Anggota</span><button class="close-btn" onclick="closeModal('modal-anggota')">×</button></div>
     <div class="modal-body">
-      <input type="hidden" id="mang-edit-id" value="" />
       <div class="form-group"><label class="form-label">Nama *</label><input class="form-input" id="mang-nama" placeholder="Nama anggota..." /></div>
       <div class="form-group"><label class="form-label">Jabatan / Seksi</label><input class="form-input" id="mang-jabatan" placeholder="Ketua, Sekretaris, Seksi Acara..." /></div>
       <div class="form-group"><label class="form-label">No. HP</label><input class="form-input" id="mang-kontak" placeholder="08xx..." /></div>
@@ -822,6 +838,13 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 <script>
 // ═══════════════════════════════════════════════════════════════
 // NOTULA — FIREBASE + FULL APP SCRIPT
+// ── PRIORITY BADGE HELPER ──
+function priBadge(p) {
+  if (!p) return '';
+  var map = { tinggi:'🔴 Tinggi', sedang:'🟡 Sedang', rendah:'🟢 Rendah' };
+  var cls = { tinggi:'pri-tinggi', sedang:'pri-sedang', rendah:'pri-rendah' };
+  return '<span class="pri-badge ' + (cls[p]||'') + '">' + (map[p]||p) + '</span>';
+}
 // Struktur: 1 script, tidak ada duplikasi, tidak ada _orig pattern
 // ═══════════════════════════════════════════════════════════════
 
@@ -1359,26 +1382,86 @@ function showDTab(tab, el) {
 function renderAgendaTab(rid) {
   var list = localAgenda.filter(function(a) { return a.rapatId === rid; }).sort(function(a,b) { return (a.no||0)-(b.no||0); });
   var cont = document.getElementById('dtab-agenda');
-  var html = can('create_agenda')
-    ? '<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn btn-primary btn-sm" onclick="openAgendaModal(\'' + rid + '\')">＋ Agenda</button></div>' : '';
-  if (!list.length) { cont.innerHTML = html + '<div class="empty"><div class="empty-text">Belum ada agenda.</div></div>'; return; }
   var canEdit = can('create_agenda');
   var canDel  = can('delete_agenda');
-  html += '<table class="agenda-table"><thead><tr><th style="width:30px;">No</th><th style="min-width:100px;">Topik</th><th>Pembahasan</th><th style="min-width:90px;">Seksi</th>'
-    + (canEdit || canDel ? '<th style="width:80px;"></th>' : '') + '</tr></thead><tbody>';
+  var html = canEdit
+    ? '<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button class="btn btn-primary btn-sm" onclick="openAgendaModal(\'' + rid + '\')">＋ Agenda</button></div>' : '';
+  if (!list.length) { cont.innerHTML = html + '<div class="empty"><div class="empty-text">Belum ada agenda.</div></div>'; return; }
+  if (canEdit) html += '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">☰ Seret baris untuk mengubah urutan agenda</div>';
+  html += '<table class="agenda-table" id="agenda-sort-table"><thead><tr>'
+    + (canEdit ? '<th style="width:22px;"></th>' : '')
+    + '<th style="width:30px;">No</th><th style="min-width:100px;">Topik</th><th>Pembahasan</th><th style="width:80px;">Seksi</th><th style="width:70px;">Prioritas</th>'
+    + (canEdit || canDel ? '<th style="width:80px;"></th>' : '') + '</tr></thead><tbody id="agenda-tbody">';
   list.forEach(function(a, i) {
     var actBtn = '';
-    if (canEdit) actBtn += '<button class="btn btn-ghost btn-sm btn-icon" onclick="editAgenda(\'' + a.id + '\')" title="Edit Agenda">✏</button>';
+    if (canEdit) actBtn += '<button class="btn btn-ghost btn-sm btn-icon" onclick="editAgenda(\'' + a.id + '\')" title="Edit">✏</button>';
     if (canDel)  actBtn += '<button class="btn btn-danger btn-sm btn-icon" onclick="delAgenda(\'' + a.id + '\',\'' + rid + '\')" title="Hapus">✕</button>';
-    html += '<tr><td style="font-weight:700;color:var(--text3);font-size:12px;">' + (i+1) + '</td>'
+    html += '<tr data-id="' + a.id + '" data-no="' + (a.no||i+1) + '">'
+      + (canEdit ? '<td><span class="drag-handle" title="Seret untuk ubah urutan">☰</span></td>' : '')
+      + '<td style="font-weight:700;color:var(--text3);font-size:12px;">' + (i+1) + '</td>'
       + '<td style="font-weight:600;padding-right:12px;vertical-align:top;">' + a.topik + '</td>'
       + '<td style="color:var(--text2);line-height:1.6;">' + (a.pembahasan||'').replace(/\n/g,'<br>') + '</td>'
-      + '<td>' + (a.seksi ? '<span class="tag tag-teal" style="font-size:10px;">' + a.seksi + '</span>' : '') + '</td>'
+      + '<td>' + (a.seksi ? '<span class="tag tag-teal" style="font-size:10px;">' + a.seksi + '</span>' : '—') + '</td>'
+      + '<td>' + priBadge(a.prioritas) + '</td>'
       + (actBtn ? '<td style="white-space:nowrap;">' + actBtn + '</td>' : '')
       + '</tr>';
   });
   html += '</tbody></table>';
   cont.innerHTML = html;
+  if (canEdit) initAgendaDrag(rid);
+}
+
+function initAgendaDrag(rid) {
+  var tbody = document.getElementById('agenda-tbody');
+  if (!tbody) return;
+  var dragged = null;
+  tbody.querySelectorAll('tr').forEach(function(row) {
+    var handle = row.querySelector('.drag-handle');
+    if (!handle) return;
+    handle.addEventListener('mousedown', function(e) {
+      dragged = row;
+      row.style.opacity = '0.5';
+    });
+  });
+  tbody.addEventListener('dragover', function(e) { e.preventDefault(); });
+  document.addEventListener('mouseup', function() {
+    if (dragged) { dragged.style.opacity = '1'; dragged = null; }
+  });
+  // Make rows draggable
+  tbody.querySelectorAll('tr').forEach(function(row) {
+    row.setAttribute('draggable','true');
+    row.addEventListener('dragstart', function(e) {
+      dragged = row;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(function(){row.style.opacity='0.4';},0);
+    });
+    row.addEventListener('dragend', function() { row.style.opacity='1'; });
+    row.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      if (dragged && dragged !== row) row.classList.add('drag-over');
+    });
+    row.addEventListener('dragleave', function() { row.classList.remove('drag-over'); });
+    row.addEventListener('drop', function(e) {
+      e.preventDefault();
+      row.classList.remove('drag-over');
+      if (!dragged || dragged === row) return;
+      tbody.insertBefore(dragged, row);
+      saveAgendaOrder(rid);
+    });
+  });
+}
+
+function saveAgendaOrder(rid) {
+  var tbody = document.getElementById('agenda-tbody');
+  if (!tbody) return;
+  var rows = tbody.querySelectorAll('tr');
+  var batch = db.batch();
+  rows.forEach(function(row, i) {
+    var id = row.getAttribute('data-id');
+    if (id) batch.update(db.collection('agenda').doc(id), { no: i+1 });
+  });
+  batch.commit().then(function() { notify('Urutan agenda disimpan!', 'success'); })
+    .catch(function(e) { notify('Gagal simpan urutan: ' + e.message, 'error'); });
 }
 
 // ── TODO TAB ──
@@ -1397,6 +1480,7 @@ function renderTodoTab(rid) {
       html += '<div class="todo-item">'
         + '<div class="todo-check' + (t.done?' done':'') + (canTog?'':' readonly') + '" onclick="' + (canTog?'toggleTodo(\'' + t.id + '\',\'' + rid + '\')':'') + '"></div>'
         + '<div class="todo-text' + (t.done?' done':'') + '">' + t.tugas + '</div>'
+        + (t.prioritas ? priBadge(t.prioritas) : '')
         + (t.deadline ? '<span class="todo-chip">⏰ ' + formatTanggal(t.deadline) + '</span>' : '')
         + (can('delete_todo') ? '<button class="btn btn-danger btn-sm btn-icon" onclick="delTodo(\'' + t.id + '\',\'' + rid + '\')">✕</button>' : '')
         + '</div>';
@@ -1488,6 +1572,7 @@ function renderGlobalTodo() {
       html += '<div class="todo-item">'
         + '<div class="todo-check' + (t.done?' done':'') + (canTog?'':' readonly') + '" onclick="' + (canTog?'toggleTodoG(\'' + t.id + '\')':'') + '"></div>'
         + '<div class="todo-text' + (t.done?' done':'') + '">' + t.tugas + '</div>'
+        + (t.prioritas ? priBadge(t.prioritas) : '')
         + (r ? '<span class="todo-chip">' + getDay(r.tanggal) + ' ' + getMonth(r.tanggal) + '</span>' : '')
         + (t.deadline ? '<span class="todo-chip">⏰ ' + formatTanggal(t.deadline) + '</span>' : '')
         + (can('delete_todo') ? '<button class="btn btn-danger btn-sm btn-icon" onclick="delTodoG(\'' + t.id + '\')">✕</button>' : '')
@@ -1548,10 +1633,7 @@ function renderAnggota() {
       + '<div style="font-size:14px;font-weight:600;margin-bottom:3px;">' + a.nama + '</div>'
       + '<div style="font-size:12px;color:var(--text3);">' + (a.jabatan||'—') + '</div>'
       + (a.kontak ? '<div style="font-size:11px;color:var(--accent);margin-top:4px;">' + a.kontak + '</div>' : '')
-      + (can('manage_anggota') ? '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">'
-          + '<button class="btn btn-ghost btn-sm" onclick="editAnggota(\'' + a.id + '\')">✏ Edit</button>'
-          + '<button class="btn btn-danger btn-sm" onclick="delAnggota(\'' + a.id + '\')">✕ Hapus</button>'
-          + '</div>' : '')
+      + (can('manage_anggota') ? '<button class="btn btn-danger btn-sm" style="margin-top:12px;" onclick="delAnggota(\'' + a.id + '\')">Hapus</button>' : '')
       + '</div>';
   }).join('');
 }
@@ -1607,20 +1689,14 @@ function renderUsersTable() {
     var roleOpts = ['viewer','seksi','notulen','admin'].map(function(r) {
       return '<option value="' + r + '"' + (u.role === r ? ' selected' : '') + '>' + (ROLE_LABELS[r]||r) + '</option>';
     }).join('');
-    var roleCell = isSelf
-      ? '<span class="role-badge role-' + u.role + '">' + (ROLE_LABELS[u.role]||u.role) + '</span>'
-      : '<span class="role-badge role-' + u.role + '">' + (ROLE_LABELS[u.role]||u.role) + '</span>';
     var actionCell = isSelf
       ? '<span style="font-size:11px;color:var(--text3);">Anda</span>'
-      : '<div style="display:flex;gap:6px;justify-content:flex-end;">'
-          + '<button class="btn btn-ghost btn-sm" onclick="editUser(\'' + u.uid + '\')">✏ Edit</button>'
-          + '<button class="btn btn-danger btn-sm btn-icon" onclick="delUser(\'' + u.uid + '\')">✕</button>'
-          + '</div>';
+      : '<select class="form-select" style="padding:4px 8px;font-size:11px;width:auto;display:inline-block;" data-uid="' + u.uid + '" onchange="changeUserRole(this.dataset.uid,this.value)">' + roleOpts + '</select>';
     rows += '<tr>'
       + '<td><div style="width:32px;height:32px;border-radius:50%;background:' + getRoleColor(u.role) + ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">' + initials(u.nama||u.email) + '</div></td>'
       + '<td style="font-weight:600;">' + (u.nama||'—') + '</td>'
       + '<td style="color:var(--text2);font-size:12px;">' + (u.email||'—') + '</td>'
-      + '<td>' + roleCell + '</td>'
+      + '<td><span class="role-badge role-' + u.role + '">' + (ROLE_LABELS[u.role]||u.role) + '</span></td>'
       + '<td style="color:var(--text3);font-size:12px;">' + (u.seksi||'—') + '</td>'
       + '<td style="text-align:right;">' + actionCell + '</td>'
       + '</tr>';
@@ -1701,6 +1777,7 @@ function openAgendaModal(rid) {
   document.getElementById('ma-topik').value = '';
   document.getElementById('ma-pembahasan').value = '';
   document.getElementById('ma-seksi').value = '';
+  document.getElementById('ma-prioritas').value = '';
   openModal('modal-agenda');
 }
 
@@ -1714,11 +1791,13 @@ function editAgenda(id) {
   document.getElementById('ma-topik').value      = a.topik      || '';
   document.getElementById('ma-pembahasan').value = a.pembahasan || '';
   document.getElementById('ma-seksi').value      = a.seksi      || '';
+  document.getElementById('ma-prioritas').value  = a.prioritas  || '';
   openModal('modal-agenda');
 }
 function openTodoModal(rid) {
   document.getElementById('mt-tugas').value = '';
   document.getElementById('mt-deadline').value = '';
+  document.getElementById('mt-prioritas').value = '';
   var ms = document.getElementById('mt-seksi');
   ms.value = (currentProfile && currentProfile.role === 'seksi') ? currentProfile.seksi : '';
   document.getElementById('mt-rapat').value = rid || '';
@@ -1880,9 +1959,10 @@ function saveAgenda() {
   var editId = document.getElementById('ma-id').value;
   var mode   = document.getElementById('ma-mode').value;
   var seksi  = document.getElementById('ma-seksi').value;
+  var prioritas = document.getElementById('ma-prioritas').value;
   if (mode === 'edit' && editId) {
     db.collection('agenda').doc(editId).update({
-      topik: topik, pembahasan: pembahasan, seksi: seksi,
+      topik: topik, pembahasan: pembahasan, seksi: seksi, prioritas: prioritas,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: currentUser.uid
     }).then(function() {
@@ -1893,7 +1973,7 @@ function saveAgenda() {
   } else {
     var cnt = localAgenda.filter(function(a){return a.rapatId===rid;}).length;
     db.collection('agenda').add({
-      rapatId:rid, no:cnt+1, topik:topik, pembahasan:pembahasan, seksi:seksi,
+      rapatId:rid, no:cnt+1, topik:topik, pembahasan:pembahasan, seksi:seksi, prioritas:prioritas,
       createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid
     }).then(function() {
       closeModal('modal-agenda');
@@ -1912,7 +1992,7 @@ function saveTodo() {
   if (!can('create_todo')) { notify('Tidak ada izin', 'error'); return; }
   var tugas = document.getElementById('mt-tugas').value.trim();
   if (!tugas) { notify('Tugas wajib diisi', 'error'); return; }
-  db.collection('todo').add({ tugas:tugas, done:false, seksi:document.getElementById('mt-seksi').value, rapatId:document.getElementById('mt-rapat').value, deadline:document.getElementById('mt-deadline').value, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
+  db.collection('todo').add({ tugas:tugas, done:false, seksi:document.getElementById('mt-seksi').value, rapatId:document.getElementById('mt-rapat').value, deadline:document.getElementById('mt-deadline').value, prioritas:document.getElementById('mt-prioritas').value, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
     .then(function() { closeModal('modal-todo'); notify('Tugas ditambahkan!', 'success'); })
     .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
 }
@@ -1978,32 +2058,11 @@ function editProgress(seksi) {
 
 function saveAnggota() {
   if (!can('manage_anggota')) { notify('Tidak ada izin', 'error'); return; }
-  var editId = document.getElementById('mang-edit-id').value;
   var nama = document.getElementById('mang-nama').value.trim();
   if (!nama) { notify('Nama wajib diisi', 'error'); return; }
-  var jabatan = document.getElementById('mang-jabatan').value;
-  var kontak = document.getElementById('mang-kontak').value;
-  if (editId) {
-    db.collection('anggota').doc(editId).update({ nama:nama, jabatan:jabatan, kontak:kontak })
-      .then(function() { closeModal('modal-anggota'); notify('Anggota diperbarui!', 'success'); })
-      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
-  } else {
-    db.collection('anggota').add({ nama:nama, jabatan:jabatan, kontak:kontak, createdAt:firebase.firestore.FieldValue.serverTimestamp() })
-      .then(function() { closeModal('modal-anggota'); notify('Anggota ditambahkan!', 'success'); })
-      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
-  }
-}
-
-function editAnggota(id) {
-  if (!can('manage_anggota')) { notify('Tidak ada izin', 'error'); return; }
-  var a = localAnggota.filter(function(x){return x.id===id;})[0];
-  if (!a) return;
-  document.getElementById('mang-edit-id').value = id;
-  document.getElementById('mang-modal-title').textContent = 'Edit Anggota';
-  document.getElementById('mang-nama').value = a.nama || '';
-  document.getElementById('mang-jabatan').value = a.jabatan || '';
-  document.getElementById('mang-kontak').value = a.kontak || '';
-  openModal('modal-anggota');
+  db.collection('anggota').add({ nama:nama, jabatan:document.getElementById('mang-jabatan').value, kontak:document.getElementById('mang-kontak').value, createdAt:firebase.firestore.FieldValue.serverTimestamp() })
+    .then(function() { closeModal('modal-anggota'); notify('Anggota ditambahkan!', 'success'); })
+    .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
 }
 
 function delAnggota(id) {
@@ -2013,102 +2072,35 @@ function delAnggota(id) {
 
 function createUser() {
   if (!can('manage_users')) { notify('Tidak ada izin', 'error'); return; }
-  var editUid = document.getElementById('mu-edit-uid').value;
   var nama  = document.getElementById('mu-nama').value.trim();
+  var email = document.getElementById('mu-email').value.trim();
+  var pass  = document.getElementById('mu-pass').value;
   var role  = document.getElementById('mu-role').value;
   var seksi = document.getElementById('mu-seksi').value;
-  if (!nama) { notify('Nama wajib diisi', 'error'); return; }
-
-  if (editUid) {
-    // Mode edit - update data pengguna di Firestore
-    var updateData = { nama:nama, role:role, seksi:seksi };
-    db.collection('users').doc(editUid).update(updateData)
+  if (!nama || !email || !pass) { notify('Semua field wajib diisi', 'error'); return; }
+  if (pass.length < 6) { notify('Password minimal 6 karakter', 'error'); return; }
+  var secondary = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
+  secondary.auth().createUserWithEmailAndPassword(email, pass).then(function(cred) {
+    return db.collection('users').doc(cred.user.uid).set({ nama:nama, email:email, role:role, seksi:seksi, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
       .then(function() {
+        secondary.auth().signOut();
+        secondary.delete();
         closeModal('modal-user');
-        notify('Data pengguna "' + nama + '" diperbarui!', 'success');
-      })
-      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
-  } else {
-    // Mode tambah baru
-    var email = document.getElementById('mu-email').value.trim();
-    var pass  = document.getElementById('mu-pass').value;
-    if (!email || !pass) { notify('Semua field wajib diisi', 'error'); return; }
-    if (pass.length < 6) { notify('Password minimal 6 karakter', 'error'); return; }
-    var secondary = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
-    secondary.auth().createUserWithEmailAndPassword(email, pass).then(function(cred) {
-      return db.collection('users').doc(cred.user.uid).set({ nama:nama, email:email, role:role, seksi:seksi, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
-        .then(function() {
-          secondary.auth().signOut();
-          secondary.delete();
-          closeModal('modal-user');
-          ['mu-nama','mu-email','mu-pass'].forEach(function(f){document.getElementById(f).value='';});
-          notify('Akun "' + nama + '" berhasil dibuat!', 'success');
-        });
-    }).catch(function(e) {
-      secondary.delete();
-      var msgs = { 'auth/email-already-in-use':'Email sudah terdaftar.', 'auth/weak-password':'Password terlalu lemah.' };
-      notify(msgs[e.code] || e.message, 'error');
-    });
-  }
+        // Reset form
+        ['mu-nama','mu-email','mu-pass'].forEach(function(f){document.getElementById(f).value='';});
+        notify('Akun "' + nama + '" berhasil dibuat!', 'success');
+      });
+  }).catch(function(e) {
+    secondary.delete();
+    var msgs = { 'auth/email-already-in-use':'Email sudah terdaftar.', 'auth/weak-password':'Password terlalu lemah.' };
+    notify(msgs[e.code] || e.message, 'error');
+  });
 }
 
 function changeUserRole(uid, newRole) {
   if (!can('manage_users')) { notify('Tidak ada izin', 'error'); return; }
   db.collection('users').doc(uid).update({ role: newRole })
     .then(function() { notify('Role diperbarui!', 'success'); })
-    .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
-}
-
-function openAnggotaModal() {
-  document.getElementById('mang-edit-id').value = '';
-  document.getElementById('mang-modal-title').textContent = 'Tambah Anggota';
-  document.getElementById('mang-nama').value = '';
-  document.getElementById('mang-jabatan').value = '';
-  document.getElementById('mang-kontak').value = '';
-  openModal('modal-anggota');
-}
-
-function openUserModal() {
-  document.getElementById('mu-edit-uid').value = '';
-  document.getElementById('mu-modal-title').textContent = 'Undang Pengguna Baru';
-  document.getElementById('mu-notice-add').style.display = 'block';
-  document.getElementById('mu-notice-edit').style.display = 'none';
-  document.getElementById('mu-nama').value = '';
-  document.getElementById('mu-email').value = '';
-  document.getElementById('mu-pass').value = '';
-  document.getElementById('mu-pass').placeholder = 'Min. 6 karakter';
-  document.getElementById('mu-email-group').style.display = 'block';
-  document.getElementById('mu-email-display').style.display = 'none';
-  document.getElementById('mu-role').value = 'viewer';
-  document.getElementById('mu-seksi').value = '';
-  toggleSeksiField();
-  openModal('modal-user');
-}
-
-function editUser(uid) {
-  if (!can('manage_users')) { notify('Tidak ada izin', 'error'); return; }
-  var u = localUsers.filter(function(x){return x.uid===uid;})[0];
-  if (!u) return;
-  document.getElementById('mu-edit-uid').value = uid;
-  document.getElementById('mu-modal-title').textContent = 'Edit Pengguna';
-  document.getElementById('mu-notice-add').style.display = 'none';
-  document.getElementById('mu-notice-edit').style.display = 'block';
-  document.getElementById('mu-nama').value = u.nama || '';
-  document.getElementById('mu-pass').value = '';
-  document.getElementById('mu-pass').placeholder = 'Kosongkan jika tidak diubah';
-  document.getElementById('mu-email-group').style.display = 'none';
-  document.getElementById('mu-email-display').style.display = 'block';
-  document.getElementById('mu-email-text').textContent = u.email || '';
-  document.getElementById('mu-role').value = u.role || 'viewer';
-  document.getElementById('mu-seksi').value = u.seksi || '';
-  toggleSeksiField();
-  openModal('modal-user');
-}
-
-function delUser(uid) {
-  if (!can('manage_users') || !confirm('Hapus pengguna ini? Akun tidak dapat dipulihkan.')) return;
-  db.collection('users').doc(uid).delete()
-    .then(function() { notify('Pengguna dihapus dari sistem.', 'success'); })
     .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
 }
 
