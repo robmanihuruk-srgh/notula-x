@@ -2,7 +2,15 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NOTULA">
+<meta name="application-name" content="NOTULA">
+<meta name="theme-color" content="#0F1117">
+<meta name="description" content="Sistem Monitor Rapat — Notula">
+<link rel="manifest" id="pwa-manifest">
 <title>NOTULA — Sistem Monitor Rapat</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -474,6 +482,13 @@ input[type=range]{flex:1;accent-color:var(--accent);}
     <div class="nav-item" id="ni-anggota" onclick="showSection('anggota',this)"><span class="nav-icon">👤</span> Anggota Tim</div>
     <div class="nav-item" id="ni-report" onclick="showSection('report',this)"><span class="nav-icon">📊</span> Laporan & Export</div>
   </nav>
+  <div id="pwa-install-btn" style="display:none;margin:0 12px 8px;background:rgba(91,138,240,0.12);border:1px solid rgba(91,138,240,0.25);border-radius:var(--radius-sm);padding:10px 14px;cursor:pointer;align-items:center;gap:10px;" onclick="installPWA()">
+    <span style="font-size:16px;">📲</span>
+    <div style="flex:1;">
+      <div style="font-size:12px;font-weight:600;color:var(--accent);">Instal Aplikasi</div>
+      <div style="font-size:10px;color:var(--text3);">Bisa dipakai offline di HP/PC</div>
+    </div>
+  </div>
   <div class="sidebar-footer">
     <div class="user-pill">
       <div class="user-avatar" id="sb-avatar" style="background:var(--accent);">?</div>
@@ -594,7 +609,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
     <div class="section" id="section-users">
       <div class="section-header">
         <div><div class="section-heading">Kelola Pengguna</div><div class="section-sub">Undang anggota & atur hak akses</div></div>
-        <button class="btn btn-primary" id="btn-user-new" onclick="openModal('modal-user')">＋ Undang Pengguna</button>
+        <button class="btn btn-primary" id="btn-user-new" onclick="openUserModal()">＋ Undang Pengguna</button>
       </div>
       <div class="notice notice-info">ℹ Pengguna baru akan mendapat akun dengan password yang Anda tentukan. Pastikan email valid.</div>
       <div class="card card-pad">
@@ -800,12 +815,15 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 
 <div class="modal-overlay" id="modal-user">
   <div class="modal" style="max-width:480px;">
-    <div class="modal-header"><span class="modal-title">Undang Pengguna Baru</span><button class="close-btn" onclick="closeModal('modal-user')">×</button></div>
+    <div class="modal-header"><span class="modal-title" id="mu-modal-title">Undang Pengguna Baru</span><button class="close-btn" onclick="closeModal('modal-user')">×</button></div>
     <div class="modal-body">
-      <div class="notice notice-info">ℹ Pastikan email valid. Pengguna dapat ganti password melalui menu profil di sidebar setelah login.</div>
+      <input type="hidden" id="mu-edit-uid" value="" />
+      <div class="notice notice-info" id="mu-notice-add">ℹ Pastikan email valid. Pengguna dapat ganti password melalui menu profil di sidebar setelah login.</div>
+      <div class="notice notice-info" id="mu-notice-edit" style="display:none;">ℹ Edit nama, role, atau seksi pengguna. Email tidak dapat diubah.</div>
       <div class="form-group"><label class="form-label">Nama Lengkap *</label><input class="form-input" id="mu-nama" placeholder="Nama anggota..." /></div>
-      <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="mu-email" type="email" placeholder="email@domain.com" /></div>
-      <div class="form-group"><label class="form-label">Password Sementara *</label><input class="form-input" id="mu-pass" type="password" placeholder="Min. 6 karakter" /></div>
+      <div class="form-group" id="mu-email-group"><label class="form-label">Email *</label><input class="form-input" id="mu-email" type="email" placeholder="email@domain.com" /></div>
+      <div class="form-group" id="mu-email-readonly" style="display:none;"><label class="form-label">Email</label><div id="mu-email-text" style="padding:8px 12px;background:var(--bg3);border-radius:var(--radius-sm);font-size:13px;color:var(--text2);"></div></div>
+      <div class="form-group" id="mu-pass-group"><label class="form-label">Password Sementara *</label><input class="form-input" id="mu-pass" type="password" placeholder="Min. 6 karakter" /></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Role *</label>
           <select class="form-select" id="mu-role" onchange="toggleSeksiField()">
@@ -820,7 +838,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
         </div>
       </div>
     </div>
-    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-user')">Batal</button><button class="btn btn-primary" onclick="createUser()">Buat Akun</button></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-user')">Batal</button><button class="btn btn-primary" id="mu-save-btn" onclick="createUser()">Buat Akun</button></div>
   </div>
 </div>
 
@@ -1161,7 +1179,7 @@ function startListeners() {
   unsubListeners.push(
     db.collection('kendala').onSnapshot(function(snap) {
       localKendala = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
-      renderKendalaGlobal(); updateStats();
+      renderKendalaGlobal(); updateStats(); renderDashboard();
       if (currentRapatId) renderKendalaTab(currentRapatId);
     })
   );
@@ -1644,7 +1662,10 @@ function renderAnggota() {
       + '<div style="font-size:14px;font-weight:600;margin-bottom:3px;">' + a.nama + '</div>'
       + '<div style="font-size:12px;color:var(--text3);">' + (a.jabatan||'—') + '</div>'
       + (a.kontak ? '<div style="font-size:11px;color:var(--accent);margin-top:4px;">' + a.kontak + '</div>' : '')
-      + (can('manage_anggota') ? '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">'          + '<button class="btn btn-ghost btn-sm" onclick="editAnggota(\'' + a.id + '\')">✏ Edit</button>'          + '<button class="btn btn-danger btn-sm" onclick="delAnggota(\'' + a.id + '\')">✕ Hapus</button>'          + '</div>' : '')
+      + (can('manage_anggota') ? '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">'
+          + '<button class="btn btn-ghost btn-sm" onclick="editAnggota(\'' + a.id + '\')">✏ Edit</button>'
+          + '<button class="btn btn-danger btn-sm" onclick="delAnggota(\'' + a.id + '\')">✕ Hapus</button>'
+          + '</div>' : '')
       + '</div>';
   }).join('');
 }
@@ -1702,7 +1723,10 @@ function renderUsersTable() {
     }).join('');
     var actionCell = isSelf
       ? '<span style="font-size:11px;color:var(--text3);">Anda</span>'
-      : '<select class="form-select" style="padding:4px 8px;font-size:11px;width:auto;display:inline-block;" data-uid="' + u.uid + '" onchange="changeUserRole(this.dataset.uid,this.value)">' + roleOpts + '</select>';
+      : '<div style="display:flex;gap:6px;justify-content:flex-end;">'
+          + '<button class="btn btn-ghost btn-sm" onclick="editUser(\'' + u.uid + '\')">✏ Edit</button>'
+          + '<button class="btn btn-danger btn-sm btn-icon" onclick="deleteUser(\'' + u.uid + '\')" title="Hapus">✕</button>'
+          + '</div>';
     rows += '<tr>'
       + '<td><div style="width:32px;height:32px;border-radius:50%;background:' + getRoleColor(u.role) + ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">' + initials(u.nama||u.email) + '</div></td>'
       + '<td style="font-weight:600;">' + (u.nama||'—') + '</td>'
@@ -1821,17 +1845,18 @@ function openTodoModal(rid) {
   openModal('modal-todo');
 }
 
+// ── EDIT TODO ──
 function editTodo(id) {
   if (!can('edit_todo')) { notify('Tidak ada izin', 'error'); return; }
-  var t = localTodo.filter(function(x){return x.id===id;})[0];
+  var t = localTodo.filter(function(x){ return x.id === id; })[0];
   if (!t) return;
-  document.getElementById('mt-edit-id').value = id;
+  document.getElementById('mt-edit-id').value    = id;
   document.getElementById('mt-modal-title').textContent = 'Edit Tugas';
-  document.getElementById('mt-tugas').value = t.tugas || '';
-  document.getElementById('mt-deadline').value = t.deadline || '';
-  document.getElementById('mt-prioritas').value = t.prioritas || '';
-  document.getElementById('mt-seksi').value = t.seksi || '';
-  document.getElementById('mt-rapat').value = t.rapatId || '';
+  document.getElementById('mt-tugas').value      = t.tugas    || '';
+  document.getElementById('mt-deadline').value   = t.deadline || '';
+  document.getElementById('mt-prioritas').value  = t.prioritas|| '';
+  document.getElementById('mt-seksi').value      = t.seksi    || '';
+  document.getElementById('mt-rapat').value      = t.rapatId  || '';
   openModal('modal-todo');
 }
 function openKendalaModal(rid) {
@@ -2020,24 +2045,23 @@ function delAgenda(id, rid) {
 }
 
 function saveTodo() {
-  var editId = document.getElementById('mt-edit-id').value;
-  var tugas  = document.getElementById('mt-tugas').value.trim();
+  var editId    = document.getElementById('mt-edit-id').value;
+  var tugas     = document.getElementById('mt-tugas').value.trim();
+  var seksi     = document.getElementById('mt-seksi').value;
+  var rapatId   = document.getElementById('mt-rapat').value;
+  var deadline  = document.getElementById('mt-deadline').value;
+  var prioritas = document.getElementById('mt-prioritas').value;
   if (!tugas) { notify('Tugas wajib diisi', 'error'); return; }
-  var data = {
-    tugas: tugas,
-    seksi: document.getElementById('mt-seksi').value,
-    rapatId: document.getElementById('mt-rapat').value,
-    deadline: document.getElementById('mt-deadline').value,
-    prioritas: document.getElementById('mt-prioritas').value
-  };
   if (editId) {
+    // Mode edit
     if (!can('edit_todo')) { notify('Tidak ada izin', 'error'); return; }
-    db.collection('todo').doc(editId).update(Object.assign(data, { updatedBy: currentUser.uid }))
+    db.collection('todo').doc(editId).update({ tugas:tugas, seksi:seksi, rapatId:rapatId, deadline:deadline, prioritas:prioritas, updatedBy:currentUser.uid })
       .then(function() { closeModal('modal-todo'); notify('Tugas diperbarui!', 'success'); })
       .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
   } else {
+    // Mode tambah baru
     if (!can('create_todo')) { notify('Tidak ada izin', 'error'); return; }
-    db.collection('todo').add(Object.assign(data, { done:false, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid }))
+    db.collection('todo').add({ tugas:tugas, done:false, seksi:seksi, rapatId:rapatId, deadline:deadline, prioritas:prioritas, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
       .then(function() { closeModal('modal-todo'); notify('Tugas ditambahkan!', 'success'); })
       .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
   }
@@ -2147,36 +2171,7 @@ function editProgress(seksi) {
   openModal('modal-progress');
 }
 
-function saveAnggota() {
-  if (!can('manage_anggota')) { notify('Tidak ada izin', 'error'); return; }
-  var editId  = document.getElementById('mang-edit-id').value;
-  var nama    = document.getElementById('mang-nama').value.trim();
-  var jabatan = document.getElementById('mang-jabatan').value;
-  var kontak  = document.getElementById('mang-kontak').value;
-  if (!nama) { notify('Nama wajib diisi', 'error'); return; }
-  if (editId) {
-    db.collection('anggota').doc(editId).update({ nama:nama, jabatan:jabatan, kontak:kontak })
-      .then(function() { closeModal('modal-anggota'); notify('Anggota diperbarui!', 'success'); })
-      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
-  } else {
-    db.collection('anggota').add({ nama:nama, jabatan:jabatan, kontak:kontak, createdAt:firebase.firestore.FieldValue.serverTimestamp() })
-      .then(function() { closeModal('modal-anggota'); notify('Anggota ditambahkan!', 'success'); })
-      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
-  }
-}
-
-function editAnggota(id) {
-  if (!can('manage_anggota')) { notify('Tidak ada izin', 'error'); return; }
-  var a = localAnggota.filter(function(x){return x.id===id;})[0];
-  if (!a) return;
-  document.getElementById('mang-edit-id').value = id;
-  document.getElementById('mang-modal-title').textContent = 'Edit Anggota';
-  document.getElementById('mang-nama').value    = a.nama    || '';
-  document.getElementById('mang-jabatan').value = a.jabatan || '';
-  document.getElementById('mang-kontak').value  = a.kontak  || '';
-  openModal('modal-anggota');
-}
-
+// ── ANGGOTA MODAL BUKA BARU ──
 function openAnggotaModal() {
   document.getElementById('mang-edit-id').value = '';
   document.getElementById('mang-modal-title').textContent = 'Tambah Anggota';
@@ -2186,36 +2181,128 @@ function openAnggotaModal() {
   openModal('modal-anggota');
 }
 
+// ── EDIT ANGGOTA ──
+function editAnggota(id) {
+  if (!can('manage_anggota')) { notify('Tidak ada izin', 'error'); return; }
+  var a = localAnggota.filter(function(x){ return x.id === id; })[0];
+  if (!a) return;
+  document.getElementById('mang-edit-id').value = id;
+  document.getElementById('mang-modal-title').textContent = 'Edit Anggota';
+  document.getElementById('mang-nama').value    = a.nama    || '';
+  document.getElementById('mang-jabatan').value = a.jabatan || '';
+  document.getElementById('mang-kontak').value  = a.kontak  || '';
+  openModal('modal-anggota');
+}
+
+function saveAnggota() {
+  if (!can('manage_anggota')) { notify('Tidak ada izin', 'error'); return; }
+  var editId  = document.getElementById('mang-edit-id').value;
+  var nama    = document.getElementById('mang-nama').value.trim();
+  var jabatan = document.getElementById('mang-jabatan').value;
+  var kontak  = document.getElementById('mang-kontak').value;
+  if (!nama) { notify('Nama wajib diisi', 'error'); return; }
+  if (editId) {
+    // Mode edit
+    db.collection('anggota').doc(editId).update({ nama:nama, jabatan:jabatan, kontak:kontak })
+      .then(function() { closeModal('modal-anggota'); notify('Anggota diperbarui!', 'success'); })
+      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  } else {
+    // Mode tambah baru
+    db.collection('anggota').add({ nama:nama, jabatan:jabatan, kontak:kontak, createdAt:firebase.firestore.FieldValue.serverTimestamp() })
+      .then(function() { closeModal('modal-anggota'); notify('Anggota ditambahkan!', 'success'); })
+      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  }
+}
+
 function delAnggota(id) {
   if (!can('manage_anggota') || !confirm('Hapus anggota ini?')) return;
   db.collection('anggota').doc(id).delete();
 }
 
+function openUserModal() {
+  document.getElementById('mu-edit-uid').value = '';
+  document.getElementById('mu-modal-title').textContent = 'Undang Pengguna Baru';
+  document.getElementById('mu-notice-add').style.display = 'block';
+  document.getElementById('mu-notice-edit').style.display = 'none';
+  document.getElementById('mu-nama').value = '';
+  document.getElementById('mu-email').value = '';
+  document.getElementById('mu-pass').value = '';
+  document.getElementById('mu-email-group').style.display = 'block';
+  document.getElementById('mu-email-readonly').style.display = 'none';
+  document.getElementById('mu-pass-group').style.display = 'block';
+  document.getElementById('mu-role').value = 'viewer';
+  document.getElementById('mu-seksi').value = '';
+  document.getElementById('mu-save-btn').textContent = 'Buat Akun';
+  toggleSeksiField();
+  openModal('modal-user');
+}
+
+function editUser(uid) {
+  if (!can('manage_users')) { notify('Tidak ada izin', 'error'); return; }
+  var u = localUsers.filter(function(x){return x.uid===uid;})[0];
+  if (!u) return;
+  document.getElementById('mu-edit-uid').value = uid;
+  document.getElementById('mu-modal-title').textContent = 'Edit Pengguna';
+  document.getElementById('mu-notice-add').style.display = 'none';
+  document.getElementById('mu-notice-edit').style.display = 'block';
+  document.getElementById('mu-nama').value = u.nama || '';
+  document.getElementById('mu-email-group').style.display = 'none';
+  document.getElementById('mu-email-readonly').style.display = 'block';
+  document.getElementById('mu-email-text').textContent = u.email || '';
+  document.getElementById('mu-pass-group').style.display = 'none';
+  document.getElementById('mu-role').value = u.role || 'viewer';
+  document.getElementById('mu-seksi').value = u.seksi || '';
+  document.getElementById('mu-save-btn').textContent = 'Simpan Perubahan';
+  toggleSeksiField();
+  openModal('modal-user');
+}
+
+function deleteUser(uid) {
+  if (!can('manage_users')) { notify('Tidak ada izin', 'error'); return; }
+  if (!confirm('Hapus pengguna ini dari sistem? Tindakan ini tidak dapat dibatalkan.')) return;
+  db.collection('users').doc(uid).delete()
+    .then(function() { notify('Pengguna dihapus.', 'success'); })
+    .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+}
+
 function createUser() {
   if (!can('manage_users')) { notify('Tidak ada izin', 'error'); return; }
+  var editUid = document.getElementById('mu-edit-uid').value;
   var nama  = document.getElementById('mu-nama').value.trim();
-  var email = document.getElementById('mu-email').value.trim();
-  var pass  = document.getElementById('mu-pass').value;
   var role  = document.getElementById('mu-role').value;
   var seksi = document.getElementById('mu-seksi').value;
-  if (!nama || !email || !pass) { notify('Semua field wajib diisi', 'error'); return; }
-  if (pass.length < 6) { notify('Password minimal 6 karakter', 'error'); return; }
-  var secondary = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
-  secondary.auth().createUserWithEmailAndPassword(email, pass).then(function(cred) {
-    return db.collection('users').doc(cred.user.uid).set({ nama:nama, email:email, role:role, seksi:seksi, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
+  if (!nama) { notify('Nama wajib diisi', 'error'); return; }
+
+  if (editUid) {
+    // Mode edit — hanya update nama, role, seksi di Firestore
+    db.collection('users').doc(editUid).update({ nama:nama, role:role, seksi:seksi })
       .then(function() {
-        secondary.auth().signOut();
-        secondary.delete();
         closeModal('modal-user');
-        // Reset form
-        ['mu-nama','mu-email','mu-pass'].forEach(function(f){document.getElementById(f).value='';});
-        notify('Akun "' + nama + '" berhasil dibuat!', 'success');
-      });
-  }).catch(function(e) {
-    secondary.delete();
-    var msgs = { 'auth/email-already-in-use':'Email sudah terdaftar.', 'auth/weak-password':'Password terlalu lemah.' };
-    notify(msgs[e.code] || e.message, 'error');
-  });
+        notify('Data pengguna diperbarui!', 'success');
+      })
+      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+  } else {
+    // Mode tambah baru
+    var email = document.getElementById('mu-email').value.trim();
+    var pass  = document.getElementById('mu-pass').value;
+    if (!email || !pass) { notify('Email dan password wajib diisi', 'error'); return; }
+    if (pass.length < 6) { notify('Password minimal 6 karakter', 'error'); return; }
+    var secondary = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
+    secondary.auth().createUserWithEmailAndPassword(email, pass).then(function(cred) {
+      return db.collection('users').doc(cred.user.uid).set({ nama:nama, email:email, role:role, seksi:seksi, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
+        .then(function() {
+          secondary.auth().signOut();
+          secondary.delete();
+          closeModal('modal-user');
+          ['mu-nama','mu-email','mu-pass'].forEach(function(f){document.getElementById(f).value='';});
+          notify('Akun "' + nama + '" berhasil dibuat!', 'success');
+        });
+    }).catch(function(e) {
+      secondary.delete();
+      var msgs = { 'auth/email-already-in-use':'Email sudah terdaftar.', 'auth/weak-password':'Password terlalu lemah.' };
+      notify(msgs[e.code] || e.message, 'error');
+    });
+  }
 }
 
 function changeUserRole(uid, newRole) {
@@ -2478,6 +2565,89 @@ document.addEventListener('keydown', function(e) {
     document.querySelectorAll('.modal-overlay').forEach(function(m) { m.classList.remove('open'); });
   }
 });
+</script>
+<script>
+// ── PWA MANIFEST (Inline) ──
+(function() {
+  var manifest = {
+    name: 'NOTULA — Sistem Monitor Rapat',
+    short_name: 'NOTULA',
+    description: 'Sistem Monitor Rapat Digital',
+    start_url: './',
+    display: 'standalone',
+    background_color: '#0F1117',
+    theme_color: '#0F1117',
+    orientation: 'portrait-primary',
+    icons: [
+      { src: 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="32" fill="#0F1117"/><rect x="79" y="16" width="34" height="160" rx="8" fill="#5B8AF0"/><rect x="16" y="75" width="160" height="34" rx="8" fill="#5B8AF0"/></svg>'), sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+      { src: 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="80" fill="#0F1117"/><rect x="211" y="40" width="90" height="432" rx="20" fill="#5B8AF0"/><rect x="40" y="211" width="432" height="90" rx="20" fill="#5B8AF0"/></svg>'), sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+    ]
+  };
+  var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  var url  = URL.createObjectURL(blob);
+  var link = document.getElementById('pwa-manifest');
+  if (link) link.href = url;
+
+  // ── SERVICE WORKER ──
+  if ('serviceWorker' in navigator) {
+    var swCode = [
+      "var CACHE = 'notula-v1';",
+      "var ASSETS = ['./'];",
+      "self.addEventListener('install', function(e) {",
+      "  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(ASSETS); }));",
+      "  self.skipWaiting();",
+      "});",
+      "self.addEventListener('activate', function(e) {",
+      "  e.waitUntil(caches.keys().then(function(keys){",
+      "    return Promise.all(keys.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));",
+      "  }));",
+      "  self.clients.claim();",
+      "});",
+      "self.addEventListener('fetch', function(e) {",
+      "  if (e.request.method !== 'GET') return;",
+      "  e.respondWith(fetch(e.request).then(function(r){",
+      "    var rc = r.clone();",
+      "    caches.open(CACHE).then(function(c){ c.put(e.request, rc); });",
+      "    return r;",
+      "  }).catch(function(){",
+      "    return caches.match(e.request);",
+      "  }));",
+      "});"
+    ].join('\n');
+    var swBlob = new Blob([swCode], { type: 'application/javascript' });
+    var swUrl  = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl).then(function(reg) {
+      console.log('NOTULA SW registered:', reg.scope);
+    }).catch(function(e) { console.log('SW error:', e); });
+  }
+
+  // ── INSTALL PROMPT ──
+  var deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    var btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.style.display = 'flex';
+  });
+  window.addEventListener('appinstalled', function() {
+    deferredPrompt = null;
+    var btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.style.display = 'none';
+    if (typeof notify === 'function') notify('Aplikasi berhasil diinstal!', 'success');
+  });
+  window.installPWA = function() {
+    if (!deferredPrompt) {
+      if (typeof notify === 'function') notify('Gunakan menu browser → "Tambahkan ke layar utama" untuk instal.', 'info');
+      return;
+    }
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(r) {
+      deferredPrompt = null;
+      var btn = document.getElementById('pwa-install-btn');
+      if (btn) btn.style.display = 'none';
+    });
+  };
+})();
 </script>
 </body>
 </html>
