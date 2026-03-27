@@ -489,12 +489,13 @@ input[type=range]{flex:1;accent-color:var(--accent);}
     <div class="nav-item" id="ni-anggota" onclick="showSection('anggota',this)"><span class="nav-icon">👤</span> Anggota Tim</div>
     <div class="nav-item" id="ni-report" onclick="showSection('report',this)"><span class="nav-icon">📊</span> Laporan & Export</div>
   </nav>
-  <div id="pwa-install-btn" style="display:flex;margin:0 12px 8px;background:rgba(91,138,240,0.12);border:1px solid rgba(91,138,240,0.25);border-radius:var(--radius-sm);padding:10px 14px;cursor:pointer;align-items:center;gap:10px;" onclick="installPWA()">
-    <span style="font-size:16px;">📲</span>
-    <div style="flex:1;">
-      <div style="font-size:12px;font-weight:600;color:var(--accent);">Instal Aplikasi</div>
-      <div style="font-size:10px;color:var(--text3);" id="pwa-install-hint">Bisa dipakai offline di HP/PC/Tablet</div>
+  <div id="pwa-install-btn" style="display:flex;margin:0 12px 8px;background:rgba(91,138,240,0.12);border:1px solid rgba(91,138,240,0.3);border-radius:var(--radius-sm);padding:10px 14px;cursor:pointer;align-items:center;gap:10px;transition:background .2s;" onmouseenter="this.style.background='rgba(91,138,240,0.22)'" onmouseleave="this.style.background='rgba(91,138,240,0.12)'" onclick="installPWA()">
+    <span style="font-size:20px;flex-shrink:0;">📲</span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);">Instal Aplikasi</div>
+      <div style="font-size:10px;color:var(--text3);line-height:1.4;" id="pwa-install-hint">Android · iOS · Windows · Linux · Mac</div>
     </div>
+    <span style="font-size:16px;color:var(--accent);flex-shrink:0;">↓</span>
   </div>
   <div class="sidebar-footer">
     <div class="user-pill">
@@ -2098,6 +2099,7 @@ function saveKendala() {
     desc: desc,
     seksi: document.getElementById('mk-seksi').value,
     rapatId: document.getElementById('mk-rapat').value,
+    prioritas: document.getElementById('mk-prioritas').value,
     solusi: document.getElementById('mk-solusi').value,
     rencana: document.getElementById('mk-rencana').value,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -2512,39 +2514,28 @@ function exportReportExcel(type) {
     return;
   }
   var wb = XLSX.utils.book_new();
-  var titleStyle = { font:{bold:true,sz:13,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'1E40AF'}}, alignment:{horizontal:'center',vertical:'center',wrapText:true}, border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}} };
-  var headerStyle = { font:{bold:true,sz:11,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'1E40AF'}}, alignment:{horizontal:'center',vertical:'center',wrapText:true}, border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}} };
-  var dataStyle   = { alignment:{vertical:'top',wrapText:true}, border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}} };
-  var altStyle    = { fill:{fgColor:{rgb:'F1F5F9'}}, alignment:{vertical:'top',wrapText:true}, border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}} };
+  var dateStr = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
 
   function makeSheet(title, headers, rows) {
-    var aoa = [[title], headers].concat(rows);
+    // Guard: rows must be array of arrays
+    var safeRows = (rows||[]).map(function(r){
+      return headers.map(function(_,i){ return r[i] !== undefined && r[i] !== null ? r[i] : ''; });
+    });
+    var aoa = [[title], headers].concat(safeRows);
     var ws = XLSX.utils.aoa_to_sheet(aoa);
     // Merge title row across all columns
     var nc = headers.length;
-    ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:nc-1} }];
-    // Column widths
+    if (nc > 1) ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:nc-1} }];
+    // Column widths — auto-fit based on content
     ws['!cols'] = headers.map(function(h,i){
-      var maxLen = Math.max(h.length, rows.reduce(function(m,r){ return Math.max(m, String(r[i]||'').length); }, 0));
-      return { wch: Math.min(Math.max(maxLen, 10), 45) };
+      var maxLen = h.length;
+      safeRows.forEach(function(r){ var len = String(r[i]||'').length; if(len>maxLen) maxLen=len; });
+      return { wch: Math.min(Math.max(maxLen, 10), 50) };
     });
     // Row heights
-    ws['!rows'] = [{ hpt:24 }, { hpt:20 }];
-    // Apply styles manually via cell objects
-    var range = XLSX.utils.decode_range(ws['!ref']);
-    for (var R=range.s.r; R<=range.e.r; R++) {
-      for (var C=range.s.c; C<=range.e.c; C++) {
-        var cell_ref = XLSX.utils.encode_cell({r:R,c:C});
-        if (!ws[cell_ref]) ws[cell_ref] = {t:'s',v:''};
-        if (R===0) ws[cell_ref].s = titleStyle;
-        else if (R===1) ws[cell_ref].s = headerStyle;
-        else ws[cell_ref].s = (R%2===0) ? altStyle : dataStyle;
-      }
-    }
+    ws['!rows'] = [{ hpt:22 }, { hpt:18 }];
     return ws;
   }
-
-  var dateStr = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
 
   if (type === 'lengkap') {
     // Sheet 1: Daftar Rapat
@@ -2637,131 +2628,224 @@ document.addEventListener('keydown', function(e) {
 });
 </script>
 <script>
-// ── PWA MANIFEST (Inline) ──
+// ══════════════════════════════════════════════════
+// PWA — Manifest via <link> data URI (bekerja di semua browser)
+// ══════════════════════════════════════════════════
 (function() {
-  var svgIcon192 = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="32" fill="#0F1117"/><rect x="79" y="16" width="34" height="160" rx="8" fill="#5B8AF0"/><rect x="16" y="75" width="160" height="34" rx="8" fill="#5B8AF0"/></svg>';
-  var svgIcon512 = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="80" fill="#0F1117"/><rect x="211" y="40" width="90" height="432" rx="20" fill="#5B8AF0"/><rect x="40" y="211" width="432" height="90" rx="20" fill="#5B8AF0"/></svg>';
+  var icon192 = 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="32" fill="#0F1117"/><rect x="79" y="16" width="34" height="160" rx="8" fill="#5B8AF0"/><rect x="16" y="75" width="160" height="34" rx="8" fill="#5B8AF0"/></svg>');
+  var icon512 = 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="80" fill="#0F1117"/><rect x="211" y="40" width="90" height="432" rx="20" fill="#5B8AF0"/><rect x="40" y="211" width="432" height="90" rx="20" fill="#5B8AF0"/></svg>');
+
   var manifest = {
     name: 'NOTULA — Sistem Monitor Rapat',
     short_name: 'NOTULA',
-    description: 'Sistem Monitor Rapat Digital — Notula',
-    start_url: './',
-    scope: './',
+    description: 'Sistem Monitor Rapat Digital',
+    start_url: window.location.href,
+    scope: window.location.pathname,
     display: 'standalone',
-    display_override: ['window-controls-overlay','standalone','minimal-ui','browser'],
     background_color: '#0F1117',
     theme_color: '#0F1117',
     orientation: 'any',
-    lang: 'id',
-    categories: ['productivity','utilities'],
     icons: [
-      { src: 'data:image/svg+xml;base64,' + btoa(svgIcon192), sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
-      { src: 'data:image/svg+xml;base64,' + btoa(svgIcon192), sizes: '192x192', type: 'image/svg+xml', purpose: 'maskable' },
-      { src: 'data:image/svg+xml;base64,' + btoa(svgIcon512), sizes: '512x512', type: 'image/svg+xml', purpose: 'any' },
-      { src: 'data:image/svg+xml;base64,' + btoa(svgIcon512), sizes: '512x512', type: 'image/svg+xml', purpose: 'maskable' }
-    ],
-    screenshots: [],
-    prefer_related_applications: false
+      { src: icon192, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+      { src: icon512, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+    ]
   };
-  var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-  var url  = URL.createObjectURL(blob);
-  var link = document.getElementById('pwa-manifest');
-  if (link) link.href = url;
 
-  // ── SERVICE WORKER ──
-  if ('serviceWorker' in navigator) {
-    var swCode = [
-      "var CACHE = 'notula-v2';",
-      "var ASSETS = ['./'];",
-      "self.addEventListener('install', function(e) {",
-      "  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(ASSETS); }).catch(function(){}));",
-      "  self.skipWaiting();",
-      "});",
-      "self.addEventListener('activate', function(e) {",
-      "  e.waitUntil(caches.keys().then(function(keys){",
-      "    return Promise.all(keys.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));",
-      "  }));",
-      "  self.clients.claim();",
-      "});",
-      "self.addEventListener('fetch', function(e) {",
-      "  if (e.request.method !== 'GET') return;",
-      "  if (e.request.url.indexOf('firestore.googleapis.com') > -1) return;",
-      "  if (e.request.url.indexOf('firebase') > -1) return;",
-      "  e.respondWith(",
-      "    fetch(e.request).then(function(r){",
-      "      if (!r || r.status !== 200 || r.type === 'opaque') return r;",
-      "      var rc = r.clone();",
-      "      caches.open(CACHE).then(function(c){ c.put(e.request, rc); });",
-      "      return r;",
-      "    }).catch(function(){",
-      "      return caches.match(e.request).then(function(cached){",
-      "        return cached || new Response('Offline — Buka aplikasi saat online untuk sinkronisasi data.', {status:503,headers:{'Content-Type':'text/plain'}});",
-      "      });",
-      "    })",
-      "  );",
-      "});"
-    ].join('\n');
-    var swBlob = new Blob([swCode], { type: 'application/javascript' });
-    var swUrl  = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swUrl).then(function(reg) {
-      console.log('NOTULA SW registered:', reg.scope);
-    }).catch(function(e) { console.log('SW error:', e); });
-  }
+  // Pasang manifest via data URI — bekerja tanpa server
+  var manifestStr = JSON.stringify(manifest);
+  var manifestDataURI = 'data:application/manifest+json,' + encodeURIComponent(manifestStr);
+  var linkEl = document.getElementById('pwa-manifest');
+  if (linkEl) linkEl.href = manifestDataURI;
 
-  // ── INSTALL PROMPT ──
-// ── PWA INSTALL ──
+  // Tambahkan apple-touch-icon agar iOS bisa Add to Home Screen
+  var appleIcon = document.createElement('link');
+  appleIcon.rel = 'apple-touch-icon';
+  appleIcon.href = icon192;
+  document.head.appendChild(appleIcon);
+})();
+
+// ══════════════════════════════════════════════════
+// PWA — Service Worker via inline Worker trick
+// (Blob SW tidak bisa diregister lintas origin — gunakan sw.js inline via Blob + importScripts trick)
+// Catatan: SW hanya berfungsi jika file di-serve via HTTP/HTTPS (bukan file://)
+// ══════════════════════════════════════════════════
 (function() {
-  var deferredPrompt = null;
-  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-  var isInStandaloneMode = ('standalone' in window.navigator) && window.navigator.standalone;
-  var isMac = /macintosh|mac os x/i.test(navigator.userAgent);
-  var isWindows = /windows/i.test(navigator.userAgent);
-  var isAndroid = /android/i.test(navigator.userAgent);
-  var isLinux = /linux/i.test(navigator.userAgent) && !isAndroid;
+  if (!('serviceWorker' in navigator)) return;
 
-  function getInstallHint() {
-    if (isIOS && !isInStandaloneMode) return 'Tap 🔗 Share → "Add to Home Screen"';
-    if (isAndroid) return 'Tap menu browser → "Tambah ke layar utama"';
-    if (isWindows || isMac || isLinux) return 'Klik ikon ⊕ di address bar browser';
-    return 'Bisa dipakai offline di semua perangkat';
+  var swScript = [
+    "var CACHE_NAME = 'notula-cache-v3';",
+    "self.addEventListener('install', function(e) {",
+    "  self.skipWaiting();",
+    "  e.waitUntil(",
+    "    caches.open(CACHE_NAME).then(function(cache) {",
+    "      return cache.addAll([self.location.origin + self.location.pathname.replace('sw-notula.js','')]).catch(function(){});",
+    "    })",
+    "  );",
+    "});",
+    "self.addEventListener('activate', function(e) {",
+    "  e.waitUntil(",
+    "    caches.keys().then(function(keys) {",
+    "      return Promise.all(keys.filter(function(k){ return k !== CACHE_NAME; }).map(function(k){ return caches.delete(k); }));",
+    "    })",
+    "  );",
+    "  self.clients.claim();",
+    "});",
+    "self.addEventListener('fetch', function(e) {",
+    "  if (e.request.method !== 'GET') return;",
+    "  var url = e.request.url;",
+    "  if (url.indexOf('firestore') > -1 || url.indexOf('firebase') > -1 || url.indexOf('googleapis') > -1) return;",
+    "  e.respondWith(",
+    "    fetch(e.request).then(function(resp) {",
+    "      if (!resp || resp.status !== 200 || resp.type === 'opaque') return resp;",
+    "      caches.open(CACHE_NAME).then(function(c){ c.put(e.request, resp.clone()); });",
+    "      return resp;",
+    "    }).catch(function() {",
+    "      return caches.match(e.request).then(function(cached) {",
+    "        return cached || new Response('Aplikasi offline. Buka saat online untuk sinkronisasi.', { status: 503 });",
+    "      });",
+    "    })",
+    "  );",
+    "});"
+  ].join('\n');
+
+  try {
+    var swBlob = new Blob([swScript], { type: 'text/javascript' });
+    var swUrl  = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl, { scope: '/' })
+      .then(function(reg) {
+        console.log('[NOTULA SW] Registered OK, scope:', reg.scope);
+      })
+      .catch(function(err) {
+        // Fallback: coba daftar tanpa scope jika scope error
+        console.warn('[NOTULA SW] Scope error, retrying without scope:', err.message);
+        navigator.serviceWorker.register(swUrl)
+          .then(function(reg2) { console.log('[NOTULA SW] Registered (fallback):', reg2.scope); })
+          .catch(function(err2) { console.warn('[NOTULA SW] Not available:', err2.message); });
+      });
+  } catch(e) {
+    console.warn('[NOTULA SW] Blob URL SW tidak didukung di browser ini:', e.message);
+  }
+})();
+
+// ══════════════════════════════════════════════════
+// PWA — Install Prompt Handler
+// Menangani: Android/Chrome, Edge, Windows, iOS Safari, Samsung Browser
+// ══════════════════════════════════════════════════
+(function() {
+  var deferredPrompt  = null;
+  var installBtn      = document.getElementById('pwa-install-btn');
+  var installHint     = document.getElementById('pwa-install-hint');
+  var isInstalled     = window.matchMedia('(display-mode: standalone)').matches
+                        || (window.navigator.standalone === true);
+  var isIOS           = /iphone|ipad|ipod/i.test(navigator.userAgent) && !/crios|fxios/i.test(navigator.userAgent);
+  var isAndroid       = /android/i.test(navigator.userAgent);
+  var isSamsung       = /samsungbrowser/i.test(navigator.userAgent);
+  var isChrome        = /chrome/i.test(navigator.userAgent) && !/edge/i.test(navigator.userAgent);
+  var isEdge          = /edg\//i.test(navigator.userAgent);
+  var isWindows       = /windows nt/i.test(navigator.userAgent);
+  var isMac           = /macintosh/i.test(navigator.userAgent) && !isIOS;
+  var isLinux         = /linux/i.test(navigator.userAgent) && !isAndroid;
+
+  // Jika sudah terinstal, sembunyikan tombol
+  if (isInstalled) {
+    if (installBtn) installBtn.style.display = 'none';
+    return;
   }
 
-  var hint = document.getElementById('pwa-install-hint');
-  if (hint) hint.textContent = getInstallHint();
+  // Set hint teks sesuai platform
+  function setHint(text) {
+    if (installHint) installHint.textContent = text;
+  }
 
+  if (isIOS) {
+    setHint('Tap Share 🔗 → "Add to Home Screen"');
+    if (installBtn) installBtn.style.display = 'flex';
+  } else if (isAndroid && isSamsung) {
+    setHint('Tap menu ⋮ → "Add page to" → Home screen');
+    if (installBtn) installBtn.style.display = 'flex';
+  } else if (isAndroid) {
+    setHint('Tap menu ⋮ → "Add to Home screen"');
+  } else if (isEdge) {
+    setHint('Klik ikon ⊕ di address bar Edge untuk instal');
+  } else if (isChrome && isWindows) {
+    setHint('Klik ikon ⊕ di pojok kanan address bar Chrome');
+  } else if (isChrome && isMac) {
+    setHint('Klik ikon ⊕ di pojok kanan address bar Chrome');
+  } else if (isLinux) {
+    setHint('Klik ikon ⊕ di address bar untuk instal');
+  } else {
+    setHint('Instal untuk akses offline di semua perangkat');
+  }
+
+  // Event: browser siap tampilkan prompt install (Android/Chrome/Edge/Windows)
   window.addEventListener('beforeinstallprompt', function(e) {
     e.preventDefault();
     deferredPrompt = e;
-    var btn = document.getElementById('pwa-install-btn');
-    if (btn) btn.style.display = 'flex';
+    if (installBtn) installBtn.style.display = 'flex';
+    setHint('Tap untuk instal aplikasi di perangkat ini');
+    console.log('[NOTULA PWA] Install prompt ready');
   });
 
+  // Event: aplikasi berhasil diinstal
   window.addEventListener('appinstalled', function() {
     deferredPrompt = null;
-    var btn = document.getElementById('pwa-install-btn');
-    if (btn) btn.style.display = 'none';
-    if (typeof notify === 'function') notify('Aplikasi berhasil diinstal! ✓', 'success');
+    if (installBtn) installBtn.style.display = 'none';
+    if (typeof notify === 'function') notify('✓ Aplikasi NOTULA berhasil diinstal!', 'success');
+    console.log('[NOTULA PWA] App installed');
   });
 
+  // Fungsi install yang dipanggil saat tombol ditekan
   window.installPWA = function() {
-    if (isIOS && !isInStandaloneMode) {
-      if (typeof notify === 'function') notify('iOS: Tap ikon Share 🔗 lalu pilih "Add to Home Screen"', 'info');
+    // iOS Safari: tidak ada prompt otomatis, tampilkan panduan
+    if (isIOS) {
+      if (typeof notify === 'function') {
+        notify('iPhone/iPad: Tap ikon Share 🔗 di Safari → pilih "Add to Home Screen"', 'info');
+      }
+      // Tampilkan modal panduan iOS
+      showIOSGuide();
       return;
     }
-    if (!deferredPrompt) {
-      if (typeof notify === 'function') notify('Klik ikon ⊕ di address bar browser untuk instal, atau sudah terinstal.', 'info');
+
+    // Samsung Browser
+    if (isSamsung && !deferredPrompt) {
+      if (typeof notify === 'function') notify('Samsung: Tap menu ⋮ → "Add page to" → Home screen', 'info');
       return;
     }
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(function(r) {
-      deferredPrompt = null;
-    });
+
+    // Chrome/Edge/Android dengan prompt tersedia
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(result) {
+        console.log('[NOTULA PWA] User choice:', result.outcome);
+        deferredPrompt = null;
+        if (result.outcome === 'dismissed') {
+          setHint('Klik ikon ⊕ di address bar untuk instal kapan saja');
+        }
+      });
+      return;
+    }
+
+    // Fallback: prompt belum tersedia (browser belum ready atau sudah terinstal)
+    if (typeof notify === 'function') {
+      notify('Cari ikon ⊕ atau ikon install di address bar browser Anda', 'info');
+    }
   };
 
-  // Show install button always for iOS (since beforeinstallprompt never fires)
-  if (isIOS && !isInStandaloneMode) {
-    var btn = document.getElementById('pwa-install-btn');
-    if (btn) btn.style.display = 'flex';
+  // Panduan khusus iOS berupa notifikasi bertahap
+  function showIOSGuide() {
+    var steps = [
+      '① Pastikan pakai browser Safari (bukan Chrome)',
+      '② Tap ikon Share 🔗 di bagian bawah/atas Safari',
+      '③ Scroll ke bawah → pilih "Add to Home Screen"',
+      '④ Tap "Add" — NOTULA muncul di Home Screen ✓'
+    ];
+    var delay = 0;
+    steps.forEach(function(step) {
+      setTimeout(function() {
+        if (typeof notify === 'function') notify(step, 'info');
+      }, delay);
+      delay += 2800;
+    });
   }
 })();
 </script>
