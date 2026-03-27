@@ -10,7 +10,14 @@
 <meta name="application-name" content="NOTULA">
 <meta name="theme-color" content="#0F1117">
 <meta name="description" content="Sistem Monitor Rapat — Notula">
+<!-- PWA: Windows / Edge -->
+<meta name="msapplication-TileColor" content="#0F1117">
+<meta name="msapplication-TileImage" content="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDQgMTQ0Ij48cmVjdCB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjE0NCIgcng9IjI0IiBmaWxsPSIjMEYxMTE3Ii8+PHJlY3QgeD0iNjAiIHk9IjEyIiB3aWR0aD0iMjQiIGhlaWdodD0iMTIwIiByeD0iNiIgZmlsbD0iIzVCOEFGMCIvPjxyZWN0IHg9IjEyIiB5PSI2MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIyNCIgcng9IjYiIGZpbGw9IiM1QjhBRjAiLz48L3N2Zz4=">
+<meta name="msapplication-starturl" content="./">
+<!-- PWA: Safari pinned tab -->
+<link rel="mask-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjgwIiBmaWxsPSIjMEYxMTE3Ii8+PHJlY3QgeD0iMjExIiB5PSI0MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjQzMiIgcng9IjIwIiBmaWxsPSIjNUI4QUYwIi8+PHJlY3QgeD0iNDAiIHk9IjIxMSIgd2lkdGg9IjQzMiIgaGVpZ2h0PSI5MCIgcng9IjIwIiBmaWxsPSIjNUI4QUYwIi8+PC9zdmc+" color="#5B8AF0">
 <link rel="manifest" id="pwa-manifest">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <title>NOTULA — Sistem Monitor Rapat</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -482,11 +489,11 @@ input[type=range]{flex:1;accent-color:var(--accent);}
     <div class="nav-item" id="ni-anggota" onclick="showSection('anggota',this)"><span class="nav-icon">👤</span> Anggota Tim</div>
     <div class="nav-item" id="ni-report" onclick="showSection('report',this)"><span class="nav-icon">📊</span> Laporan & Export</div>
   </nav>
-  <div id="pwa-install-btn" style="display:none;margin:0 12px 8px;background:rgba(91,138,240,0.12);border:1px solid rgba(91,138,240,0.25);border-radius:var(--radius-sm);padding:10px 14px;cursor:pointer;align-items:center;gap:10px;" onclick="installPWA()">
+  <div id="pwa-install-btn" style="display:flex;margin:0 12px 8px;background:rgba(91,138,240,0.12);border:1px solid rgba(91,138,240,0.25);border-radius:var(--radius-sm);padding:10px 14px;cursor:pointer;align-items:center;gap:10px;" onclick="installPWA()">
     <span style="font-size:16px;">📲</span>
     <div style="flex:1;">
       <div style="font-size:12px;font-weight:600;color:var(--accent);">Instal Aplikasi</div>
-      <div style="font-size:10px;color:var(--text3);">Bisa dipakai offline di HP/PC</div>
+      <div style="font-size:10px;color:var(--text3);" id="pwa-install-hint">Bisa dipakai offline di HP/PC/Tablet</div>
     </div>
   </div>
   <div class="sidebar-footer">
@@ -2371,10 +2378,12 @@ function buildReportHTML(type) {
       html += '</tbody></table></div>';
     });
     // Kendala
-    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Kendala (' + localKendala.filter(function(k){return k.status==='aktif';}).length + ' aktif)</div><table><thead><tr><th>#</th><th>Deskripsi</th><th>Seksi</th><th>Rapat</th><th>Status</th></tr></thead><tbody>';
+    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Kendala (' + localKendala.filter(function(k){return k.status==='aktif';}).length + ' aktif)</div><table><thead><tr><th>#</th><th>Deskripsi</th><th>Seksi</th><th>Prioritas</th><th>Rapat</th><th>Status</th><th>Solusi</th><th>Rencana Penyelesaian</th></tr></thead><tbody>';
     localKendala.forEach(function(k, i) {
       var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
-      html += '<tr><td>' + (i+1) + '</td><td>' + (k.desc||'—') + '</td><td>' + (k.seksi||'—') + '</td><td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,30)+'...':'—') + '</td><td><span class="badge b-' + k.status + '">' + statusStr(k.status) + '</span></td></tr>';
+      var priMapK = {tinggi:'<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🔴 Tinggi</span>',sedang:'<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Sedang</span>',rendah:'<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟢 Rendah</span>'};
+      var priHTMLK = priMapK[k.prioritas] || '<span style="color:#9ca3af;font-size:11px;">—</span>';
+      html += '<tr><td>' + (i+1) + '</td><td>' + (k.desc||'—') + '</td><td>' + (k.seksi||'—') + '</td><td>' + priHTMLK + '</td><td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,30)+'...':'—') + '</td><td><span class="badge b-' + k.status + '">' + statusStr(k.status) + '</span></td><td style="font-size:11px;">' + (k.solusi||'<em style="color:#9ca3af;">—</em>') + '</td><td style="font-size:11px;">' + (k.rencana||'<em style="color:#9ca3af;">—</em>') + '</td></tr>';
     });
     html += '</tbody></table></div>';
   }
@@ -2396,10 +2405,12 @@ function buildReportHTML(type) {
   if (type === 'lengkap' || type === 'todo') {
     var doneCount = localTodo.filter(function(t){return t.done;}).length;
     var pctTodo = localTodo.length ? Math.round(doneCount/localTodo.length*100) : 0;
-    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">To Do List (' + doneCount + '/' + localTodo.length + ' selesai — ' + pctTodo + '%)</div><table><thead><tr><th>#</th><th>Tugas</th><th>Seksi</th><th>Status</th><th>Deadline</th><th>Rapat</th></tr></thead><tbody>';
+    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">To Do List (' + doneCount + '/' + localTodo.length + ' selesai — ' + pctTodo + '%)</div><table><thead><tr><th>#</th><th>Tugas</th><th>Seksi</th><th>Prioritas</th><th>Status</th><th>Deadline</th><th>Rapat</th></tr></thead><tbody>';
     localTodo.forEach(function(t, i) {
       var r = localRapat.filter(function(x){return x.id===t.rapatId;})[0];
-      html += '<tr><td>' + (i+1) + '</td><td style="' + (t.done?'text-decoration:line-through;color:#9ca3af':'') + '">' + (t.tugas||'—') + '</td><td>' + (t.seksi||'—') + '</td><td>' + (t.done?'<span style="color:#16a34a;font-weight:700;">✓ Selesai</span>':'<span style="color:#dc2626;">○ Belum</span>') + '</td><td style="white-space:nowrap;">' + (t.deadline?fmtDate(t.deadline):'—') + '</td><td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,28)+'...':'—') + '</td></tr>';
+      var priMap = {tinggi:'<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🔴 Tinggi</span>',sedang:'<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Sedang</span>',rendah:'<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟢 Rendah</span>'};
+      var priHTML = priMap[t.prioritas] || '<span style="color:#9ca3af;font-size:11px;">—</span>';
+      html += '<tr><td>' + (i+1) + '</td><td style="' + (t.done?'text-decoration:line-through;color:#9ca3af':'') + '">' + (t.tugas||'—') + '</td><td>' + (t.seksi||'—') + '</td><td>' + priHTML + '</td><td>' + (t.done?'<span style="color:#16a34a;font-weight:700;">✓ Selesai</span>':'<span style="color:#dc2626;">○ Belum</span>') + '</td><td style="white-space:nowrap;">' + (t.deadline?fmtDate(t.deadline):'—') + '</td><td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,28)+'...':'—') + '</td></tr>';
     });
     html += '</tbody></table></div>';
   }
@@ -2411,12 +2422,16 @@ function buildReportHTML(type) {
     var selesaiK= localKendala.filter(function(k){return k.status==='selesai';});
     html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Kendala Aktif (' + aktifK.length + ')</div>';
     if (aktifK.length) {
-      html += '<table><thead><tr><th>#</th><th>Deskripsi Kendala</th><th>Seksi</th><th>Rapat Terkait</th><th>Status</th></tr></thead><tbody>';
+      html += '<table><thead><tr><th>#</th><th>Deskripsi Kendala</th><th>Seksi</th><th>Prioritas</th><th>Rapat Terkait</th><th>Status</th><th>Solusi</th><th>Rencana Penyelesaian</th></tr></thead><tbody>';
       aktifK.forEach(function(k, i) {
         var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
+        var priMapK2 = {tinggi:'<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🔴 Tinggi</span>',sedang:'<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Sedang</span>',rendah:'<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟢 Rendah</span>'};
         html += '<tr><td>' + (i+1) + '</td><td>' + (k.desc||'—') + '</td><td>' + (k.seksi||'—') + '</td>'
+          + '<td>' + (priMapK2[k.prioritas]||'<span style="color:#9ca3af;">—</span>') + '</td>'
           + '<td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,35)+'...':'—') + '</td>'
-          + '<td><span class="badge b-aktif">Aktif</span></td></tr>';
+          + '<td><span class="badge b-aktif">Aktif</span></td>'
+          + '<td style="font-size:11px;">' + (k.solusi||'<em style="color:#9ca3af;">—</em>') + '</td>'
+          + '<td style="font-size:11px;">' + (k.rencana||'<em style="color:#9ca3af;">—</em>') + '</td></tr>';
       });
       html += '</tbody></table>';
     } else {
@@ -2424,12 +2439,16 @@ function buildReportHTML(type) {
     }
     html += '</div><div class="rpt-sec"><div class="rpt-sec-ttl">Kendala Terselesaikan (' + selesaiK.length + ')</div>';
     if (selesaiK.length) {
-      html += '<table><thead><tr><th>#</th><th>Deskripsi Kendala</th><th>Seksi</th><th>Rapat Terkait</th><th>Status</th></tr></thead><tbody>';
+      html += '<table><thead><tr><th>#</th><th>Deskripsi Kendala</th><th>Seksi</th><th>Prioritas</th><th>Rapat Terkait</th><th>Status</th><th>Solusi</th><th>Rencana Penyelesaian</th></tr></thead><tbody>';
       selesaiK.forEach(function(k, i) {
         var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
+        var priMapK3 = {tinggi:'<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🔴 Tinggi</span>',sedang:'<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Sedang</span>',rendah:'<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟢 Rendah</span>'};
         html += '<tr><td>' + (i+1) + '</td><td style="text-decoration:line-through;color:#9ca3af;">' + (k.desc||'—') + '</td><td>' + (k.seksi||'—') + '</td>'
+          + '<td>' + (priMapK3[k.prioritas]||'<span style="color:#9ca3af;">—</span>') + '</td>'
           + '<td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,35)+'...':'—') + '</td>'
-          + '<td><span class="badge b-selesai">Selesai</span></td></tr>';
+          + '<td><span class="badge b-selesai">Selesai</span></td>'
+          + '<td style="font-size:11px;">' + (k.solusi||'<em style="color:#9ca3af;">—</em>') + '</td>'
+          + '<td style="font-size:11px;">' + (k.rencana||'<em style="color:#9ca3af;">—</em>') + '</td></tr>';
       });
       html += '</tbody></table>';
     } else {
@@ -2488,71 +2507,122 @@ function exportReportPDF(type) {
 }
 
 function exportReportExcel(type) {
-  var rows = '';
-  var nl = '\n';
-  var esc = function(v) { return '"' + String(v||'').replace(/"/g, '""').replace(/\n/g, ' ') + '"'; };
+  if (typeof XLSX === 'undefined') {
+    notify('Library Excel sedang dimuat, coba lagi sebentar...', 'info');
+    return;
+  }
+  var wb = XLSX.utils.book_new();
+  var titleStyle = { font:{bold:true,sz:13,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'1E40AF'}}, alignment:{horizontal:'center',vertical:'center',wrapText:true}, border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}} };
+  var headerStyle = { font:{bold:true,sz:11,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'1E40AF'}}, alignment:{horizontal:'center',vertical:'center',wrapText:true}, border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}} };
+  var dataStyle   = { alignment:{vertical:'top',wrapText:true}, border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}} };
+  var altStyle    = { fill:{fgColor:{rgb:'F1F5F9'}}, alignment:{vertical:'top',wrapText:true}, border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}} };
+
+  function makeSheet(title, headers, rows) {
+    var aoa = [[title], headers].concat(rows);
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    // Merge title row across all columns
+    var nc = headers.length;
+    ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:nc-1} }];
+    // Column widths
+    ws['!cols'] = headers.map(function(h,i){
+      var maxLen = Math.max(h.length, rows.reduce(function(m,r){ return Math.max(m, String(r[i]||'').length); }, 0));
+      return { wch: Math.min(Math.max(maxLen, 10), 45) };
+    });
+    // Row heights
+    ws['!rows'] = [{ hpt:24 }, { hpt:20 }];
+    // Apply styles manually via cell objects
+    var range = XLSX.utils.decode_range(ws['!ref']);
+    for (var R=range.s.r; R<=range.e.r; R++) {
+      for (var C=range.s.c; C<=range.e.c; C++) {
+        var cell_ref = XLSX.utils.encode_cell({r:R,c:C});
+        if (!ws[cell_ref]) ws[cell_ref] = {t:'s',v:''};
+        if (R===0) ws[cell_ref].s = titleStyle;
+        else if (R===1) ws[cell_ref].s = headerStyle;
+        else ws[cell_ref].s = (R%2===0) ? altStyle : dataStyle;
+      }
+    }
+    return ws;
+  }
+
+  var dateStr = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
+
   if (type === 'lengkap') {
-    rows += 'DAFTAR RAPAT' + nl;
-    rows += ['No','Nama Rapat','Tanggal','Lokasi','Pimpinan','Notulen','Peserta','Status','Jumlah Agenda'].map(esc).join(',') + nl;
-    localRapat.forEach(function(r, i) {
-      rows += [i+1, r.nama, fmtDate(r.tanggal), r.lokasi, r.pimpinan, r.notulen, r.peserta||'', statusStr(r.status), localAgenda.filter(function(a){return a.rapatId===r.id;}).length].map(esc).join(',') + nl;
+    // Sheet 1: Daftar Rapat
+    var rapatRows = localRapat.map(function(r,i){
+      return [i+1, r.nama||'—', fmtDate(r.tanggal), r.lokasi||'—', r.pimpinan||'—', r.notulen||'—', r.peserta||'—', statusStr(r.status), localAgenda.filter(function(a){return a.rapatId===r.id;}).length];
     });
-    rows += nl + 'AGENDA RAPAT' + nl;
-    rows += ['No','Rapat','Tanggal','Topik','Pembahasan','Seksi'].map(esc).join(',') + nl;
-    localAgenda.forEach(function(a, i) {
+    XLSX.utils.book_append_sheet(wb, makeSheet('DAFTAR RAPAT — Dicetak: '+dateStr, ['No','Nama Rapat','Tanggal','Lokasi','Pimpinan','Notulen','Peserta','Status','Jml Agenda'], rapatRows), 'Daftar Rapat');
+
+    // Sheet 2: Agenda
+    var agendaRows = localAgenda.map(function(a,i){
       var r = localRapat.filter(function(x){return x.id===a.rapatId;})[0];
-      rows += [i+1, r?r.nama:'', r?fmtDate(r.tanggal):'', a.topik, a.pembahasan, a.seksi].map(esc).join(',') + nl;
+      return [i+1, r?r.nama:'—', r?fmtDate(r.tanggal):'—', a.topik||'—', a.pembahasan||'—', a.seksi||'—', a.prioritas||'—'];
     });
-    rows += nl + 'KENDALA' + nl;
-    rows += ['No','Deskripsi','Seksi','Status','Rapat'].map(esc).join(',') + nl;
-    localKendala.forEach(function(k, i) {
-      var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
-      rows += [i+1, k.desc, k.seksi, statusStr(k.status), r?r.nama:''].map(esc).join(',') + nl;
-    });
-  }
-  if (type === 'lengkap' || type === 'progress') {
-    rows += nl + 'MONITOR PROGRESS SEKSI' + nl;
-    rows += ['Seksi','Status','Progress (%)','Catatan'].map(esc).join(',') + nl;
-    SEKSI_LIST.forEach(function(s) {
-      var p = localProgress[s] || { pct:0, status:'rencana', catatan:'' };
-      rows += [s, statusStr(p.status), p.pct||0, p.catatan].map(esc).join(',') + nl;
-    });
-  }
-  if (type === 'lengkap' || type === 'todo') {
-    rows += nl + 'TO DO LIST' + nl;
-    rows += ['No','Tugas','Seksi','Status','Deadline','Rapat'].map(esc).join(',') + nl;
-    localTodo.forEach(function(t, i) {
+    XLSX.utils.book_append_sheet(wb, makeSheet('AGENDA RAPAT — Dicetak: '+dateStr, ['No','Nama Rapat','Tanggal','Topik','Pembahasan','Seksi','Prioritas'], agendaRows), 'Agenda Rapat');
+
+    // Sheet 3: To Do List (dengan Prioritas)
+    var todoRowsL = localTodo.map(function(t,i){
       var r = localRapat.filter(function(x){return x.id===t.rapatId;})[0];
-      rows += [i+1, t.tugas, t.seksi, t.done?'Selesai':'Belum Selesai', t.deadline?fmtDate(t.deadline):'', r?r.nama:''].map(esc).join(',') + nl;
+      return [i+1, t.tugas||'—', t.seksi||'—', t.prioritas||'—', t.done?'Selesai':'Belum Selesai', t.deadline?fmtDate(t.deadline):'—', r?r.nama:'—'];
     });
-  }
-  if (type === 'kendala') {
-    rows += 'LAPORAN KENDALA' + nl;
-    rows += ['No','Deskripsi Kendala','Seksi','Rapat Terkait','Status'].map(esc).join(',') + nl;
-    localKendala.forEach(function(k, i) {
+    XLSX.utils.book_append_sheet(wb, makeSheet('TO DO LIST — Dicetak: '+dateStr, ['No','Tugas','Seksi','Prioritas','Status','Deadline','Rapat'], todoRowsL), 'To Do List');
+
+    // Sheet 4: Kendala (dengan Prioritas, Solusi, Rencana Penyelesaian)
+    var kendalaRowsL = localKendala.map(function(k,i){
       var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
-      rows += [i+1, k.desc, k.seksi||'', r?r.nama:'', statusStr(k.status)].map(esc).join(',') + nl;
+      return [i+1, k.desc||'—', k.seksi||'—', k.prioritas||'—', statusStr(k.status), r?r.nama:'—', k.solusi||'—', k.rencana||'—'];
     });
+    XLSX.utils.book_append_sheet(wb, makeSheet('KENDALA — Dicetak: '+dateStr, ['No','Deskripsi Kendala','Seksi','Prioritas','Status','Rapat Terkait','Solusi','Rencana Penyelesaian'], kendalaRowsL), 'Kendala');
+
+    // Sheet 5: Progress
+    var progressRows = SEKSI_LIST.map(function(s){
+      var p = localProgress[s] || { pct:0, status:'rencana', catatan:'' };
+      return [s, statusStr(p.status), (p.pct||0)+'%', p.catatan||'—'];
+    });
+    XLSX.utils.book_append_sheet(wb, makeSheet('MONITOR PROGRESS SEKSI — Dicetak: '+dateStr, ['Seksi','Status','Progress (%)','Catatan'], progressRows), 'Progress Seksi');
   }
+
+  if (type === 'progress') {
+    var progressRows2 = SEKSI_LIST.map(function(s){
+      var p = localProgress[s] || { pct:0, status:'rencana', catatan:'' };
+      return [s, statusStr(p.status), (p.pct||0)+'%', p.catatan||'—'];
+    });
+    XLSX.utils.book_append_sheet(wb, makeSheet('MONITOR PROGRESS SEKSI — Dicetak: '+dateStr, ['Seksi','Status','Progress (%)','Catatan'], progressRows2), 'Progress Seksi');
+  }
+
+  if (type === 'todo') {
+    var todoRows2 = localTodo.map(function(t,i){
+      var r = localRapat.filter(function(x){return x.id===t.rapatId;})[0];
+      return [i+1, t.tugas||'—', t.seksi||'—', t.prioritas||'—', t.done?'Selesai':'Belum Selesai', t.deadline?fmtDate(t.deadline):'—', r?r.nama:'—'];
+    });
+    XLSX.utils.book_append_sheet(wb, makeSheet('TO DO LIST — Dicetak: '+dateStr, ['No','Tugas','Seksi','Prioritas','Status','Deadline','Rapat'], todoRows2), 'To Do List');
+  }
+
+  if (type === 'kendala') {
+    var aktifKE  = localKendala.filter(function(k){return k.status==='aktif';});
+    var selesaiKE= localKendala.filter(function(k){return k.status==='selesai';});
+    var allKendala = aktifKE.concat(selesaiKE);
+    var kendalaRows2 = allKendala.map(function(k,i){
+      var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
+      return [i+1, k.desc||'—', k.seksi||'—', k.prioritas||'—', statusStr(k.status), r?r.nama:'—', k.solusi||'—', k.rencana||'—'];
+    });
+    XLSX.utils.book_append_sheet(wb, makeSheet('LAPORAN KENDALA — Dicetak: '+dateStr, ['No','Deskripsi Kendala','Seksi','Prioritas','Status','Rapat Terkait','Solusi','Rencana Penyelesaian'], kendalaRows2), 'Kendala');
+  }
+
   if (type === 'pengguna') {
-    rows += 'DAFTAR PENGGUNA SISTEM' + nl;
-    rows += ['No','Nama','Email','Role','Seksi'].map(esc).join(',') + nl;
-    localUsers.forEach(function(u, i) {
-      rows += [i+1, u.nama, u.email, ROLE_LABELS[u.role]||u.role, u.seksi].map(esc).join(',') + nl;
+    var userRows = localUsers.map(function(u,i){
+      return [i+1, u.nama||'—', u.email||'—', ROLE_LABELS[u.role]||u.role||'—', u.seksi||'—'];
     });
-    rows += nl + 'DAFTAR ANGGOTA TIM' + nl;
-    rows += ['No','Nama','Jabatan / Seksi','Kontak'].map(esc).join(',') + nl;
-    localAnggota.forEach(function(a, i) {
-      rows += [i+1, a.nama, a.jabatan, a.kontak].map(esc).join(',') + nl;
+    XLSX.utils.book_append_sheet(wb, makeSheet('DAFTAR PENGGUNA SISTEM — Dicetak: '+dateStr, ['No','Nama','Email','Role','Seksi'], userRows), 'Pengguna');
+    var anggotaRows = localAnggota.map(function(a,i){
+      return [i+1, a.nama||'—', a.jabatan||'—', a.kontak||'—'];
     });
+    XLSX.utils.book_append_sheet(wb, makeSheet('DAFTAR ANGGOTA TIM — Dicetak: '+dateStr, ['No','Nama','Jabatan / Seksi','Kontak'], anggotaRows), 'Anggota Tim');
   }
-  var BOM  = '\uFEFF';
-  var blob = new Blob([BOM + rows], { type: 'text/csv;charset=utf-8;' });
-  var a    = document.createElement('a');
-  a.href   = URL.createObjectURL(blob);
-  a.download = 'laporan-notula-' + type + '-' + new Date().toISOString().split('T')[0] + '.csv';
-  a.click();
-  notify('File Excel (CSV) berhasil diunduh!', 'success');
+
+  var fileName = 'laporan-notula-' + type + '-' + new Date().toISOString().split('T')[0] + '.xlsx';
+  XLSX.writeFile(wb, fileName);
+  notify('File Excel (.xlsx) berhasil diunduh!', 'success');
 }
 
 // ── EVENT LISTENERS ──
@@ -2569,19 +2639,29 @@ document.addEventListener('keydown', function(e) {
 <script>
 // ── PWA MANIFEST (Inline) ──
 (function() {
+  var svgIcon192 = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="32" fill="#0F1117"/><rect x="79" y="16" width="34" height="160" rx="8" fill="#5B8AF0"/><rect x="16" y="75" width="160" height="34" rx="8" fill="#5B8AF0"/></svg>';
+  var svgIcon512 = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="80" fill="#0F1117"/><rect x="211" y="40" width="90" height="432" rx="20" fill="#5B8AF0"/><rect x="40" y="211" width="432" height="90" rx="20" fill="#5B8AF0"/></svg>';
   var manifest = {
     name: 'NOTULA — Sistem Monitor Rapat',
     short_name: 'NOTULA',
-    description: 'Sistem Monitor Rapat Digital',
+    description: 'Sistem Monitor Rapat Digital — Notula',
     start_url: './',
+    scope: './',
     display: 'standalone',
+    display_override: ['window-controls-overlay','standalone','minimal-ui','browser'],
     background_color: '#0F1117',
     theme_color: '#0F1117',
-    orientation: 'portrait-primary',
+    orientation: 'any',
+    lang: 'id',
+    categories: ['productivity','utilities'],
     icons: [
-      { src: 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="32" fill="#0F1117"/><rect x="79" y="16" width="34" height="160" rx="8" fill="#5B8AF0"/><rect x="16" y="75" width="160" height="34" rx="8" fill="#5B8AF0"/></svg>'), sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
-      { src: 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="80" fill="#0F1117"/><rect x="211" y="40" width="90" height="432" rx="20" fill="#5B8AF0"/><rect x="40" y="211" width="432" height="90" rx="20" fill="#5B8AF0"/></svg>'), sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
-    ]
+      { src: 'data:image/svg+xml;base64,' + btoa(svgIcon192), sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
+      { src: 'data:image/svg+xml;base64,' + btoa(svgIcon192), sizes: '192x192', type: 'image/svg+xml', purpose: 'maskable' },
+      { src: 'data:image/svg+xml;base64,' + btoa(svgIcon512), sizes: '512x512', type: 'image/svg+xml', purpose: 'any' },
+      { src: 'data:image/svg+xml;base64,' + btoa(svgIcon512), sizes: '512x512', type: 'image/svg+xml', purpose: 'maskable' }
+    ],
+    screenshots: [],
+    prefer_related_applications: false
   };
   var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
   var url  = URL.createObjectURL(blob);
@@ -2591,10 +2671,10 @@ document.addEventListener('keydown', function(e) {
   // ── SERVICE WORKER ──
   if ('serviceWorker' in navigator) {
     var swCode = [
-      "var CACHE = 'notula-v1';",
+      "var CACHE = 'notula-v2';",
       "var ASSETS = ['./'];",
       "self.addEventListener('install', function(e) {",
-      "  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(ASSETS); }));",
+      "  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(ASSETS); }).catch(function(){}));",
       "  self.skipWaiting();",
       "});",
       "self.addEventListener('activate', function(e) {",
@@ -2605,13 +2685,20 @@ document.addEventListener('keydown', function(e) {
       "});",
       "self.addEventListener('fetch', function(e) {",
       "  if (e.request.method !== 'GET') return;",
-      "  e.respondWith(fetch(e.request).then(function(r){",
-      "    var rc = r.clone();",
-      "    caches.open(CACHE).then(function(c){ c.put(e.request, rc); });",
-      "    return r;",
-      "  }).catch(function(){",
-      "    return caches.match(e.request);",
-      "  }));",
+      "  if (e.request.url.indexOf('firestore.googleapis.com') > -1) return;",
+      "  if (e.request.url.indexOf('firebase') > -1) return;",
+      "  e.respondWith(",
+      "    fetch(e.request).then(function(r){",
+      "      if (!r || r.status !== 200 || r.type === 'opaque') return r;",
+      "      var rc = r.clone();",
+      "      caches.open(CACHE).then(function(c){ c.put(e.request, rc); });",
+      "      return r;",
+      "    }).catch(function(){",
+      "      return caches.match(e.request).then(function(cached){",
+      "        return cached || new Response('Offline — Buka aplikasi saat online untuk sinkronisasi data.', {status:503,headers:{'Content-Type':'text/plain'}});",
+      "      });",
+      "    })",
+      "  );",
       "});"
     ].join('\n');
     var swBlob = new Blob([swCode], { type: 'application/javascript' });
@@ -2622,31 +2709,60 @@ document.addEventListener('keydown', function(e) {
   }
 
   // ── INSTALL PROMPT ──
+// ── PWA INSTALL ──
+(function() {
   var deferredPrompt = null;
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  var isInStandaloneMode = ('standalone' in window.navigator) && window.navigator.standalone;
+  var isMac = /macintosh|mac os x/i.test(navigator.userAgent);
+  var isWindows = /windows/i.test(navigator.userAgent);
+  var isAndroid = /android/i.test(navigator.userAgent);
+  var isLinux = /linux/i.test(navigator.userAgent) && !isAndroid;
+
+  function getInstallHint() {
+    if (isIOS && !isInStandaloneMode) return 'Tap 🔗 Share → "Add to Home Screen"';
+    if (isAndroid) return 'Tap menu browser → "Tambah ke layar utama"';
+    if (isWindows || isMac || isLinux) return 'Klik ikon ⊕ di address bar browser';
+    return 'Bisa dipakai offline di semua perangkat';
+  }
+
+  var hint = document.getElementById('pwa-install-hint');
+  if (hint) hint.textContent = getInstallHint();
+
   window.addEventListener('beforeinstallprompt', function(e) {
     e.preventDefault();
     deferredPrompt = e;
     var btn = document.getElementById('pwa-install-btn');
     if (btn) btn.style.display = 'flex';
   });
+
   window.addEventListener('appinstalled', function() {
     deferredPrompt = null;
     var btn = document.getElementById('pwa-install-btn');
     if (btn) btn.style.display = 'none';
-    if (typeof notify === 'function') notify('Aplikasi berhasil diinstal!', 'success');
+    if (typeof notify === 'function') notify('Aplikasi berhasil diinstal! ✓', 'success');
   });
+
   window.installPWA = function() {
+    if (isIOS && !isInStandaloneMode) {
+      if (typeof notify === 'function') notify('iOS: Tap ikon Share 🔗 lalu pilih "Add to Home Screen"', 'info');
+      return;
+    }
     if (!deferredPrompt) {
-      if (typeof notify === 'function') notify('Gunakan menu browser → "Tambahkan ke layar utama" untuk instal.', 'info');
+      if (typeof notify === 'function') notify('Klik ikon ⊕ di address bar browser untuk instal, atau sudah terinstal.', 'info');
       return;
     }
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then(function(r) {
       deferredPrompt = null;
-      var btn = document.getElementById('pwa-install-btn');
-      if (btn) btn.style.display = 'none';
     });
   };
+
+  // Show install button always for iOS (since beforeinstallprompt never fires)
+  if (isIOS && !isInStandaloneMode) {
+    var btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.style.display = 'flex';
+  }
 })();
 </script>
 </body>
