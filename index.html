@@ -1022,37 +1022,19 @@ function showLoginPage() {
 }
 
 function showApp() {
-  document.getElementById('login-page').style.display = 'none';
-  document.getElementById('main-app').style.display = 'block';
-
-  // Update sidebar user info (biarkan)
+  document.getElementById('login-page').style.display    = 'none';
+  document.getElementById('main-app').style.display      = 'block';
+  // Update sidebar user info
   var p = currentProfile;
-  document.getElementById('sb-name').textContent = p.nama || currentUser.email;
-  document.getElementById('sb-avatar').textContent = initials(p.nama || currentUser.email);
+  document.getElementById('sb-name').textContent   = p.nama || currentUser.email;
+  document.getElementById('sb-avatar').textContent  = initials(p.nama || currentUser.email);
   document.getElementById('sb-avatar').style.background = getRoleColor(p.role);
   document.getElementById('sb-role').innerHTML =
-    '<span class="role-badge role-' + p.role + '">' +
-    (ROLE_LABELS[p.role] || p.role) +
-    (p.seksi ? ' - ' + p.seksi : '') +
-    '</span>';
-
-  // Ambil last rapat dari localStorage (multi-rapat!)
-  var lastRapatId = localStorage.getItem('lastRapatId');
-  if (lastRapatId) {
-    currentRapatId = lastRapatId;
-  }
-
-  // LOAD DATA DARI FIRESTORE - real time!
-  loadRapatFromFirestore();
-  loadTodoFromFirestore && loadTodoFromFirestore();
-  loadKendalaFromFirestore && loadKendalaFromFirestore();
-  loadProgressFromFirestore && loadProgressFromFirestore();
-
-  // Update UI/Dropdown/Lainnya jika perlu
-  updateSidebar && updateSidebar();
-  updateDropdowns && updateDropdowns();
-  applyRoleUI && applyRoleUI();
-  startListeners && startListeners();
+    '<span class="role-badge role-' + p.role + '">' + (ROLE_LABELS[p.role] || p.role) +
+    (p.seksi ? ' — ' + p.seksi : '') + '</span>';
+  applyRoleUI();
+  updateDropdowns();
+  startListeners();
 }
 
 function applyRoleUI() {
