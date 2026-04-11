@@ -5,13 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
   
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Notula">
-  <link rel="apple-touch-icon" href="pic_ (2).jpg">
-  
-  <link rel="manifest" href='data:application/json,{"name":"Notula Workspace","short_name":"Notula","description":"Aplikasi Manajemen Notula Rapat","start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#f97316","icons":[{"src":"pic_ (2).jpg","sizes":"192x192","type":"image/jpeg"},{"src":"pic_ (2).jpg","sizes":"512x512","type":"image/jpeg"}]}'>
-
   <link rel="icon" type="image/jpeg" href="pic_ (2).jpg">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,7 +17,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-  
   <style id="theme-style">
     :root {
       --color-primary: #f97316;
@@ -44,6 +36,7 @@
     /* ===== CSS ===== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
+    /* Global Background Addition */
     body { 
       font-family: 'Inter', sans-serif; 
       background: url('pic_ (2).jpg') center/cover fixed; 
@@ -53,20 +46,15 @@
       overflow: hidden; 
     }
     
+    /* Transparency tweaks to let background show through beautifully */
     .sidebar { width: 280px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border-right: 1px solid var(--color-border); display: flex; flex-direction: column; box-shadow: 2px 0 12px rgba(0,0,0,0.02); }
     .main-panel { flex: 1; display: flex; flex-direction: column; background: rgba(244, 247, 251, 0.85); backdrop-filter: blur(8px); overflow: hidden; }
     .panel-header { background: rgba(255, 255, 255, 0.9); padding: 20px 32px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
     
     .sidebar-header { padding: 24px 20px; border-bottom: 1px solid var(--color-border); }
     .sidebar-header h1 { font-size: 1.6rem; font-weight: 600; color: var(--color-secondary); display: flex; align-items: center; gap: 8px; }
-    
-    /* Tombol PWA + Default */
-    .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default, #installPwaBtn { width: 100%; margin-top: 12px; background: var(--color-primary); color: white; border: none; padding: 12px 16px; border-radius: 10px; font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: background 0.15s; box-shadow: 0 4px 8px rgba(249,115,22,0.2); }
-    .btn-new:hover, .btn-delete-selected:hover, .btn-new-workspace:hover, .btn-reset-default:hover, #installPwaBtn:hover { background: var(--color-primary-dark); }
-    
-    #installPwaBtn { background: #2563eb; box-shadow: 0 4px 8px rgba(37,99,235,0.2); }
-    #installPwaBtn:hover { background: #1d4ed8; }
-
+    .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default { width: 100%; margin-top: 12px; background: var(--color-primary); color: white; border: none; padding: 12px 16px; border-radius: 10px; font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: background 0.15s; box-shadow: 0 4px 8px rgba(249,115,22,0.2); }
+    .btn-new:hover, .btn-delete-selected:hover, .btn-new-workspace:hover, .btn-reset-default:hover { background: var(--color-primary-dark); }
     .btn-delete-selected { background: #dc3545; box-shadow: 0 4px 8px rgba(220,53,69,0.2); }
     .btn-delete-selected:hover { background: #b52b3a; }
     .btn-delete-selected:disabled { opacity: 0.4; pointer-events: none; }
@@ -201,6 +189,8 @@
     .btn-primary:hover { background: var(--color-primary-dark); }
     .btn-danger { background: #fce4e0; color: #ac3b2b; border: none; padding: 10px 22px; border-radius: 40px; font-weight: 500; }
     .hidden { display: none; }
+    
+    /* Login Background Addition */
     #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('pic_ (2).jpg') no-repeat center center fixed; background-size: cover; backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 2000; }
     .login-card { background: white; padding: 40px; border-radius: 40px; width: 360px; max-width: 90%; text-align: center; }
     .login-card h2 { color: var(--color-secondary); margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px;}
@@ -210,6 +200,7 @@
     .login-card .error { color: red; margin-top: 10px; }
     .login-card .forgot-password { margin-top: 15px; font-size: 0.9rem; }
     .login-card .forgot-password a { color: var(--color-primary); text-decoration: none; cursor: pointer; }
+    
     .member-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: 8px; padding: 8px; margin-top: 8px; }
     .member-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-bottom: 1px solid #eee; }
     .member-item:last-child { border-bottom: none; }
@@ -233,7 +224,7 @@
       body { flex-direction: column; overflow: auto; height: auto; }
       .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 10; }
       .sidebar-header { padding: 16px; }
-      .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default, #installPwaBtn { padding: 10px 12px; font-size: 0.9rem; margin-top: 8px; }
+      .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default { padding: 10px 12px; font-size: 0.9rem; margin-top: 8px; }
       .meeting-list { max-height: 200px; padding: 8px 12px; }
       .main-panel { width: 100%; height: auto; overflow: visible; }
       .panel-header { padding: 16px; flex-direction: column; align-items: flex-start; }
@@ -407,9 +398,6 @@
   <div class="sidebar">
     <div class="sidebar-header">
       <h1><img src="pic_ (2).jpg" alt="Logo" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);"> Notula</h1>
-      
-      <button id="installPwaBtn" style="display:none;"><i class="fas fa-download"></i> Install Aplikasi</button>
-      
       <button class="btn-new" id="newMeetingBtn"><i class="fas fa-plus-circle"></i> Rapat baru</button>
       <button class="btn-new-workspace" id="newWorkspaceBtn" disabled><i class="fas fa-users"></i> Buat Grup</button>
       <button class="btn-delete-selected" id="deleteSelectedBtn" disabled><i class="fas fa-trash"></i> Hapus Terpilih</button>
@@ -764,6 +752,7 @@
 
             renderPrivateMeetings();
             
+            // PRIORITAS RENDER: Memastikan tidak terpental ke halaman Dashboard (2.jpg)
             if (currentMeetingId) {
               const meeting = meetings.find(m => m.id === currentMeetingId);
               if (meeting) {
@@ -811,6 +800,7 @@
       document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
       // ========== HELPERS FOR LATEST MEETING, LOGS & PERMISSIONS ==========
+      
       function isMeetingLatest(meeting) {
         if (!meeting) return false;
         let latest = null;
@@ -989,14 +979,20 @@
         document.getElementById('manageMembersModal').classList.add('active');
       };
 
+      // FUNGSI BARU UNTUK HAPUS DAN TAMBAH ANGGOTA (OPTIMISTIC UPDATE)
       window.removeMember = async (workspaceId, uid) => {
         if (!confirm('Hapus anggota ini?')) return;
         try {
           const workspaceRef = db.collection('workspaces').doc(workspaceId);
           await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayRemove(uid) });
-          alert('Anggota berhasil dihapus!');
+          
+          alert('Anggota berhasil dihapus!'); // Menampilkan konfirmasi berhasil dihapus
+          
+          // Memperbarui data lokal agar langsung hilang dari tampilan
           const workspace = workspaces.find(w => w.id === workspaceId);
           if (workspace) workspace.members = workspace.members.filter(id => id !== uid);
+          
+          // Render ulang daftar anggota secara real-time
           openManageMembers(workspaceId);
         } catch (error) {
           alert('Gagal menghapus anggota: ' + error.message);
@@ -1020,8 +1016,12 @@
           await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayUnion(uid) });
           document.getElementById('memberEmailInput').value = '';
           alert('Anggota berhasil ditambahkan!');
+          
+          // Memperbarui data lokal agar langsung muncul di tampilan
           const workspace = workspaces.find(w => w.id === workspaceId);
           if (workspace && !workspace.members.includes(uid)) workspace.members.push(uid);
+          
+          // Render ulang daftar anggota secara real-time
           openManageMembers(workspaceId);
         } catch (error) {
           alert('Gagal menambahkan anggota: ' + error.message);
@@ -1537,6 +1537,8 @@
       function renderSectionCard(meetingId, section) {
         const meeting = meetings.find(m => m.id === meetingId);
         const canEditSec = canUserEditSection(meeting, section);
+        
+        // FIX HAK AKSES MENGHAPUS: Hanya Admin dan Pembuat Rapat
         const canDeleteSec = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
 
         let tasksHtml = '';
@@ -1589,6 +1591,7 @@
         `;
       }
 
+      // ========== CRUD OPERATIONS ==========
       async function saveMeeting(meetingData) {
         try {
           if (meetingData.id) {
@@ -1656,6 +1659,7 @@
         const section = meeting.sections.find(s => s.id === sectionId);
         if (!section) return;
 
+        // FIX HAK AKSES MENGHAPUS VALIDASI DI SINI JUGA
         const isAdmin = userRole === 'admin';
         const isCreator = meeting.createdBy === currentUser?.uid;
         if (!isAdmin && !isCreator) {
@@ -1722,6 +1726,7 @@
         }
       }
 
+      // ========== MODAL HANDLING ==========
       const meetingModal = document.getElementById('meetingModal');
       const sectionModal = document.getElementById('sectionModal');
       const taskModal = document.getElementById('taskModal');
@@ -1793,7 +1798,7 @@
             sections = lastMeeting.sections.map(section => ({
               id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
               name: section.name,
-              assignedEmails: section.assignedEmails || '',
+              assignedEmails: section.assignedEmails || '', // Salin Akses Email juga
               tasks: section.tasks.map(task => ({
                 id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
                 desc: task.desc,
@@ -1836,7 +1841,7 @@
           modalTitle.innerText = 'Edit seksi'; 
         } else {
           nameInput.value = '';
-          emailsInput.value = currentUser?.email || ''; 
+          emailsInput.value = currentUser?.email || ''; // Default diisi oleh email si pembuat
           modalTitle.innerText = 'Tambah seksi';
         }
         sectionModal.classList.add('active');
@@ -1916,6 +1921,7 @@
         closeAllModals();
       });
 
+      // ========== HAPUS TERPILIH ==========
       function updateDeleteSelectedButton() {
         const btn = document.getElementById('deleteSelectedBtn');
         if (!btn) return;
@@ -1962,11 +1968,13 @@
       document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedMeetings);
       document.getElementById('resetDefaultDataBtn').addEventListener('click', resetDefaultData);
 
+      // ========== ROLE-BASED UI ==========
       function updateButtonsByRole() {
         const isAdmin = userRole === 'admin';
         const meeting = meetings.find(m => m.id === currentMeetingId);
         const isCreator = meeting && meeting.createdBy === currentUser?.uid;
 
+        // Admin only buttons
         const adminBtns = [
           document.getElementById('deleteSelectedBtn'),
           document.getElementById('newWorkspaceBtn'),
@@ -1978,6 +1986,7 @@
           btn.classList.toggle('disabled', !isAdmin);
         });
 
+        // Meeting level edit buttons
         const canEditMeeting = isAdmin || isCreator;
         const meetingBtns = [
           document.getElementById('editMeetingBtn'),
@@ -1997,6 +2006,7 @@
         }
       }
 
+      // ========== FUNGSI UTILITY ==========
       function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
       function formatDate(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }); }
       function translateStatus(st) { const map = { selesai:'Selesai', berlangsung:'Berlangsung', rencana:'Rencana', kendala:'Kendala' }; return map[st] || st; }
@@ -2016,6 +2026,7 @@
         });
       }
 
+      // ========== EXPORT ==========
       function getCurrentMeeting() { return meetings.find(m => m.id === currentMeetingId); }
       function exportToExcel() {
         const meeting = getCurrentMeeting();
@@ -2064,58 +2075,6 @@
       document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
       document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
       document.getElementById('printBtn').addEventListener('click', printMeeting);
-    })();
-  </script>
-
-  <script>
-    (function() {
-      // 1. Service Worker Inline
-      const swCode = `
-        const CACHE_NAME = 'notula-cache-v1';
-        self.addEventListener('install', (e) => {
-          self.skipWaiting();
-        });
-        self.addEventListener('fetch', (e) => {
-          e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-        });
-      `;
-      
-      const blob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(blob);
-
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register(swUrl).then(() => {
-          console.log('Service Worker Registered (Inline Mode)');
-        }).catch(err => console.log('SW Error:', err));
-      }
-
-      // 2. Logika Tombol Install
-      let deferredPrompt;
-      const installBtn = document.getElementById('installPwaBtn');
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-        // Mencegah browser menampilkan prompt otomatis
-        e.preventDefault();
-        deferredPrompt = e;
-        // Menampilkan tombol install buatan kita di sidebar
-        installBtn.style.display = 'flex';
-      });
-
-      installBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          if (outcome === 'accepted') {
-            console.log('Aplikasi berhasil diinstall pengguna');
-          }
-          deferredPrompt = null;
-          installBtn.style.display = 'none';
-        }
-      });
-
-      window.addEventListener('appinstalled', () => {
-        installBtn.style.display = 'none';
-      });
     })();
   </script>
 </body>
