@@ -1052,6 +1052,7 @@ var currentWsRole = null;
 var localWorkspaces = [];
 var wsUnsubscribers = [];
 var selectedWsColor = '#5B8AF0';
+var wsInitialSelectionDone = false;
 
 // ── PERMISSION SYSTEM ──
 function getRoleColor(role) {
@@ -1061,7 +1062,10 @@ function getRoleColor(role) {
 
 // Workspace-scoped collection helper
 function getCol(name) {
-  if (!currentWorkspaceId) return db.collection(name);
+  if (!currentWorkspaceId) {
+    console.warn('[NOTULA] getCol called without active workspace for: ' + name);
+    return db.collection(name);
+  }
   return db.collection('workspaces').doc(currentWorkspaceId).collection(name);
 }
 
@@ -1175,7 +1179,7 @@ function showApp() {
   document.getElementById('sb-role').innerHTML =
     '<span class="role-badge role-' + p.role + '">' + (ROLE_LABELS[p.role] || p.role) +
     (p.seksi ? ' — ' + p.seksi : '') + '</span>';
-  // Load workspaces, then start listeners
+  // Load workspaces; listeners start after workspace is selected via switchWorkspace()
   loadWorkspaces();
 }
 
@@ -1235,7 +1239,7 @@ function doLogout() {
   isFirstAktLoad = true;
   localRapat = []; localAgenda = []; localTodo = []; localKendala = [];
   localProgress = {}; localUsers = []; localAnggota = []; localAktivitas = [];
-  currentWorkspaceId = null; currentWorkspaceName = ''; currentWsRole = null; localWorkspaces = [];
+  currentWorkspaceId = null; currentWorkspaceName = ''; currentWsRole = null; localWorkspaces = []; wsInitialSelectionDone = false;
   auth.signOut();
 }
 
@@ -2835,18 +2839,22 @@ document.addEventListener('keydown', function(e) {
 
 function loadWorkspaces() {
   if (!currentUser) return;
-  // Listen to user's workspace list
   wsUnsubscribers.forEach(function(u) { u(); });
   wsUnsubscribers = [];
+  wsInitialSelectionDone = false;
   var unsub = db.collection('users').doc(currentUser.uid).collection('workspaces')
     .onSnapshot(function(snap) {
       localWorkspaces = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
       renderWsSwitcher();
-      // Auto-select first workspace if none selected
-      if (!currentWorkspaceId && localWorkspaces.length > 0) {
-        switchWorkspace(localWorkspaces[0].id);
+      if (!wsInitialSelectionDone) {
+        wsInitialSelectionDone = true;
+        if (localWorkspaces.length > 0) {
+          switchWorkspace(localWorkspaces[0].id);
+        } else {
+          showNoWorkspaceState();
+        }
       } else if (currentWorkspaceId) {
-        // Verify current workspace still exists in list
+        // Verify current workspace still exists
         var found = localWorkspaces.filter(function(w) { return w.id === currentWorkspaceId; })[0];
         if (!found && localWorkspaces.length > 0) {
           switchWorkspace(localWorkspaces[0].id);
@@ -2856,9 +2864,6 @@ function loadWorkspaces() {
           currentWsRole = null;
           showNoWorkspaceState();
         }
-      } else {
-        // No workspaces at all
-        showNoWorkspaceState();
       }
     });
   wsUnsubscribers.push(unsub);
@@ -2900,6 +2905,7 @@ function switchWorkspace(wsId) {
       var niDash = document.getElementById('ni-dashboard');
       if (niDash) showSection('dashboard', niDash);
     }).catch(function(e) {
+      notify('Gagal memuat role workspace, menggunakan role default', 'info');
       currentWsRole = currentProfile ? currentProfile.role : 'viewer';
       applyRoleUI();
       updateDropdowns();
@@ -3031,7 +3037,9 @@ function renderWorkspaces() {
   var html = '<div class="ws-grid">';
   localWorkspaces.forEach(function(w) {
     var isActive = w.id === currentWorkspaceId;
-    var roleBadge = w.role ? '<span class="ws-card-role" style="background:' + getRoleColor(w.role) + '22;color:' + getRoleColor(w.role).replace('var(','').replace(')','') + ';">' + (ROLE_LABELS[w.role] || w.role) + '</span>' : '';
+    var roleColorMap = { admin:'#5B8AF0', notulen:'#2DD4A8', seksi:'#F5A623', viewer:'var(--text2)' };
+    var roleColorVal = roleColorMap[w.role] || '#888';
+    var roleBadge = w.role ? '<span class="ws-card-role" style="background:' + roleColorVal + '22;color:' + roleColorVal + ';">' + (ROLE_LABELS[w.role] || w.role) + '</span>' : '';
     html += '<div class="ws-card' + (isActive ? ' active' : '') + '" onclick="switchWorkspace(\'' + w.id + '\')" style="' + (isActive ? 'border-color:' + (w.color || 'var(--accent)') + ';' : '') + '">'
       + '<div class="ws-card-header">'
       + '<div class="ws-card-icon" style="background:' + (w.color || 'var(--accent)') + ';">' + (w.nama || 'W').charAt(0).toUpperCase() + '</div>'
@@ -3059,11 +3067,13 @@ function renderWorkspaces() {
       + '</div>'
       + '<div id="ws-members-list">Memuat anggota...</div>'
       + '</div></div>';
-    // Load members after rendering
-    setTimeout(loadWsMembers, 100);
   }
 
   container.innerHTML = html;
+  // Load members after DOM is updated
+  if (currentWorkspaceId && currentWsRole === 'admin') {
+    loadWsMembers();
+  }
 }
 
 function loadWsMembers() {
