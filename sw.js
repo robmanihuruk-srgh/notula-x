@@ -1,5 +1,5 @@
 const CACHE_NAME = 'notula-cache-v2';
-const urlsToCache = ['index.html', 'icon.jpg', 'manifest.json'];
+const urlsToCache = ['./', './index.html', './icon.jpg', './manifest.json'];
 
 self.addEventListener('install', event => {
   self.skipWaiting(); // Memaksa browser langsung memakai versi terbaru
