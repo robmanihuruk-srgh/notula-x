@@ -4,13 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
-  <link rel="manifest" href="manifest.json"> 
-<meta name="theme-color" content="#f97316">  
+  <link rel="manifest" href="/manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Notula">
-<link rel="apple-touch-icon" href="icon.jpg">
+<link rel="apple-touch-icon" href="/icon.jpg">
+<link rel="icon" type="image/jpeg" href="/icon.jpg">
 
 <script>
   if ('serviceWorker' in navigator) {
@@ -2125,6 +2124,41 @@
   window.addEventListener('appinstalled', () => {
     installBtn.style.display = 'none';
   });
+</script>
+<button id="btn-install-pwa" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999; padding: 12px 20px; background-color: #f97316; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); font-family: 'Inter', sans-serif;">
+  <i class="fas fa-download"></i> Install Aplikasi
+</button>
+
+<script>
+// Pendaftaran Service Worker
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('Service worker registered', reg))
+        .catch(err => console.error('SW registration failed', err));
+}
+
+// Logika Tombol Install PWA
+let deferredPrompt;
+const installBtn = document.getElementById('btn-install-pwa');
+
+if (installBtn) {
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'block'; // Tampilkan tombol
+        
+        installBtn.addEventListener('click', () => {
+            installBtn.style.display = 'none'; // Sembunyikan setelah diklik
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted install');
+                }
+                deferredPrompt = null;
+            });
+        });
+    });
+}
 </script>
 </body>
 </html>
