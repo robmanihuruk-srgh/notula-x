@@ -338,6 +338,45 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   .content{padding:12px 12px 80px;}
   .topbar{padding:10px 12px;}
 }
+/* ── WORKSPACE STYLES ── */
+.workspace-switcher{margin:12px;border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;position:relative;}
+.ws-current{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:background .15s;}
+.ws-current:hover{background:var(--bg3);}
+.ws-color-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+.ws-current-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.ws-arrow{font-size:12px;color:var(--text3);transition:transform .2s;flex-shrink:0;}
+.ws-arrow.open{transform:rotate(180deg);}
+.ws-dropdown{display:none;border-top:1px solid var(--border);max-height:220px;overflow-y:auto;background:var(--bg2);}
+.ws-dropdown.open{display:block;}
+.ws-dropdown-item{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:var(--text2);transition:background .12s;}
+.ws-dropdown-item:hover{background:var(--bg3);color:var(--text);}
+.ws-dropdown-item.active{background:rgba(91,138,240,0.1);color:var(--accent);font-weight:600;}
+.ws-dropdown-item .ws-color-dot{width:8px;height:8px;}
+.ws-dropdown-create{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;font-size:12px;color:var(--accent);border-top:1px solid var(--border);font-weight:600;transition:background .12s;}
+.ws-dropdown-create:hover{background:rgba(91,138,240,0.08);}
+.ws-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:16px;}
+.ws-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.ws-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.15);}
+.ws-card-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;}
+.ws-card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#fff;font-weight:700;}
+.ws-card-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.ws-card-desc{font-size:12px;color:var(--text3);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ws-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.ws-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);background:var(--bg3);padding:3px 8px;border-radius:12px;}
+.ws-card-role{font-size:11px;font-weight:600;padding:3px 8px;border-radius:12px;}
+.ws-card-create{background:var(--bg2);border:2px dashed var(--border2);border-radius:var(--radius);padding:20px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;gap:8px;}
+.ws-card-create:hover{border-color:var(--accent);background:rgba(91,138,240,0.05);}
+.ws-card-create span:first-child{font-size:28px;opacity:.6;}
+.ws-card-create span:last-child{font-size:13px;color:var(--text3);font-weight:500;}
+.ws-empty{text-align:center;padding:60px 20px;}
+.ws-empty-icon{font-size:48px;margin-bottom:16px;opacity:.5;}
+.ws-empty-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;}
+.ws-empty-desc{font-size:13px;color:var(--text3);max-width:400px;margin:0 auto 20px;line-height:1.6;}
+.ws-member-list{margin-top:12px;}
+.ws-member-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.ws-member-row:last-child{border-bottom:none;}
+.ws-member-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;background:var(--accent);flex-shrink:0;}
+@media(max-width:600px){.ws-grid{grid-template-columns:1fr;}}
 </style>
   <!-- Modal Lupa Password -->
 <div class="modal-overlay" id="modal-forgot">
@@ -482,8 +521,20 @@ input[type=range]{flex:1;accent-color:var(--accent);}
     </div>
     <div class="logo-sub" style="padding-left:27px;">Sistem Monitor Rapat</div>
   </div>
+  <div class="workspace-switcher" id="ws-switcher" style="display:none;">
+    <div class="ws-current" onclick="toggleWsDropdown()">
+      <div class="ws-color-dot" id="ws-dot"></div>
+      <div style="flex:1;min-width:0;">
+        <div class="ws-current-name" id="ws-current-name">Pilih Workspace</div>
+        <div style="font-size:10px;color:var(--text3);">Workspace aktif</div>
+      </div>
+      <span class="ws-arrow" id="ws-arrow">▾</span>
+    </div>
+    <div class="ws-dropdown" id="ws-dropdown"></div>
+  </div>
   <nav class="sidebar-nav">
     <div class="nav-section-label">Menu</div>
+    <div class="nav-item" id="ni-workspace" onclick="showSection('workspace',this)"><span class="nav-icon">🏢</span> Workspace</div>
     <div class="nav-item active" id="ni-dashboard" onclick="showSection('dashboard',this)"><span class="nav-icon">⬡</span> Dashboard</div>
     <div class="nav-item" id="ni-rapat" onclick="showSection('rapat',this)"><span class="nav-icon">📋</span> Daftar Rapat <span class="nav-badge" id="nb-rapat">0</span></div>
     <div class="nav-item" id="ni-progress" onclick="showSection('progress',this)"><span class="nav-icon">◎</span> Monitor Progress</div>
@@ -528,6 +579,17 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   </div>
 
   <div class="content">
+
+    <!-- WORKSPACE -->
+    <div class="section" id="section-workspace">
+      <div class="section-header">
+        <div><div class="section-heading">Workspace Saya</div><div class="section-sub">Kelola workspace dan anggota tim</div></div>
+        <div class="section-actions">
+          <button class="btn btn-primary" id="btn-ws-new" onclick="openModal('modal-ws-create')">＋ Buat Workspace</button>
+        </div>
+      </div>
+      <div id="ws-container"></div>
+    </div>
 
     <!-- DASHBOARD -->
     <div class="section active" id="section-dashboard">
@@ -710,6 +772,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottom-nav">
+  <div class="bnav-item" id="bn-workspace" onclick="showSection('workspace',this)"><span class="bnav-icon">🏢</span><span>Workspace</span></div>
   <div class="bnav-item active" id="bn-dashboard" onclick="showSection('dashboard',this)"><span class="bnav-icon">⬡</span><span>Home</span></div>
   <div class="bnav-item" id="bn-rapat" onclick="showSection('rapat',this)"><div class="bnav-wrap"><span class="bnav-icon">📋</span><span class="bnav-badge" id="bnb-rapat">0</span></div><span>Rapat</span></div>
   <div class="bnav-item" id="bn-progress" onclick="showSection('progress',this)"><span class="bnav-icon">◎</span><span>Progress</span></div>
@@ -867,6 +930,56 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   </div>
 </div>
 
+<!-- Modal Buat Workspace Baru -->
+<div class="modal-overlay" id="modal-ws-create">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header"><span class="modal-title">Buat Workspace Baru</span><button class="close-btn" onclick="closeModal('modal-ws-create')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nama Workspace *</label><input class="form-input" id="mwc-nama" placeholder="Panitia Dies Natalis, Tim Event..." /></div>
+      <div class="form-group"><label class="form-label">Deskripsi</label><input class="form-input" id="mwc-desc" placeholder="Deskripsi singkat workspace..." /></div>
+      <div class="form-group">
+        <label class="form-label">Warna</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mwc-colors">
+          <div onclick="pickWsColor('#5B8AF0')" class="ws-color-dot" style="width:28px;height:28px;background:#5B8AF0;cursor:pointer;border:2px solid transparent;border-radius:50%;" data-color="#5B8AF0"></div>
+          <div onclick="pickWsColor('#7B6CF6')" class="ws-color-dot" style="width:28px;height:28px;background:#7B6CF6;cursor:pointer;border:2px solid transparent;border-radius:50%;" data-color="#7B6CF6"></div>
+          <div onclick="pickWsColor('#2DD4A8')" class="ws-color-dot" style="width:28px;height:28px;background:#2DD4A8;cursor:pointer;border:2px solid transparent;border-radius:50%;" data-color="#2DD4A8"></div>
+          <div onclick="pickWsColor('#F59E0B')" class="ws-color-dot" style="width:28px;height:28px;background:#F59E0B;cursor:pointer;border:2px solid transparent;border-radius:50%;" data-color="#F59E0B"></div>
+          <div onclick="pickWsColor('#EF4444')" class="ws-color-dot" style="width:28px;height:28px;background:#EF4444;cursor:pointer;border:2px solid transparent;border-radius:50%;" data-color="#EF4444"></div>
+          <div onclick="pickWsColor('#EC4899')" class="ws-color-dot" style="width:28px;height:28px;background:#EC4899;cursor:pointer;border:2px solid transparent;border-radius:50%;" data-color="#EC4899"></div>
+          <div onclick="pickWsColor('#8B5CF6')" class="ws-color-dot" style="width:28px;height:28px;background:#8B5CF6;cursor:pointer;border:2px solid transparent;border-radius:50%;" data-color="#8B5CF6"></div>
+        </div>
+        <input type="hidden" id="mwc-color" value="#5B8AF0" />
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-ws-create')">Batal</button><button class="btn btn-primary" onclick="createWorkspace()">Buat Workspace</button></div>
+  </div>
+</div>
+
+<!-- Modal Undang ke Workspace -->
+<div class="modal-overlay" id="modal-ws-invite">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header"><span class="modal-title">Undang ke Workspace</span><button class="close-btn" onclick="closeModal('modal-ws-invite')">×</button></div>
+    <div class="modal-body">
+      <div class="notice notice-info" style="margin-bottom:14px;">ℹ Masukkan email pengguna yang sudah terdaftar di NOTULA.</div>
+      <div class="form-group"><label class="form-label">Email Pengguna *</label><input class="form-input" id="mwi-email" type="email" placeholder="nama@email.com" /></div>
+      <div class="form-group">
+        <label class="form-label">Role di Workspace</label>
+        <select class="form-select" id="mwi-role">
+          <option value="viewer">Viewer</option>
+          <option value="seksi">Seksi</option>
+          <option value="notulen">Notulen</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Seksi (opsional)</label>
+        <select class="form-select" id="mwi-seksi"><option value="">— Tidak ada —</option></select>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-ws-invite')">Batal</button><button class="btn btn-primary" onclick="inviteToWorkspace()">Undang</button></div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 // NOTULA — FIREBASE + FULL APP SCRIPT
@@ -932,15 +1045,35 @@ var localAnggota    = [];
 var localAktivitas  = [];
 var isFirstAktLoad  = true;
 
+// ── WORKSPACE STATE ──
+var currentWorkspaceId = null;
+var currentWorkspaceName = '';
+var currentWsRole = null;
+var localWorkspaces = [];
+var wsUnsubscribers = [];
+var selectedWsColor = '#5B8AF0';
+
 // ── PERMISSION SYSTEM ──
 function getRoleColor(role) {
   var map = { admin:'var(--accent)', notulen:'var(--teal)', seksi:'var(--yellow)', viewer:'var(--text2)' };
   return map[role] || 'var(--text2)';
 }
 
+// Workspace-scoped collection helper
+function getCol(name) {
+  if (!currentWorkspaceId) return db.collection(name);
+  return db.collection('workspaces').doc(currentWorkspaceId).collection(name);
+}
+
+function getEffectiveRole() {
+  if (currentWsRole) return currentWsRole;
+  if (currentProfile) return currentProfile.role;
+  return null;
+}
+
 function can(action) {
-  if (!currentProfile) return false;
-  var role = currentProfile.role;
+  var role = getEffectiveRole();
+  if (!role) return false;
   var perms = {
     create_rapat:    ['admin','notulen'],
     edit_rapat:      ['admin','notulen'],
@@ -961,15 +1094,19 @@ function can(action) {
 }
 
 function canUpdateProgress(seksi) {
-  if (!currentProfile) return false;
-  if (currentProfile.role === 'admin' || currentProfile.role === 'notulen') return true;
-  return currentProfile.role === 'seksi' && currentProfile.seksi === seksi;
+  var role = getEffectiveRole();
+  if (!role) return false;
+  if (role === 'admin' || role === 'notulen') return true;
+  var mySeksi = currentProfile ? currentProfile.seksi : null;
+  return role === 'seksi' && mySeksi === seksi;
 }
 
 function canToggleTodo(todo) {
-  if (!currentProfile) return false;
-  if (currentProfile.role === 'admin' || currentProfile.role === 'notulen') return true;
-  return currentProfile.role === 'seksi' && currentProfile.seksi === todo.seksi;
+  var role = getEffectiveRole();
+  if (!role) return false;
+  if (role === 'admin' || role === 'notulen') return true;
+  var mySeksi = currentProfile ? currentProfile.seksi : null;
+  return role === 'seksi' && mySeksi === todo.seksi;
 }
 
 // ── AUTH STATE ──
@@ -993,8 +1130,14 @@ auth.onAuthStateChanged(function(user) {
   } else {
     currentUser    = null;
     currentProfile = null;
+    currentWorkspaceId = null;
+    currentWorkspaceName = '';
+    currentWsRole = null;
+    localWorkspaces = [];
     unsubListeners.forEach(function(u) { u(); });
     unsubListeners = [];
+    wsUnsubscribers.forEach(function(u) { u(); });
+    wsUnsubscribers = [];
     hideLoading();
     showLoginPage();
   }
@@ -1032,15 +1175,15 @@ function showApp() {
   document.getElementById('sb-role').innerHTML =
     '<span class="role-badge role-' + p.role + '">' + (ROLE_LABELS[p.role] || p.role) +
     (p.seksi ? ' — ' + p.seksi : '') + '</span>';
-  applyRoleUI();
-  updateDropdowns();
-  startListeners();
+  // Load workspaces, then start listeners
+  loadWorkspaces();
 }
 
 function applyRoleUI() {
   function show(id, v) { var el = document.getElementById(id); if (el) el.style.display = v ? '' : 'none'; }
+  var role = getEffectiveRole();
   var ni = document.getElementById('ni-users');
-  if (ni) ni.classList.toggle('disabled', currentProfile.role !== 'admin');
+  if (ni) ni.classList.toggle('disabled', role !== 'admin');
   show('btn-new-rapat',   can('create_rapat'));
   show('btn-rapat-new',   can('create_rapat'));
   show('btn-prog-update', can('update_progress'));
@@ -1050,7 +1193,14 @@ function applyRoleUI() {
   show('btn-anggota-new', can('manage_anggota'));
   show('btn-export',      can('create_rapat'));
   var bnUsers = document.getElementById('bn-users');
-  if (bnUsers) bnUsers.style.display = currentProfile.role === 'admin' ? '' : 'none';
+  if (bnUsers) bnUsers.style.display = role === 'admin' ? '' : 'none';
+  // Update sidebar role display with workspace role if available
+  if (currentWsRole && currentProfile) {
+    document.getElementById('sb-role').innerHTML =
+      '<span class="role-badge role-' + currentWsRole + '">' + (ROLE_LABELS[currentWsRole] || currentWsRole) +
+      (currentProfile.seksi ? ' — ' + currentProfile.seksi : '') + '</span>';
+    document.getElementById('sb-avatar').style.background = getRoleColor(currentWsRole);
+  }
 }
 
 // ── LOGIN / LOGOUT ──
@@ -1080,9 +1230,12 @@ function doLogin() {
 function doLogout() {
   unsubListeners.forEach(function(u) { u(); });
   unsubListeners = [];
+  wsUnsubscribers.forEach(function(u) { u(); });
+  wsUnsubscribers = [];
   isFirstAktLoad = true;
   localRapat = []; localAgenda = []; localTodo = []; localKendala = [];
   localProgress = {}; localUsers = []; localAnggota = []; localAktivitas = [];
+  currentWorkspaceId = null; currentWorkspaceName = ''; currentWsRole = null; localWorkspaces = [];
   auth.signOut();
 }
 
@@ -1169,34 +1322,42 @@ function doChangePassword() {
 
 // ── REALTIME LISTENERS ──
 function startListeners() {
+  // Unsubscribe previous listeners
+  unsubListeners.forEach(function(u) { u(); });
+  unsubListeners = [];
+  // Reset local caches
+  localRapat = []; localAgenda = []; localTodo = []; localKendala = [];
+  localProgress = {}; localAnggota = []; localAktivitas = [];
+  isFirstAktLoad = true;
+
   unsubListeners.push(
-    db.collection('rapat').orderBy('tanggal', 'desc').onSnapshot(function(snap) {
+    getCol('rapat').orderBy('tanggal', 'desc').onSnapshot(function(snap) {
       localRapat = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
       renderAll();
     }, function(e) { notify('Error rapat: ' + e.message, 'error'); })
   );
   unsubListeners.push(
-    db.collection('agenda').onSnapshot(function(snap) {
+    getCol('agenda').onSnapshot(function(snap) {
       localAgenda = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
       if (currentRapatId) { renderAgendaTab(currentRapatId); }
     })
   );
   unsubListeners.push(
-    db.collection('todo').onSnapshot(function(snap) {
+    getCol('todo').onSnapshot(function(snap) {
       localTodo = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
       renderGlobalTodo(); updateStats(); updateBadges(); renderRapatList();
       if (currentRapatId) renderTodoTab(currentRapatId);
     })
   );
   unsubListeners.push(
-    db.collection('kendala').onSnapshot(function(snap) {
+    getCol('kendala').onSnapshot(function(snap) {
       localKendala = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
       renderKendalaGlobal(); updateStats(); renderDashboard();
       if (currentRapatId) renderKendalaTab(currentRapatId);
     })
   );
   unsubListeners.push(
-    db.collection('progress').onSnapshot(function(snap) {
+    getCol('progress').onSnapshot(function(snap) {
       localProgress = {};
       snap.docs.forEach(function(d) { localProgress[d.id] = d.data(); });
       renderProgressGlobal(); updateStats();
@@ -1210,17 +1371,16 @@ function startListeners() {
     })
   );
   unsubListeners.push(
-    db.collection('anggota').onSnapshot(function(snap) {
+    getCol('anggota').onSnapshot(function(snap) {
       localAnggota = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
       renderAnggota();
     })
   );
   // Aktivitas listener — show toast to other users when rapat is updated
   unsubListeners.push(
-    db.collection('aktivitas').orderBy('createdAt', 'desc').limit(20).onSnapshot(function(snap) {
+    getCol('aktivitas').orderBy('createdAt', 'desc').limit(20).onSnapshot(function(snap) {
       var prev = localAktivitas.slice();
       localAktivitas = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
-      // Show toast for NEW activity from OTHER users (not first load)
       if (!isFirstAktLoad && localAktivitas.length > prev.length) {
         var newest = localAktivitas[0];
         if (newest && newest.uid !== currentUser.uid) {
@@ -1528,7 +1688,7 @@ function saveAgendaOrder(rid) {
   var batch = db.batch();
   rows.forEach(function(row, i) {
     var id = row.getAttribute('data-id');
-    if (id) batch.update(db.collection('agenda').doc(id), { no: i+1 });
+    if (id) batch.update(getCol('agenda').doc(id), { no: i+1 });
   });
   batch.commit().then(function() { notify('Urutan agenda disimpan!', 'success'); })
     .catch(function(e) { notify('Gagal simpan urutan: ' + e.message, 'error'); });
@@ -1742,7 +1902,7 @@ function renderAktivitas() {
 
 function logAktivitas(tipe, pesan, judul) {
   if (!currentUser || !currentProfile) return;
-  db.collection('aktivitas').add({
+  getCol('aktivitas').add({
     tipe:     tipe,
     pesan:    pesan,
     judul:    judul || '',
@@ -1795,8 +1955,12 @@ function showSection(id, el) {
   var sec = document.getElementById('section-' + id);
   if (sec) sec.classList.add('active');
   if (el) el.classList.add('active');
+  else {
+    var ni = document.getElementById('ni-' + id);
+    if (ni) ni.classList.add('active');
+  }
   var titles = {
-    dashboard:'Dashboard', rapat:'Daftar Rapat', progress:'Monitor Progress',
+    workspace:'Workspace Saya', dashboard:'Dashboard', rapat:'Daftar Rapat', progress:'Monitor Progress',
     todo:'To Do List', kendala:'Kendala', users:'Kelola Pengguna',
     anggota:'Anggota Tim', report:'Laporan & Export'
   };
@@ -1804,6 +1968,7 @@ function showSection(id, el) {
   document.querySelectorAll('.bnav-item').forEach(function(b) { b.classList.remove('active'); });
   var bn = document.getElementById('bn-' + id);
   if (bn) bn.classList.add('active');
+  if (id === 'workspace') renderWorkspaces();
   closeSidebar();
 }
 
@@ -2009,7 +2174,7 @@ function saveRapat() {
   };
   var editId = document.getElementById('mr-id').value;
   if (editId) {
-    db.collection('rapat').doc(editId).update(data)
+    getCol('rapat').doc(editId).update(data)
       .then(function() {
         closeModal('modal-rapat');
         notify('Rapat diperbarui!', 'success');
@@ -2019,7 +2184,7 @@ function saveRapat() {
   } else {
     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
     data.createdBy = currentUser.uid;
-    db.collection('rapat').add(data)
+    getCol('rapat').add(data)
       .then(function() { closeModal('modal-rapat'); notify('Rapat baru berhasil dibuat!', 'success'); })
       .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
   }
@@ -2046,9 +2211,9 @@ function deleteRapat(id) {
   if (!can('delete_rapat')) { notify('Tidak ada izin', 'error'); return; }
   if (!confirm('Hapus rapat ini? Agenda & kendala terkait juga terhapus.')) return;
   var batch = db.batch();
-  batch.delete(db.collection('rapat').doc(id));
-  localAgenda.filter(function(a){return a.rapatId===id;}).forEach(function(a){ batch.delete(db.collection('agenda').doc(a.id)); });
-  localKendala.filter(function(k){return k.rapatId===id;}).forEach(function(k){ batch.delete(db.collection('kendala').doc(k.id)); });
+  batch.delete(getCol('rapat').doc(id));
+  localAgenda.filter(function(a){return a.rapatId===id;}).forEach(function(a){ batch.delete(getCol('agenda').doc(a.id)); });
+  localKendala.filter(function(k){return k.rapatId===id;}).forEach(function(k){ batch.delete(getCol('kendala').doc(k.id)); });
   batch.commit().then(function() {
     if (currentRapatId === id) { currentRapatId = null; document.getElementById('detail-panel').style.display = 'none'; }
     notify('Rapat dihapus', 'success');
@@ -2066,7 +2231,7 @@ function saveAgenda() {
   var seksi  = document.getElementById('ma-seksi').value;
   var prioritas = document.getElementById('ma-prioritas').value;
   if (mode === 'edit' && editId) {
-    db.collection('agenda').doc(editId).update({
+    getCol('agenda').doc(editId).update({
       topik: topik, pembahasan: pembahasan, seksi: seksi, prioritas: prioritas,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: currentUser.uid
@@ -2077,7 +2242,7 @@ function saveAgenda() {
     }).catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
   } else {
     var cnt = localAgenda.filter(function(a){return a.rapatId===rid;}).length;
-    db.collection('agenda').add({
+    getCol('agenda').add({
       rapatId:rid, no:cnt+1, topik:topik, pembahasan:pembahasan, seksi:seksi, prioritas:prioritas,
       createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid
     }).then(function() {
@@ -2090,7 +2255,7 @@ function saveAgenda() {
 
 function delAgenda(id, rid) {
   if (!can('delete_agenda')) return;
-  db.collection('agenda').doc(id).delete().then(function(){ notify('Agenda dihapus', 'success'); });
+  getCol('agenda').doc(id).delete().then(function(){ notify('Agenda dihapus', 'success'); });
 }
 
 function saveTodo() {
@@ -2102,15 +2267,13 @@ function saveTodo() {
   var prioritas = document.getElementById('mt-prioritas').value;
   if (!tugas) { notify('Tugas wajib diisi', 'error'); return; }
   if (editId) {
-    // Mode edit
     if (!can('edit_todo')) { notify('Tidak ada izin', 'error'); return; }
-    db.collection('todo').doc(editId).update({ tugas:tugas, seksi:seksi, rapatId:rapatId, deadline:deadline, prioritas:prioritas, updatedBy:currentUser.uid })
+    getCol('todo').doc(editId).update({ tugas:tugas, seksi:seksi, rapatId:rapatId, deadline:deadline, prioritas:prioritas, updatedBy:currentUser.uid })
       .then(function() { closeModal('modal-todo'); notify('Tugas diperbarui!', 'success'); })
       .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
   } else {
-    // Mode tambah baru
     if (!can('create_todo')) { notify('Tidak ada izin', 'error'); return; }
-    db.collection('todo').add({ tugas:tugas, done:false, seksi:seksi, rapatId:rapatId, deadline:deadline, prioritas:prioritas, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
+    getCol('todo').add({ tugas:tugas, done:false, seksi:seksi, rapatId:rapatId, deadline:deadline, prioritas:prioritas, createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid })
       .then(function() { closeModal('modal-todo'); notify('Tugas ditambahkan!', 'success'); })
       .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
   }
@@ -2119,17 +2282,17 @@ function saveTodo() {
 function toggleTodo(id, rid) {
   var t = localTodo.filter(function(x){return x.id===id;})[0];
   if (!t || !canToggleTodo(t)) { notify('Tidak ada izin untuk tugas ini', 'error'); return; }
-  db.collection('todo').doc(id).update({ done: !t.done, updatedBy: currentUser.uid });
+  getCol('todo').doc(id).update({ done: !t.done, updatedBy: currentUser.uid });
 }
 
 function toggleTodoG(id) {
   var t = localTodo.filter(function(x){return x.id===id;})[0];
   if (!t || !canToggleTodo(t)) { notify('Tidak ada izin untuk tugas ini', 'error'); return; }
-  db.collection('todo').doc(id).update({ done: !t.done, updatedBy: currentUser.uid });
+  getCol('todo').doc(id).update({ done: !t.done, updatedBy: currentUser.uid });
 }
 
-function delTodo(id) { if (can('delete_todo')) db.collection('todo').doc(id).delete(); }
-function delTodoG(id) { if (can('delete_todo')) db.collection('todo').doc(id).delete(); }
+function delTodo(id) { if (can('delete_todo')) getCol('todo').doc(id).delete(); }
+function delTodoG(id) { if (can('delete_todo')) getCol('todo').doc(id).delete(); }
 
 function saveKendala() {
   if (!can('create_kendala')) { notify('Tidak ada izin', 'error'); return; }
@@ -2147,7 +2310,7 @@ function saveKendala() {
     updatedBy: currentUser.uid
   };
   if (editId) {
-    db.collection('kendala').doc(editId).update(data)
+    getCol('kendala').doc(editId).update(data)
       .then(function() {
         closeModal('modal-kendala');
         notify('Kendala diperbarui!', 'success');
@@ -2158,7 +2321,7 @@ function saveKendala() {
     data.status = 'aktif';
     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
     data.createdBy = currentUser.uid;
-    db.collection('kendala').add(data)
+    getCol('kendala').add(data)
       .then(function() {
         closeModal('modal-kendala');
         notify('Kendala ditambahkan!', 'success');
@@ -2185,7 +2348,7 @@ function editKendala(id) {
 function deleteKendala(id) {
   if (!can('toggle_kendala')) { notify('Tidak ada izin', 'error'); return; }
   if (!confirm('Hapus kendala ini secara permanen?')) return;
-  db.collection('kendala').doc(id).delete()
+  getCol('kendala').doc(id).delete()
     .then(function() { notify('Kendala dihapus', 'success'); })
     .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
 }
@@ -2194,7 +2357,7 @@ function toggleKendala(id, rid) {
   if (!can('toggle_kendala')) { notify('Tidak ada izin', 'error'); return; }
   var k = localKendala.filter(function(x){return x.id===id;})[0];
   if (!k) return;
-  db.collection('kendala').doc(id).update({ status: k.status==='aktif'?'selesai':'aktif', updatedBy: currentUser.uid });
+  getCol('kendala').doc(id).update({ status: k.status==='aktif'?'selesai':'aktif', updatedBy: currentUser.uid });
 }
 
 
@@ -2202,7 +2365,7 @@ function saveProgress() {
   var seksi = document.getElementById('mp-seksi').value;
   if (!seksi) { notify('Pilih seksi terlebih dahulu', 'error'); return; }
   if (!canUpdateProgress(seksi)) { notify('Anda hanya bisa update progress seksi Anda sendiri', 'error'); return; }
-  db.collection('progress').doc(seksi).set({ pct:parseInt(document.getElementById('mp-pct').value), status:document.getElementById('mp-status').value, catatan:document.getElementById('mp-catatan').value, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:currentUser.uid })
+  getCol('progress').doc(seksi).set({ pct:parseInt(document.getElementById('mp-pct').value), status:document.getElementById('mp-status').value, catatan:document.getElementById('mp-catatan').value, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:currentUser.uid })
     .then(function() {
       closeModal('modal-progress');
       notify('Progress diperbarui!', 'success');
@@ -2252,13 +2415,11 @@ function saveAnggota() {
   var kontak  = document.getElementById('mang-kontak').value;
   if (!nama) { notify('Nama wajib diisi', 'error'); return; }
   if (editId) {
-    // Mode edit
-    db.collection('anggota').doc(editId).update({ nama:nama, jabatan:jabatan, kontak:kontak })
+    getCol('anggota').doc(editId).update({ nama:nama, jabatan:jabatan, kontak:kontak })
       .then(function() { closeModal('modal-anggota'); notify('Anggota diperbarui!', 'success'); })
       .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
   } else {
-    // Mode tambah baru
-    db.collection('anggota').add({ nama:nama, jabatan:jabatan, kontak:kontak, createdAt:firebase.firestore.FieldValue.serverTimestamp() })
+    getCol('anggota').add({ nama:nama, jabatan:jabatan, kontak:kontak, createdAt:firebase.firestore.FieldValue.serverTimestamp() })
       .then(function() { closeModal('modal-anggota'); notify('Anggota ditambahkan!', 'success'); })
       .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
   }
@@ -2266,7 +2427,7 @@ function saveAnggota() {
 
 function delAnggota(id) {
   if (!can('manage_anggota') || !confirm('Hapus anggota ini?')) return;
-  db.collection('anggota').doc(id).delete();
+  getCol('anggota').doc(id).delete();
 }
 
 function openUserModal() {
@@ -2667,6 +2828,354 @@ document.addEventListener('keydown', function(e) {
     document.querySelectorAll('.modal-overlay').forEach(function(m) { m.classList.remove('open'); });
   }
 });
+
+// ══════════════════════════════════════════════════
+// WORKSPACE FUNCTIONS
+// ══════════════════════════════════════════════════
+
+function loadWorkspaces() {
+  if (!currentUser) return;
+  // Listen to user's workspace list
+  wsUnsubscribers.forEach(function(u) { u(); });
+  wsUnsubscribers = [];
+  var unsub = db.collection('users').doc(currentUser.uid).collection('workspaces')
+    .onSnapshot(function(snap) {
+      localWorkspaces = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+      renderWsSwitcher();
+      // Auto-select first workspace if none selected
+      if (!currentWorkspaceId && localWorkspaces.length > 0) {
+        switchWorkspace(localWorkspaces[0].id);
+      } else if (currentWorkspaceId) {
+        // Verify current workspace still exists in list
+        var found = localWorkspaces.filter(function(w) { return w.id === currentWorkspaceId; })[0];
+        if (!found && localWorkspaces.length > 0) {
+          switchWorkspace(localWorkspaces[0].id);
+        } else if (!found) {
+          currentWorkspaceId = null;
+          currentWorkspaceName = '';
+          currentWsRole = null;
+          showNoWorkspaceState();
+        }
+      } else {
+        // No workspaces at all
+        showNoWorkspaceState();
+      }
+    });
+  wsUnsubscribers.push(unsub);
+}
+
+function showNoWorkspaceState() {
+  document.getElementById('ws-switcher').style.display = 'none';
+  applyRoleUI();
+  updateDropdowns();
+  showSection('workspace');
+  renderWorkspaces();
+}
+
+function switchWorkspace(wsId) {
+  if (!wsId) return;
+  var ws = localWorkspaces.filter(function(w) { return w.id === wsId; })[0];
+  if (!ws) return;
+
+  currentWorkspaceId = wsId;
+  currentWorkspaceName = ws.nama || 'Workspace';
+
+  // Load workspace member profile to get workspace-level role
+  db.collection('workspaces').doc(wsId).collection('members').doc(currentUser.uid)
+    .get().then(function(snap) {
+      if (snap.exists) {
+        var memberData = snap.data();
+        currentWsRole = memberData.role || 'viewer';
+        if (memberData.seksi && currentProfile) {
+          currentProfile.seksi = memberData.seksi;
+        }
+      } else {
+        currentWsRole = currentProfile ? currentProfile.role : 'viewer';
+      }
+      applyRoleUI();
+      updateDropdowns();
+      renderWsSwitcher();
+      startListeners();
+      // Go to dashboard
+      var niDash = document.getElementById('ni-dashboard');
+      if (niDash) showSection('dashboard', niDash);
+    }).catch(function(e) {
+      currentWsRole = currentProfile ? currentProfile.role : 'viewer';
+      applyRoleUI();
+      updateDropdowns();
+      renderWsSwitcher();
+      startListeners();
+    });
+}
+
+function renderWsSwitcher() {
+  var switcher = document.getElementById('ws-switcher');
+  if (!localWorkspaces.length) {
+    switcher.style.display = 'none';
+    return;
+  }
+  switcher.style.display = 'block';
+  var current = localWorkspaces.filter(function(w) { return w.id === currentWorkspaceId; })[0];
+  var dot = document.getElementById('ws-dot');
+  var nameEl = document.getElementById('ws-current-name');
+  if (current) {
+    dot.style.background = current.color || 'var(--accent)';
+    nameEl.textContent = current.nama || 'Workspace';
+  } else {
+    dot.style.background = 'var(--text3)';
+    nameEl.textContent = 'Pilih Workspace';
+  }
+
+  // Build dropdown
+  var dd = document.getElementById('ws-dropdown');
+  var html = '';
+  localWorkspaces.forEach(function(w) {
+    var isActive = w.id === currentWorkspaceId;
+    html += '<div class="ws-dropdown-item' + (isActive ? ' active' : '') + '" onclick="switchWorkspace(\'' + w.id + '\');closeWsDropdown();">'
+      + '<div class="ws-color-dot" style="background:' + (w.color || 'var(--accent)') + ';"></div>'
+      + '<span style="flex:1;">' + (w.nama || 'Workspace') + '</span>'
+      + (isActive ? '<span style="font-size:10px;">✓</span>' : '')
+      + '</div>';
+  });
+  html += '<div class="ws-dropdown-create" onclick="openModal(\'modal-ws-create\');closeWsDropdown();">'
+    + '<span>＋</span><span>Buat Workspace Baru</span></div>';
+  dd.innerHTML = html;
+}
+
+function toggleWsDropdown() {
+  var dd = document.getElementById('ws-dropdown');
+  var arrow = document.getElementById('ws-arrow');
+  dd.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+function closeWsDropdown() {
+  var dd = document.getElementById('ws-dropdown');
+  var arrow = document.getElementById('ws-arrow');
+  dd.classList.remove('open');
+  arrow.classList.remove('open');
+}
+
+function pickWsColor(color) {
+  selectedWsColor = color;
+  document.getElementById('mwc-color').value = color;
+  var dots = document.querySelectorAll('#mwc-colors .ws-color-dot');
+  dots.forEach(function(d) {
+    d.style.borderColor = d.getAttribute('data-color') === color ? '#fff' : 'transparent';
+  });
+}
+
+function createWorkspace() {
+  var nama = document.getElementById('mwc-nama').value.trim();
+  if (!nama) { notify('Nama workspace wajib diisi', 'error'); return; }
+  var desc = document.getElementById('mwc-desc').value.trim();
+  var color = document.getElementById('mwc-color').value || '#5B8AF0';
+
+  var wsRef = db.collection('workspaces').doc();
+  var wsId = wsRef.id;
+  var batch = db.batch();
+
+  // Create workspace document
+  batch.set(wsRef, {
+    nama: nama,
+    deskripsi: desc,
+    color: color,
+    createdBy: currentUser.uid,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // Add creator as admin member
+  batch.set(wsRef.collection('members').doc(currentUser.uid), {
+    role: 'admin',
+    seksi: currentProfile ? (currentProfile.seksi || '') : '',
+    joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    nama: currentProfile ? (currentProfile.nama || currentUser.email) : currentUser.email,
+    email: currentUser.email
+  });
+
+  // Add workspace reference to user's subcollection
+  batch.set(db.collection('users').doc(currentUser.uid).collection('workspaces').doc(wsId), {
+    role: 'admin',
+    joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    nama: nama,
+    color: color
+  });
+
+  batch.commit().then(function() {
+    closeModal('modal-ws-create');
+    document.getElementById('mwc-nama').value = '';
+    document.getElementById('mwc-desc').value = '';
+    pickWsColor('#5B8AF0');
+    notify('Workspace "' + nama + '" berhasil dibuat!', 'success');
+    // Auto-switch to new workspace
+    switchWorkspace(wsId);
+  }).catch(function(e) {
+    notify('Gagal membuat workspace: ' + e.message, 'error');
+  });
+}
+
+function renderWorkspaces() {
+  var container = document.getElementById('ws-container');
+  if (!container) return;
+
+  if (!localWorkspaces.length) {
+    container.innerHTML = '<div class="ws-empty">'
+      + '<div class="ws-empty-icon">🏢</div>'
+      + '<div class="ws-empty-title">Belum Ada Workspace</div>'
+      + '<div class="ws-empty-desc">Workspace membantu Anda mengelola rapat dan tim secara terpisah. Buat workspace pertama Anda untuk mulai.</div>'
+      + '<button class="btn btn-primary" onclick="openModal(\'modal-ws-create\')">＋ Buat Workspace Pertama</button>'
+      + '</div>';
+    return;
+  }
+
+  var html = '<div class="ws-grid">';
+  localWorkspaces.forEach(function(w) {
+    var isActive = w.id === currentWorkspaceId;
+    var roleBadge = w.role ? '<span class="ws-card-role" style="background:' + getRoleColor(w.role) + '22;color:' + getRoleColor(w.role).replace('var(','').replace(')','') + ';">' + (ROLE_LABELS[w.role] || w.role) + '</span>' : '';
+    html += '<div class="ws-card' + (isActive ? ' active' : '') + '" onclick="switchWorkspace(\'' + w.id + '\')" style="' + (isActive ? 'border-color:' + (w.color || 'var(--accent)') + ';' : '') + '">'
+      + '<div class="ws-card-header">'
+      + '<div class="ws-card-icon" style="background:' + (w.color || 'var(--accent)') + ';">' + (w.nama || 'W').charAt(0).toUpperCase() + '</div>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div class="ws-card-title">' + (w.nama || 'Workspace') + '</div>'
+      + '<div class="ws-card-desc">' + (w.deskripsi || '') + '</div>'
+      + '</div></div>'
+      + '<div class="ws-card-footer">'
+      + '<span class="ws-badge">👤 ' + (ROLE_LABELS[w.role] || w.role || 'Member') + '</span>'
+      + (isActive ? '<span style="font-size:11px;color:var(--green);font-weight:600;">● Aktif</span>' : '<span style="font-size:11px;color:var(--text3);">Klik untuk beralih</span>')
+      + '</div></div>';
+  });
+  // Add create card
+  html += '<div class="ws-card-create" onclick="openModal(\'modal-ws-create\')">'
+    + '<span>＋</span><span>Buat Workspace Baru</span></div>';
+  html += '</div>';
+
+  // Invite section for current workspace
+  if (currentWorkspaceId && currentWsRole === 'admin') {
+    html += '<div style="margin-top:24px;">'
+      + '<div class="card card-pad">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+      + '<div class="card-title">👥 Anggota Workspace: ' + currentWorkspaceName + '</div>'
+      + '<button class="btn btn-primary btn-sm" onclick="openInviteModal()">＋ Undang Anggota</button>'
+      + '</div>'
+      + '<div id="ws-members-list">Memuat anggota...</div>'
+      + '</div></div>';
+    // Load members after rendering
+    setTimeout(loadWsMembers, 100);
+  }
+
+  container.innerHTML = html;
+}
+
+function loadWsMembers() {
+  if (!currentWorkspaceId) return;
+  db.collection('workspaces').doc(currentWorkspaceId).collection('members')
+    .get().then(function(snap) {
+      var membersEl = document.getElementById('ws-members-list');
+      if (!membersEl) return;
+      if (snap.empty) {
+        membersEl.innerHTML = '<div style="color:var(--text3);font-size:13px;">Belum ada anggota lain.</div>';
+        return;
+      }
+      var html = '<div class="ws-member-list">';
+      snap.docs.forEach(function(d) {
+        var m = d.data();
+        html += '<div class="ws-member-row">'
+          + '<div class="ws-member-avatar" style="background:' + getRoleColor(m.role) + ';">' + initials(m.nama || m.email || '?') + '</div>'
+          + '<div style="flex:1;min-width:0;">'
+          + '<div style="font-size:13px;font-weight:600;">' + (m.nama || m.email || '—') + '</div>'
+          + '<div style="font-size:11px;color:var(--text3);">' + (m.email || '') + (m.seksi ? ' · ' + m.seksi : '') + '</div>'
+          + '</div>'
+          + '<span class="role-badge role-' + (m.role || 'viewer') + '">' + (ROLE_LABELS[m.role] || m.role || 'viewer') + '</span>'
+          + (d.id !== currentUser.uid && currentWsRole === 'admin' ? '<button class="btn btn-danger btn-sm btn-icon" onclick="removeWsMember(\'' + d.id + '\')" title="Hapus" style="margin-left:6px;">✕</button>' : '')
+          + '</div>';
+      });
+      html += '</div>';
+      membersEl.innerHTML = html;
+    }).catch(function(e) {
+      var membersEl = document.getElementById('ws-members-list');
+      if (membersEl) membersEl.innerHTML = '<div style="color:var(--red);font-size:12px;">Gagal memuat anggota: ' + e.message + '</div>';
+    });
+}
+
+function openInviteModal() {
+  document.getElementById('mwi-email').value = '';
+  document.getElementById('mwi-role').value = 'viewer';
+  // Populate seksi dropdown
+  var seksiSel = document.getElementById('mwi-seksi');
+  seksiSel.innerHTML = '<option value="">— Tidak ada —</option>';
+  SEKSI_LIST.forEach(function(s) {
+    seksiSel.innerHTML += '<option value="' + s + '">' + s + '</option>';
+  });
+  openModal('modal-ws-invite');
+}
+
+function inviteToWorkspace() {
+  if (!currentWorkspaceId) { notify('Pilih workspace terlebih dahulu', 'error'); return; }
+  if (currentWsRole !== 'admin') { notify('Hanya admin workspace yang dapat mengundang', 'error'); return; }
+  var email = document.getElementById('mwi-email').value.trim();
+  var role = document.getElementById('mwi-role').value;
+  var seksi = document.getElementById('mwi-seksi').value;
+  if (!email) { notify('Email wajib diisi', 'error'); return; }
+
+  // Find user by email
+  db.collection('users').where('email', '==', email).get().then(function(snap) {
+    if (snap.empty) {
+      notify('Pengguna dengan email tersebut tidak ditemukan', 'error');
+      return;
+    }
+    var userDoc = snap.docs[0];
+    var uid = userDoc.id;
+    var userData = userDoc.data();
+
+    // Check if already a member
+    return db.collection('workspaces').doc(currentWorkspaceId).collection('members').doc(uid)
+      .get().then(function(memberSnap) {
+        if (memberSnap.exists) {
+          notify('Pengguna sudah menjadi anggota workspace ini', 'error');
+          return;
+        }
+        var batch = db.batch();
+        // Add to workspace members
+        batch.set(db.collection('workspaces').doc(currentWorkspaceId).collection('members').doc(uid), {
+          role: role,
+          seksi: seksi,
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          nama: userData.nama || email,
+          email: email
+        });
+        // Add workspace ref to user
+        batch.set(db.collection('users').doc(uid).collection('workspaces').doc(currentWorkspaceId), {
+          role: role,
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          nama: currentWorkspaceName,
+          color: (localWorkspaces.filter(function(w){return w.id===currentWorkspaceId;})[0] || {}).color || '#5B8AF0'
+        });
+        return batch.commit().then(function() {
+          closeModal('modal-ws-invite');
+          notify((userData.nama || email) + ' berhasil diundang!', 'success');
+          if (document.getElementById('section-workspace').classList.contains('active')) {
+            renderWorkspaces();
+          }
+        });
+      });
+  }).catch(function(e) {
+    notify('Gagal mengundang: ' + e.message, 'error');
+  });
+}
+
+function removeWsMember(uid) {
+  if (!currentWorkspaceId || currentWsRole !== 'admin') return;
+  if (!confirm('Hapus anggota ini dari workspace?')) return;
+  var batch = db.batch();
+  batch.delete(db.collection('workspaces').doc(currentWorkspaceId).collection('members').doc(uid));
+  batch.delete(db.collection('users').doc(uid).collection('workspaces').doc(currentWorkspaceId));
+  batch.commit().then(function() {
+    notify('Anggota dihapus dari workspace', 'success');
+    loadWsMembers();
+  }).catch(function(e) {
+    notify('Gagal: ' + e.message, 'error');
+  });
+}
 </script>
 <script>
 // ══════════════════════════════════════════════════
