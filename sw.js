@@ -1,6 +1,5 @@
-const CACHE_NAME = 'notula-cache-v5';
-// PERHATIKAN: Menambahkan '/' sangat krusial untuk Vercel
-const urlsToCache = ['/', '/index.html', '/icon.jpg', '/manifest.json'];
+const CACHE_NAME = 'notula-cache-v7';
+const urlsToCache = ['/', '/index.html', '/icon.jpg', '/logo.jpg', '/manifest.json'];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
@@ -23,6 +22,6 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(response => {
       return response || fetch(event.request);
-    }).catch(() => caches.match('/')) // Jika offline, paksa buka '/'
+    }).catch(() => caches.match('/'))
   );
 });
