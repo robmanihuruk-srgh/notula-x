@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
-  <link rel="manifest" href="manifest.json">                     
+  <link rel="manifest" href="manifest.json"> 
+<meta name="theme-color" content="#f97316">  
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2092,5 +2093,38 @@
       document.getElementById('printBtn').addEventListener('click', printMeeting);
     })();
   </script>
+  <button id="btn-install-pwa" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999; padding: 12px 20px; background-color: #f97316; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); font-family: 'Inter', sans-serif;">
+  <i class="fas fa-download"></i> Install Aplikasi
+</button>
+
+<script>
+  let deferredPrompt;
+  const installBtn = document.getElementById('btn-install-pwa');
+
+  // Menangkap event ketika browser mendeteksi web siap diinstal
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); // Mencegah prompt bawaan muncul otomatis
+    deferredPrompt = e; // Simpan event untuk dipicu nanti
+    installBtn.style.display = 'block'; // Tampilkan tombol kita
+  });
+
+  // Aksi ketika tombol diklik
+  installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt(); // Munculkan pop-up instalasi asli
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('User menginstal aplikasi');
+      }
+      deferredPrompt = null;
+      installBtn.style.display = 'none'; // Sembunyikan tombol setelah diklik
+    }
+  });
+
+  // Sembunyikan tombol jika aplikasi sudah terinstal
+  window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
+  });
+</script>
 </body>
 </html>
