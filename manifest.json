@@ -2,7 +2,7 @@
   "name": "Notula - Manajemen Rapat",
   "short_name": "Notula",
   "description": "Aplikasi Workspace, Grup, dan Template Otomatis Rapat.",
-  "start_url": "/index.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#f97316",
