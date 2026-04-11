@@ -10,18 +10,6 @@
 <meta name="apple-mobile-web-app-title" content="Notula">
 <link rel="apple-touch-icon" href="/icon.jpg">
 <link rel="icon" type="image/jpeg" href="/icon.jpg">
-
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('Service Worker terdaftar'))
-        .catch(err => console.log('Gagal daftar SW', err));
-    });
-  }
-</script>
-  <link rel="icon" type="image/jpeg" href="icon.jpg">
-  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
