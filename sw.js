@@ -1,5 +1,5 @@
 const CACHE_NAME = 'notula-cache-v1';
-const urlsToCache = ['./', './index.html', './pic_ (2).jpg'];
+const urlsToCache = ['./', './index.html', './icon.jpg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)));
