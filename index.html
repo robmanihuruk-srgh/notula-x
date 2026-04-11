@@ -4,7 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
+  <link rel="manifest" href="manifest.json">                    
   
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Notula">
+<link rel="apple-touch-icon" href="pic_ (2).jpg">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker terdaftar'))
+        .catch(err => console.log('Gagal daftar SW', err));
+    });
+  }
+</script>
   <link rel="icon" type="image/jpeg" href="pic_ (2).jpg">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
