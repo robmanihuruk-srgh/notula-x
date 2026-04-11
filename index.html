@@ -1,358 +1,2085 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>Aplikasi Inventory & Peminjaman (Sync Total) + Kolom Excel + Hapus Massal</title>
-  <!-- Bootstrap 5 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Font Awesome Icons -->
+  <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
+  <link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Notula">
+<link rel="apple-touch-icon" href="/icon.jpg">
+<link rel="icon" type="image/jpeg" href="/icon.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <!-- QRCode.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- SheetJS (XLSX) -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-  <!-- PapaParse (CSV) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <!-- Firebase SDK (compat) -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style id="theme-style">
+    :root {
+      --color-primary: #f97316;
+      --color-primary-dark: #e05e0f;
+      --color-secondary: #1e4a6d;
+      --color-secondary-light: #2b6f9e;
+      --color-bg-light: #f4f7fb;
+      --color-card-bg: #ffffff;
+      --color-sidebar-bg: #ffffff;
+      --color-border: #e2e8f0;
+      --color-text: #1e293b;
+      --color-text-light: #54708f;
+      --color-accent: #f97316;
+    }
+  </style>
   <style>
-    body { background-color: #f8f9fa; }
-    .navbar { background-color: #0d6efd; }
-    .navbar-brand, .nav-link { color: white !important; }
-    .card { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .item-image { max-width: 100%; max-height: 200px; object-fit: contain; }
-    #hiddenFileInput { display: none; }
-    .qr-code { width: 100px; height: 100px; cursor: pointer; margin: 0 auto; }
-    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background-color: #0d6efd; color: white; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; }
-    .forgot-password-link { cursor: pointer; color: #0d6efd; text-decoration: underline; }
-    .forgot-password-link:hover { color: #0a58ca; }
-    .delete-selected-btn { margin-right: 10px; }
+    /* ===== CSS ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    /* Global Background Addition */
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background: url('icon.jpg') center/cover fixed; 
+      color: var(--color-text); 
+      height: 100vh; 
+      display: flex; 
+      overflow: hidden; 
+    }
+    
+    /* Transparency tweaks to let background show through beautifully */
+    .sidebar { width: 280px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border-right: 1px solid var(--color-border); display: flex; flex-direction: column; box-shadow: 2px 0 12px rgba(0,0,0,0.02); }
+    .main-panel { flex: 1; display: flex; flex-direction: column; background: rgba(244, 247, 251, 0.85); backdrop-filter: blur(8px); overflow: hidden; }
+    .panel-header { background: rgba(255, 255, 255, 0.9); padding: 20px 32px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    
+    .sidebar-header { padding: 24px 20px; border-bottom: 1px solid var(--color-border); }
+    .sidebar-header h1 { font-size: 1.6rem; font-weight: 600; color: var(--color-secondary); display: flex; align-items: center; gap: 8px; }
+    .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default { width: 100%; margin-top: 12px; background: var(--color-primary); color: white; border: none; padding: 12px 16px; border-radius: 10px; font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: background 0.15s; box-shadow: 0 4px 8px rgba(249,115,22,0.2); }
+    .btn-new:hover, .btn-delete-selected:hover, .btn-new-workspace:hover, .btn-reset-default:hover { background: var(--color-primary-dark); }
+    .btn-delete-selected { background: #dc3545; box-shadow: 0 4px 8px rgba(220,53,69,0.2); }
+    .btn-delete-selected:hover { background: #b52b3a; }
+    .btn-delete-selected:disabled { opacity: 0.4; pointer-events: none; }
+    .btn-new-workspace { background: #28a745; box-shadow: 0 4px 8px rgba(40,167,69,0.2); }
+    .btn-new-workspace:hover { background: #1e7e34; }
+    .btn-reset-default { background: #6c757d; box-shadow: 0 4px 8px rgba(108,117,125,0.2); }
+    .btn-reset-default:hover { background: #5a6268; }
+    .workspace-section { padding: 12px 16px; border-bottom: 1px solid var(--color-border); }
+    .workspace-section h3 { font-size: 0.9rem; text-transform: uppercase; color: var(--color-text-light); margin-bottom: 8px; }
+    .workspace-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; transition: background 0.1s; }
+    .workspace-item.active { background: #fff4e6; border-left: 3px solid var(--color-primary); }
+    .workspace-item:hover { background: #fef2e7; }
+    .workspace-checkbox { flex-shrink: 0; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-primary); }
+    .workspace-name { flex: 1; font-weight: 500; color: var(--color-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .workspace-badge { font-size: 0.7rem; background: #e9ecef; padding: 2px 6px; border-radius: 20px; color: var(--color-text); }
+    .workspace-actions { display: flex; gap: 4px; }
+    .workspace-actions button { background: none; border: none; cursor: pointer; font-size: 0.9rem; padding: 4px; border-radius: 4px; transition: background 0.1s; }
+    .workspace-actions button:hover { background: #e2e8f0; }
+    .workspace-actions .delete-workspace { color: #dc3545; }
+    .workspace-actions .delete-workspace:hover { background: #fce4e0; }
+    .meeting-list { flex: 1; overflow-y: auto; padding: 16px 12px; }
+    .meeting-item { display: flex; align-items: center; gap: 8px; background: rgba(249, 252, 255, 0.9); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid var(--color-border); cursor: pointer; transition: all 0.2s; }
+    .meeting-item.active { background: #fff4e6; border-color: var(--color-primary); box-shadow: 0 6px 12px rgba(249,115,22,0.08); }
+    .meeting-item:hover { background: #fef2e7; border-color: #f9b17a; }
+    .meeting-checkbox { flex-shrink: 0; width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-primary); }
+    .meeting-content { flex: 1; overflow: hidden; }
+    .meeting-title { font-weight: 600; font-size: 1rem; color: var(--color-secondary); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meeting-date { font-size: 0.8rem; color: var(--color-text-light); display: flex; align-items: center; gap: 6px; }
+    .header-title h2 { font-weight: 600; font-size: 1.5rem; color: var(--color-secondary); }
+    .header-title p { font-size: 0.9rem; color: var(--color-text-light); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .btn-header { background: none; border: 1px solid var(--color-primary); padding: 8px 16px; border-radius: 30px; color: var(--color-primary); font-weight: 500; cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-header:hover { background: var(--color-primary); color: white; }
+    .btn-header:disabled { opacity: 0.4; pointer-events: none; }
+    .btn-edit-meeting { background: none; border: 1px solid var(--color-secondary); padding: 8px 16px; border-radius: 30px; color: var(--color-secondary); font-weight: 500; cursor: pointer; }
+    .btn-edit-meeting:hover { background: var(--color-secondary); color: white; }
+    .btn-delete-meeting { background: none; border: 1px solid #dc3545; padding: 8px 16px; border-radius: 30px; color: #dc3545; font-weight: 500; cursor: pointer; }
+    .btn-delete-meeting:hover { background: #dc3545; color: white; }
+    .theme-switcher { display: flex; gap: 6px; margin-left: 10px; }
+    .theme-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
+    .theme-btn.active { border-color: var(--color-primary); transform: scale(1.1); }
+    .theme-btn.orange { background: linear-gradient(145deg, #f97316, #1e4a6d); }
+    .theme-btn.green { background: linear-gradient(145deg, #16a34a, #1e3a5f); }
+    .theme-btn.purple { background: linear-gradient(145deg, #9333ea, #0f3b5e); }
+    .theme-btn.red { background: linear-gradient(145deg, #e63946, #2c3e50); }
+    .theme-btn.yellow { background: linear-gradient(145deg, #f4d03f, #1e4a6d); }
+    .theme-btn.blue { background: linear-gradient(145deg, #3498db, #2c3e50); }
+    .user-info { display: flex; align-items: center; gap: 12px; background: #eef2f6; padding: 6px 16px; border-radius: 40px; }
+    .user-info span { font-size: 0.9rem; color: var(--color-secondary); }
+    .logout-btn { background: none; border: none; color: var(--color-primary); cursor: pointer; font-size: 1rem; }
+    .content { flex: 1; overflow-y: auto; padding: 28px 32px; }
+    .info-card { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 24px; margin-bottom: 28px; border: 1px solid #eaf0f6; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+    .info-grid { display: flex; flex-wrap: wrap; gap: 24px 40px; margin-top: 12px; }
+    .info-item { display: flex; align-items: center; gap: 12px; }
+    .info-item i { width: 28px; color: var(--color-primary); }
+    .log-card { background: rgba(248, 250, 252, 0.95); border: 1px dashed #cbd5e1; border-radius: 12px; padding: 16px; margin-bottom: 24px; }
+    .log-card h4 { font-size: 0.95rem; color: var(--color-secondary); margin-bottom: 12px; }
+    .log-list { list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: var(--color-text-light); }
+    .log-list li { margin-bottom: 6px; display: flex; gap: 8px; }
+    .log-time { color: #94a3b8; font-family: monospace; min-width: 45px; }
+    .dashboard-card { background: rgba(255, 255, 255, 0.95); border-radius: 24px; padding: 24px 28px; margin-bottom: 32px; border: 1px solid #ffddc4; }
+    .dashboard-title { font-size: 1.2rem; font-weight: 600; color: var(--color-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+    .stats-grid { display: flex; flex-wrap: wrap; gap: 20px 40px; margin-bottom: 28px; background: #fff7ed; padding: 16px 20px; border-radius: 20px; }
+    .stat-item { min-width: 100px; position: relative; cursor: pointer; }
+    .stat-label { font-size: 0.8rem; color: var(--color-text-light); text-transform: uppercase; }
+    .stat-value { font-size: 1.8rem; font-weight: 600; color: var(--color-secondary); }
+    .stat-tooltip { position: fixed; background: white; border-radius: 16px; box-shadow: 0 20px 35px -12px rgba(0,0,0,0.2); padding: 16px 20px; z-index: 1100; max-width: 300px; border: 1px solid var(--color-border); pointer-events: none; opacity: 0; transition: opacity 0.15s; font-size: 0.9rem; }
+    .stat-tooltip.active { opacity: 1; pointer-events: auto; }
+    .stat-tooltip h4 { margin-bottom: 12px; color: var(--color-primary); }
+    .stat-tooltip ul { list-style: none; padding-left: 0; }
+    .stat-tooltip li { padding: 4px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; gap: 12px;}
+    .stat-tooltip .close-tooltip { margin-top: 12px; text-align: right; font-size: 0.8rem; color: var(--color-text-light); cursor: pointer; pointer-events: auto; }
+    .progress-section-list { margin: 20px 0 16px; }
+    .section-progress-item { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .section-progress-name { width: 150px; font-weight: 500; color: var(--color-secondary); }
+    .section-progress-bar { flex: 1; background: #e3eaf2; height: 10px; border-radius: 20px; overflow: hidden; }
+    .section-progress-fill { height: 100%; background: var(--color-primary); width: 0%; }
+    .section-progress-percent { min-width: 45px; font-weight: 600; color: var(--color-secondary); }
+    .filter-row { display: flex; align-items: center; gap: 20px; margin-top: 25px; padding-top: 16px; border-top: 2px dashed #f9b17a; }
+    .filter-label { font-weight: 500; color: var(--color-primary); }
+    .section-filter-select { padding: 8px 20px; border-radius: 40px; border: 1px solid #f9b17a; background: white; font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--color-secondary); cursor: pointer; min-width: 220px; }
+    .reset-filter { background: none; border: none; color: var(--color-primary); font-weight: 500; cursor: pointer; text-decoration: underline dotted; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin: 32px 0 20px 0; }
+    .section-header h3 { font-size: 1.2rem; font-weight: 600; color: var(--color-secondary); }
+    .btn-add-section { background: #fef2e7; border: 1px solid var(--color-primary); padding: 8px 16px; border-radius: 30px; color: var(--color-primary); font-weight: 500; font-size: 0.9rem; cursor: pointer; }
+    .btn-add-section:hover { background: var(--color-primary); color: white; }
+    .btn-add-section.disabled, .btn-edit-meeting.disabled, .btn-new.disabled, .btn-delete-meeting.disabled { opacity: 0.5; pointer-events: none; }
+    .section-card { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 20px 24px; margin-bottom: 24px; border: 1px solid #f9d5b6; }
+    .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .section-title h4 { font-weight: 600; color: var(--color-primary); font-size: 1.15rem; }
+    .section-actions button { background: none; border: none; color: #778faa; margin-left: 8px; cursor: pointer; }
+    .section-actions button:hover { color: var(--color-primary); }
+    .section-actions button.disabled { opacity: 0.3; pointer-events: none; }
+    .task-list { display: flex; flex-direction: column; gap: 16px; }
+    .task-item { background: #f9fdff; padding: 16px 18px; border-radius: 18px; border: 1px solid #e4ecf5; }
+    .task-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 16px; }
+    .task-status { min-width: 100px; }
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 40px; font-size: 0.75rem; font-weight: 600; background: #e2e8f0; color: #1e293b; }
+    .status-selesai { background: #d2f0d2; color: #14633b; }
+    .status-berlangsung { background: #fff4d6; color: #9e5e04; }
+    .status-rencana { background: #d9eafb; color: #0a5585; }
+    .status-kendala { background: #ffe2dd; color: #b13e2d; }
+    .task-desc { flex: 2; font-weight: 500; color: var(--color-secondary); min-width: 200px; word-break: break-word; }
+    .task-pic { background: #e4edf5; padding: 4px 12px; border-radius: 40px; font-size: 0.8rem; font-weight: 500; color: #1a4b6d; display: flex; align-items: center; gap: 4px; }
+    .task-pic i { color: var(--color-primary); }
+    .progress-container { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 8px; }
+    .progress-bar-bg { background: #e0e8f0; height: 8px; border-radius: 20px; flex: 1; }
+    .progress-bar-fill { background: var(--color-primary); height: 8px; border-radius: 20px; width: 0%; }
+    .progress-percent { font-size: 0.8rem; font-weight: 600; color: var(--color-secondary); min-width: 45px; }
+    .task-deadline { font-size: 0.7rem; color: #e67e22; display: flex; align-items: center; gap: 4px; background: #fef5e8; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+    .task-actions { display: flex; gap: 8px; margin-left: auto; }
+    .task-actions button { background: none; border: none; color: #8ba0bb; cursor: pointer; font-size: 0.95rem; }
+    .task-actions button:hover { color: var(--color-primary); }
+    .task-actions button.disabled { opacity: 0.3; pointer-events: none; }
+    .add-task-btn { margin-top: 20px; background: none; border: 1px dashed #f9b17a; border-radius: 40px; padding: 10px 16px; color: var(--color-primary); font-weight: 500; width: fit-content; cursor: pointer; }
+    .add-task-btn i { margin-right: 6px; }
+    .add-task-btn:hover { background: #fff0e0; }
+    .add-task-btn.disabled { opacity: 0.4; pointer-events: none; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; }
+    .modal.active { display: flex; }
+    #resetPasswordModal.modal { z-index: 2100; }
+    .modal-content { background: white; width: 520px; max-width: 90%; border-radius: 28px; padding: 28px 32px; box-shadow: 0 30px 50px rgba(0,25,50,0.3); }
+    .modal-content h3 { margin-bottom: 20px; color: var(--color-secondary); }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 6px; color: #365f81; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid #dbe2ec; border-radius: 14px; font-family: 'Inter', sans-serif; font-size: 0.95rem; }
+    .form-row { display: flex; gap: 16px; }
+    .form-row .form-group { flex: 1; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; }
+    .btn-secondary { background: #ecf3fa; border: none; padding: 10px 22px; border-radius: 40px; font-weight: 500; cursor: pointer; }
+    .btn-primary { background: var(--color-primary); border: none; padding: 10px 28px; border-radius: 40px; font-weight: 500; color: white; cursor: pointer; }
+    .btn-primary:hover { background: var(--color-primary-dark); }
+    .btn-danger { background: #fce4e0; color: #ac3b2b; border: none; padding: 10px 22px; border-radius: 40px; font-weight: 500; }
+    .hidden { display: none; }
+    
+    /* Login Background Addition */
+    #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('icon.jpg') no-repeat center center fixed; background-size: cover; backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+    .login-card { background: white; padding: 40px; border-radius: 40px; width: 360px; max-width: 90%; text-align: center; }
+    .login-card h2 { color: var(--color-secondary); margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px;}
+    .login-card input { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ccc; border-radius: 40px; }
+    .login-card button { background: var(--color-primary); color: white; border: none; padding: 14px; width: 100%; border-radius: 40px; font-weight: 600; margin-top: 10px; cursor: pointer; }
+    .login-card button:hover { background: var(--color-primary-dark); }
+    .login-card .error { color: red; margin-top: 10px; }
+    .login-card .forgot-password { margin-top: 15px; font-size: 0.9rem; }
+    .login-card .forgot-password a { color: var(--color-primary); text-decoration: none; cursor: pointer; }
+    
+    .member-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: 8px; padding: 8px; margin-top: 8px; }
+    .member-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-bottom: 1px solid #eee; }
+    .member-item:last-child { border-bottom: none; }
+    .global-dashboard { background: rgba(255, 255, 255, 0.95); border-radius: 24px; padding: 24px; margin-bottom: 32px; border: 1px solid #ffddc4; box-shadow: 0 8px 20px -6px rgba(0, 32, 64, 0.08); }
+    .global-dashboard h3 { font-size: 1.2rem; font-weight: 600; color: var(--color-primary); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .global-stats { display: flex; flex-wrap: wrap; gap: 20px 40px; margin-bottom: 24px; background: #fff7ed; padding: 16px 20px; border-radius: 20px; }
+    .global-stat-item { min-width: 100px; position: relative; cursor: pointer; }
+    .global-stat-label { font-size: 0.8rem; color: var(--color-text-light); text-transform: uppercase; }
+    .global-stat-value { font-size: 1.8rem; font-weight: 600; color: var(--color-secondary); }
+    .kendala-list { margin-top: 16px; border-top: 1px solid #f0e0d0; padding-top: 16px; }
+    .kendala-item { background: #fff5f0; padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; font-size: 0.9rem; border-left: 3px solid var(--color-primary); }
+    .kendala-task { font-weight: 500; color: var(--color-secondary); }
+    .kendala-meeting { font-size: 0.8rem; color: var(--color-text-light); margin-top: 4px; }
+    @media print {
+      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .btn-delete-meeting, .theme-switcher, .user-info, .log-card { display: none !important; }
+      body, .main-panel, .content { background: white; overflow: visible; height: auto; }
+      .content { padding: 0.5in; }
+      .section-card { break-inside: avoid; border: 1px solid #ccc; }
+    }
+    @media (max-width: 768px) {
+      body { flex-direction: column; overflow: auto; height: auto; }
+      .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 10; }
+      .sidebar-header { padding: 16px; }
+      .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default { padding: 10px 12px; font-size: 0.9rem; margin-top: 8px; }
+      .meeting-list { max-height: 200px; padding: 8px 12px; }
+      .main-panel { width: 100%; height: auto; overflow: visible; }
+      .panel-header { padding: 16px; flex-direction: column; align-items: flex-start; }
+      .header-actions { width: 100%; justify-content: flex-start; gap: 8px; }
+      .content { padding: 16px; }
+      .stats-grid { gap: 12px; padding: 12px; }
+      .stat-value, .global-stat-value { font-size: 1.4rem; }
+      .filter-row { flex-direction: column; align-items: flex-start; }
+      .section-filter-select { width: 100%; }
+      .section-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .btn-add-section { width: 100%; justify-content: center; }
+      .task-row { flex-direction: column; align-items: flex-start; }
+      .task-status, .task-desc, .task-pic, .progress-container, .task-deadline, .task-actions { width: 100%; margin-left: 0; }
+      .progress-container { min-width: 100%; }
+      .global-stats { gap: 12px; padding: 12px; }
+    }
   </style>
 </head>
 <body>
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg">
-    <div class="container">
-      <a class="navbar-brand" href="#"><i class="fas fa-boxes me-2"></i>Inv&Pinjam Sync</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto" id="navLinks"></ul>
-        <span class="navbar-text text-white me-3" id="userDisplay"></span>
-        <button class="btn btn-light btn-sm" onclick="logout()">Logout</button>
-      </div>
-    </div>
-  </nav>
-
-  <div class="container mt-4" id="app">
-    <div id="pageContent"></div>
-  </div>
-
-  <!-- Modal detail barang -->
-  <div class="modal fade" id="itemDetailModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Detail Barang</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body" id="itemDetailBody">...</div>
-      </div>
+  <div id="loginOverlay">
+    <div class="login-card">
+      <h2><img src="icon.jpg" alt="Logo" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);"> Notula</h2>
+      <input type="email" id="loginEmail" placeholder="Email" value="test@example.com">
+      <input type="password" id="loginPassword" placeholder="Password" value="password123">
+      <button id="loginBtn">Login</button>
+      <button id="registerBtn" style="background: #1e4a6d; margin-top: 8px;">Register</button>
+      <div class="forgot-password"><a id="forgotPasswordLink">Lupa password?</a></div>
+      <p id="loginError" class="error"></p>
     </div>
   </div>
 
-  <!-- MODAL UNTUK TAMBAH / EDIT BARANG (LENGKAP) -->
-  <div class="modal fade" id="itemFormModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title" id="itemFormTitle">Tambah Barang</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" id="editItemId">
-          <div class="row">
-            <div class="col-md-6 mb-3"><label class="form-label">Nama Barang *</label><input type="text" class="form-control" id="itemName" required></div>
-            <div class="col-md-6 mb-3"><label class="form-label">Kategori</label><input type="text" class="form-control" id="itemCategory"></div>
-            <div class="col-md-3 mb-3"><label class="form-label">Jumlah (Stok)</label><input type="number" class="form-control" id="itemQuantity" value="0"></div>
-            <div class="col-md-3 mb-3"><label class="form-label">Lokasi</label><input type="text" class="form-control" id="itemLocation"></div>
-            <div class="col-md-3 mb-3"><label class="form-label">Type (Merk/Model)</label><input type="text" class="form-control" id="itemType"></div>
-            <div class="col-md-3 mb-3"><label class="form-label">Lama (jumlah lama)</label><input type="text" class="form-control" id="itemLama"></div>
-            <div class="col-md-3 mb-3"><label class="form-label">Baru (jumlah baru)</label><input type="text" class="form-control" id="itemBaru"></div>
-            <div class="col-md-3 mb-3"><label class="form-label">Status</label><select class="form-select" id="itemStatus"><option value="Baik">Baik</option><option value="Rusak">Rusak</option><option value="Perbaikan">Perbaikan</option></select></div>
-            <div class="col-md-6 mb-3"><label class="form-label">Catatan</label><textarea class="form-control" id="itemNotes" rows="2"></textarea></div>
-            <div class="col-md-6 mb-3"><label class="form-label">URL Gambar</label><div class="input-group"><input type="text" class="form-control" id="itemImageUrl"><button class="btn btn-outline-secondary" type="button" onclick="triggerFileUploadForItem()"><i class="fas fa-upload"></i> Upload</button></div></div>
-          </div>
-        </div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" onclick="saveItemFromModal()">Simpan Barang</button></div>
+  <div class="modal" id="resetPasswordModal">
+    <div class="modal-content">
+      <h3><i class="fas fa-key"></i> Reset Password</h3>
+      <p style="margin-bottom:20px; color:var(--color-text-light);">Masukkan email Anda. Kami akan mengirimkan tautan reset.</p>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="resetEmailInput" placeholder="nama@email.com">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelResetModal">Batal</button>
+        <button class="btn-primary" id="sendResetBtn">Kirim Email Reset</button>
+      </div>
+      <p id="resetMessage" style="margin-top:15px; font-size:0.9rem;"></p>
+    </div>
+  </div>
+
+  <div class="modal" id="workspaceModal">
+    <div class="modal-content">
+      <h3><i class="fas fa-users"></i> Buat Grup Baru</h3>
+      <div class="form-group">
+        <label>Nama Grup</label>
+        <input type="text" id="workspaceNameInput" placeholder="Contoh: Rapat Pesparawi Distrik VII">
+      </div>
+      <div class="form-group">
+        <label>Deskripsi (opsional)</label>
+        <textarea id="workspaceDescInput" rows="2" placeholder="Deskripsi grup"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelWorkspaceModal">Batal</button>
+        <button class="btn-primary" id="saveWorkspaceModal">Buat Grup</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal untuk pilihan gambar (legacy) -->
-  <div class="modal fade" id="imageOptionModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Pilih Gambar</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body"><div class="mb-3"><button class="btn btn-primary w-100" onclick="triggerFileUpload()"><i class="fas fa-upload"></i> Pilih File</button></div><hr><div class="mb-3"><label for="imageUrlInput" class="form-label">Atau URL gambar</label><input type="url" class="form-control" id="imageUrlInput"></div></div>
-    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-success" onclick="submitImageUrl()">Gunakan URL</button><button type="button" class="btn btn-info" onclick="skipImage()">Lewati</button></div></div></div>
+  <div class="modal" id="manageMembersModal">
+    <div class="modal-content">
+      <h3><i class="fas fa-user-friends"></i> Kelola Anggota</h3>
+      <div class="form-group">
+        <label>Tambah Anggota (email)</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="email" id="memberEmailInput" placeholder="email@contoh.com" style="flex:1;">
+          <button class="btn-primary" id="addMemberBtn" style="padding: 12px 20px;">Tambah</button>
+        </div>
+      </div>
+      <div class="member-list" id="memberList"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="closeMembersModal">Tutup</button>
+      </div>
+    </div>
   </div>
 
-  <!-- Modal CRUD User -->
-  <div class="modal fade" id="userModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="userModalTitle">Tambah User</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body"><input type="hidden" id="editUserId"><div class="mb-3"><label>Nama Lengkap</label><input type="text" class="form-control" id="userName" required></div>
-    <div class="mb-3"><label>Email</label><input type="email" class="form-control" id="userEmail" required></div>
-    <div class="mb-3"><label>Password</label><input type="password" class="form-control" id="userPassword" placeholder="Minimal 4 karakter"></div>
-    <div class="mb-3"><label>Role</label><select class="form-select" id="userRole"><option value="borrower">Peminjam</option><option value="admin">Admin</option></select></div></div>
-    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" onclick="saveUser()">Simpan</button></div></div></div>
+  <div class="modal" id="meetingModal">
+    <div class="modal-content">
+      <h3 id="modalMeetingTitle">Rapat baru</h3>
+      <div class="form-group">
+        <label>Judul rapat</label>
+        <input type="text" id="meetingNameInput" placeholder="contoh: Rapat Koordinasi">
+      </div>
+      <div class="form-group">
+        <label>Tanggal</label>
+        <input type="date" id="meetingDateInput">
+      </div>
+      <div class="form-group">
+        <label>Tempat</label>
+        <select id="meetingWorkspaceSelect">
+          <option value="private">Pribadi (hanya saya)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Informasi tambahan (opsional)</label>
+        <textarea id="meetingInfoInput" rows="2" placeholder="anggaran, tempat, dll"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelMeetingModal">Batal</button>
+        <button class="btn-primary" id="saveMeetingModal">Simpan</button>
+      </div>
+    </div>
   </div>
 
-  <!-- Modal Lupa Password -->
-  <div class="modal fade" id="forgotPasswordModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="fas fa-key me-2"></i>Lupa Password</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body"><div class="alert alert-info">Masukkan email Anda, kami akan mereset password.</div><div class="mb-3"><label>Email</label><input type="email" class="form-control" id="forgotEmail"></div><div id="forgotPasswordMessage" class="alert d-none"></div></div>
-    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" onclick="processForgotPassword()">Kirim</button></div></div></div>
+  <div class="modal" id="sectionModal">
+    <div class="modal-content">
+      <h3 id="modalSectionTitle">Tambah seksi</h3>
+      <div class="form-group">
+        <label>Nama seksi / topik</label>
+        <input type="text" id="sectionNameInput" placeholder="contoh: Seksi Acara">
+      </div>
+      <div class="form-group">
+        <label>Akses Edit (Email Anggota, pisahkan koma)</label>
+        <input type="text" id="sectionEmailsInput" placeholder="kosongkan agar semua member bisa edit">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelSectionModal">Batal</button>
+        <button class="btn-primary" id="saveSectionModal">Simpan</button>
+      </div>
+    </div>
   </div>
 
-  <input type="file" id="hiddenFileInput" accept="image/*">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <div class="modal" id="taskModal">
+    <div class="modal-content">
+      <h3 id="modalTaskTitle">Tugas / item</h3>
+      <div class="form-group">
+        <label>Deskripsi tugas</label>
+        <input type="text" id="taskDescInput" placeholder="contoh: Survey tempat">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="taskStatusInput">
+            <option value="rencana">Rencana</option>
+            <option value="berlangsung">Berlangsung</option>
+            <option value="selesai">Selesai</option>
+            <option value="kendala">Kendala</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Progress (%)</label>
+          <input type="number" id="taskProgressInput" min="0" max="100" value="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Penanggung Jawab (PIC)</label>
+        <input type="text" id="taskPicInput" placeholder="Nama / seksi">
+      </div>
+      <div class="form-group">
+        <label>Tenggat waktu (deadline)</label>
+        <input type="datetime-local" id="taskDeadlineInput">
+      </div>
+      <div class="form-group">
+        <label>Catatan (opsional)</label>
+        <textarea id="taskNotesInput" rows="2"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelTaskModal">Batal</button>
+        <button class="btn-primary" id="saveTaskModal">Simpan</button>
+        <button class="btn-danger hidden" id="deleteTaskBtn">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h1><img src="icon.jpg" alt="Logo" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);"> Notula</h1>
+      <button class="btn-new" id="newMeetingBtn"><i class="fas fa-plus-circle"></i> Rapat baru</button>
+      <button class="btn-new-workspace" id="newWorkspaceBtn" disabled><i class="fas fa-users"></i> Buat Grup</button>
+      <button class="btn-delete-selected" id="deleteSelectedBtn" disabled><i class="fas fa-trash"></i> Hapus Terpilih</button>
+      <button class="btn-reset-default" id="resetDefaultDataBtn" disabled><i class="fas fa-database"></i> Reset Data Default</button>
+    </div>
+    <div class="workspace-section">
+      <h3>Grup Saya</h3>
+      <div id="workspaceList"></div>
+    </div>
+    <div class="workspace-section">
+      <h3>Rapat Pribadi</h3>
+      <div id="privateMeetingList" class="meeting-list" style="padding:0;"></div>
+    </div>
+  </div>
+
+  <div class="main-panel">
+    <div class="panel-header">
+      <div class="header-title">
+        <h2 id="meetingTitle">Pilih rapat</h2>
+        <p id="meetingDate"><i class="far fa-calendar-alt"></i> </p>
+      </div>
+      <div class="header-actions">
+        <div class="theme-switcher">
+          <div class="theme-btn orange active" data-theme="orange"></div>
+          <div class="theme-btn green" data-theme="green"></div>
+          <div class="theme-btn purple" data-theme="purple"></div>
+          <div class="theme-btn red" data-theme="red"></div>
+          <div class="theme-btn yellow" data-theme="yellow"></div>
+          <div class="theme-btn blue" data-theme="blue"></div>
+        </div>
+        <button class="btn-header" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn-header" id="exportPdfBtn" disabled><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn-header" id="printBtn" disabled><i class="fas fa-print"></i> Cetak</button>
+        <button class="btn-edit-meeting" id="editMeetingBtn" disabled><i class="fas fa-pen"></i> Edit</button>
+        <button class="btn-delete-meeting" id="deleteMeetingBtn" disabled><i class="fas fa-trash"></i> Hapus</button>
+        <div class="user-info" id="userInfo" style="display: none;">
+          <span id="userEmail"></span>
+          <span id="userRole" style="background:var(--color-primary); color:white; padding:2px 8px; border-radius:20px;">admin</span>
+          <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="content" id="contentArea"></div>
+  </div>
+
   <script>
-    // ==================== KONFIGURASI FIREBASE ====================
-    const firebaseConfig = {
-      apiKey: "AIzaSyDPoc1v-_vZKKc36l5YuMGrXmVU-ooV6Jo",
-      authDomain: "inventory-smgksptgr.firebaseapp.com",
-      databaseURL: "https://inventory-smgksptgr-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "inventory-smgksptgr",
-      storageBucket: "inventory-smgksptgr.firebasestorage.app",
-      messagingSenderId: "1065690096985",
-      appId: "1:1065690096985:web:6687d879ae8d8355e31848",
-      measurementId: "G-LXNEGY6VQL"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    (function() {
+      // ========== FIREBASE CONFIG ==========
+      const firebaseConfig = {
+        apiKey: "AIzaSyAnmuaAc-uBM5hAZGcYsrdyZYUmyTYe3PM",
+        authDomain: "dologmasagaltangerang.firebaseapp.com",
+        databaseURL: "https://dologmasagaltangerang-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "dologmasagaltangerang",
+        storageBucket: "dologmasagaltangerang.firebasestorage.app",
+        messagingSenderId: "800663657726",
+        appId: "1:800663657726:web:182efd830d62c8637359af",
+        measurementId: "G-FD0TTQ89WC"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
 
-    // ==================== LOCAL STORAGE USERS ====================
-    const STORAGE_KEYS = { USERS: 'inventory_users', CURRENT_USER: 'current_user' };
-    function initLocalData() {
-      if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify([
-          { id: 'u1', name: 'Admin', email: 'admin@inv.com', password: 'admin', role: 'admin' },
-          { id: 'u2', name: 'Borrower', email: 'user@inv.com', password: 'user', role: 'borrower' }
-        ]));
+      // ========== GLOBAL STATE ==========
+      let meetings = [];
+      let workspaces = [];
+      let currentMeetingId = null;
+      let currentWorkspaceId = null;
+      let currentSectionId = null;
+      let currentTaskId = null;
+      let selectedSectionFilter = 'ALL';
+      let currentUser = null;
+      let userRole = 'member';
+      let unsubscribeMeetings = null;
+      let unsubscribeWorkspaces = null;
+      let selectedMeetingIds = new Set();
+      let selectedWorkspaceIds = new Set();
+
+      // ========== DATA DEFAULT LENGKAP ==========
+      const defaultMeetings = [
+        {
+          title: 'Rapat Koordinasi Panitia Pesparawi – 1 Maret 2026',
+          date: '2026-03-01',
+          info: 'Pembahasan RAB & persiapan awal',
+          sections: [
+            { name: 'RAB setiap seksi', assignedEmails: '', tasks: [
+              { desc: 'Seksi Acara mengirim RAB', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '', deadline: '' },
+              { desc: 'Seksi Humpubdok mengirim RAB', status: 'selesai', progress: 100, pic: 'Humas', notes: '', deadline: '' },
+              { desc: 'Seksi Konsumsi mengirim RAB', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '', deadline: '' },
+              { desc: 'Seksi Perlengkapan survey tempat & vendor', status: 'berlangsung', progress: 30, pic: 'Perkap', notes: '', deadline: '' },
+              { desc: 'Seksi Keamanan menunggu tempat', status: 'rencana', progress: 0, pic: 'Keamanan', notes: '', deadline: '' },
+              { desc: 'Seksi kesehatan ditindaklanjuti', status: 'rencana', progress: 0, pic: 'Kesehatan', notes: '', deadline: '' },
+              { desc: 'DD penyerahan RAB ke bendahara (6 Maret)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '', deadline: '' },
+              { desc: 'Bendahara cross-cek RAB dan rapat 9 Maret', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '', deadline: '' }
+            ]},
+            { name: 'Seksi Perkap', assignedEmails: '', tasks: [
+              { desc: 'Survey tempat & vendor', status: 'berlangsung', progress: 40, pic: 'Perkap', notes: '', deadline: '' }
+            ]},
+            { name: 'Seksi Lomba', assignedEmails: '', tasks: [
+              { desc: 'Tanggal pelaksanaan 20 Juni 2026', status: 'selesai', progress: 100, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Story Telling max 2 orang per-resort', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
+              { desc: 'Story Telling tidak merangkap Koor/Vocal', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
+              { desc: 'Nada dasar lagu koor tidak diganti', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
+              { desc: 'Mencari juri kompeten', status: 'berlangsung', progress: 60, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Terjemahkan aturan lomba ke Indonesia (deadline 3 Maret)', status: 'rencana', progress: 0, pic: 'Acara', notes: '', deadline: '' }
+            ]},
+            { name: 'Seksi Humpubdok', assignedEmails: '', tasks: [
+              { desc: 'Koordinasi video teaser tiap resort', status: 'rencana', progress: 0, pic: 'Humas', notes: '', deadline: '' },
+              { desc: 'Upload video teaser di medsos', status: 'rencana', progress: 0, pic: 'Humas', notes: '', deadline: '' },
+              { desc: 'Aktifasi medsos IG & FB', status: 'rencana', progress: 10, pic: 'Humas', notes: '', deadline: '' }
+            ]},
+            { name: 'Seksi Dana', assignedEmails: '', tasks: [
+              { desc: 'Galangan jemaat & hari H', status: 'rencana', progress: 0, pic: 'Dana', notes: '', deadline: '' },
+              { desc: 'Proposal', status: 'rencana', progress: 5, pic: 'Dana', notes: '', deadline: '' },
+              { desc: 'Bazar', status: 'rencana', progress: 0, pic: 'Dana', notes: '', deadline: '' }
+            ]},
+            { name: 'Bendahara', assignedEmails: '', tasks: [
+              { desc: 'Rekening Panitia (OTP)', status: 'berlangsung', progress: 70, pic: 'Bendahara', notes: '', deadline: '' }
+            ]},
+            { name: 'Sekretariat', assignedEmails: '', tasks: [
+              { desc: 'Surat pemberitahuan ke resort', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba', deadline: '' },
+              { desc: 'Flyer Pesparawi', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba', deadline: '' },
+              { desc: 'Proposal (RAB, Norek, ketentuan)', status: 'rencana', progress: 20, pic: 'Sekretariat', notes: '', deadline: '' },
+              { desc: 'Surat permohonan galangan', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'koordinasi praeses', deadline: '' }
+            ]}
+          ]
+        },
+        {
+          title: 'Rapat Koordinasi Panitia – 9 Maret 2026',
+          date: '2026-03-09',
+          info: 'Total anggaran ±330jt | SMESCO sewa 61jt | 20 Juni 2026',
+          sections: [
+            { name: 'Seksi Acara', assignedEmails: '', tasks: [
+              { desc: 'RAB acara Rp105,5 jt', status: 'selesai', progress: 100, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Menentukan juri & hadiah', status: 'selesai', progress: 100, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Koordinasi panggung dgn perkap', status: 'berlangsung', progress: 50, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Koordinasi dengan GKPS TV', status: 'rencana', progress: 10, pic: 'Acara', notes: '', deadline: '' },
+              { desc: 'Artis tamu (Ziva/Bastian/Grace) budget 5jt', status: 'kendala', progress: 20, pic: 'Acara', notes: 'belum final', deadline: '' }
+            ]},
+            { name: 'Koordinator Lomba', assignedEmails: '', tasks: [
+              { desc: 'Aturan teknis lomba', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
+              { desc: 'Formulir pendaftaran detail', status: 'berlangsung', progress: 70, pic: 'Lomba', notes: '', deadline: '' },
+              { desc: 'Follow up Sinode durasi & aturan', status: 'rencana', progress: 0, pic: 'Lomba', notes: 'menunggu info', deadline: '' }
+            ]},
+            { name: 'Seksi Perlengkapan', assignedEmails: '', tasks: [
+              { desc: 'Penawaran SMESCO', status: 'selesai', progress: 100, pic: 'Perkap', notes: '', deadline: '' },
+              { desc: 'Negosiasi harga sewa', status: 'berlangsung', progress: 60, pic: 'Perkap', notes: '', deadline: '' },
+              { desc: 'Survey lokasi 16 April 2026', status: 'rencana', progress: 0, pic: 'Perkap', notes: '', deadline: '' },
+              { desc: 'DP gedung (fu korpel)', status: 'kendala', progress: 10, pic: 'Perkap', notes: '', deadline: '' }
+            ]},
+            { name: 'Seksi Konsumsi', assignedEmails: '', tasks: [
+              { desc: 'RAB Rp56,38 jt', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '', deadline: '' },
+              { desc: 'Revisi jumlah peserta', status: 'berlangsung', progress: 50, pic: 'Konsumsi', notes: '', deadline: '' },
+              { desc: 'Katering & sistem box', status: 'rencana', progress: 20, pic: 'Konsumsi', notes: '', deadline: '' }
+            ]},
+            { name: 'Seksi Humas', assignedEmails: '', tasks: [
+              { desc: 'Konsep banner/backdrop', status: 'selesai', progress: 100, pic: 'Humas', notes: '', deadline: '' },
+              { desc: 'Koordinasi desain (Bang Robert)', status: 'berlangsung', progress: 80, pic: 'Humas', notes: '', deadline: '' },
+              { desc: 'Finalisasi jumlah banner', status: 'rencana', progress: 0, pic: 'Humas', notes: 'budget 37jt', deadline: '' }
+            ]},
+            { name: 'Bendahara', assignedEmails: '', tasks: [
+              { desc: 'Mengumpulkan RAB semua seksi', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '', deadline: '' },
+              { desc: 'Menyusun proposal lengkap', status: 'berlangsung', progress: 65, pic: 'Bendahara', notes: '', deadline: '' },
+              { desc: 'Finalisasi total anggaran', status: 'rencana', progress: 30, pic: 'Bendahara', notes: 'masih ada pos belum final', deadline: '' }
+            ]},
+            { name: 'Sekretariat', assignedEmails: '', tasks: [
+              { desc: 'Surat ke resort', status: 'selesai', progress: 100, pic: 'Sekretariat', notes: '', deadline: '' },
+              { desc: 'Proposal bersama bendahara', status: 'berlangsung', progress: 65, pic: 'Sekretariat', notes: '', deadline: '' },
+              { desc: 'Flyer (no.telp?)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '', deadline: '' }
+            ]}
+          ]
+        }
+      ];
+
+      // ========== THEME MANAGEMENT ==========
+      const themeStyles = document.getElementById('theme-style');
+      const themes = {
+        orange: `:root { --color-primary: #f97316; --color-primary-dark: #e05e0f; --color-secondary: #1e4a6d; --color-secondary-light: #2b6f9e; --color-bg-light: #f4f7fb; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #54708f; --color-accent: #f97316; }`,
+        green: `:root { --color-primary: #16a34a; --color-primary-dark: #12833a; --color-secondary: #1e3a5f; --color-secondary-light: #2b4f7a; --color-bg-light: #f0f9f0; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d0e0d0; --color-text: #1e293b; --color-text-light: #4a6f5e; --color-accent: #16a34a; }`,
+        purple: `:root { --color-primary: #9333ea; --color-primary-dark: #7e22ce; --color-secondary: #0f3b5e; --color-secondary-light: #1e4b72; --color-bg-light: #f5f0fa; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d9d0e8; --color-text: #1e293b; --color-text-light: #6b4f8c; --color-accent: #9333ea; }`,
+        red: `:root { --color-primary: #e63946; --color-primary-dark: #c62a36; --color-secondary: #2c3e50; --color-secondary-light: #3e5a6f; --color-bg-light: #fef2f2; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #6c757d; --color-accent: #e63946; }`,
+        yellow: `:root { --color-primary: #f4d03f; --color-primary-dark: #e5c02c; --color-secondary: #1e4a6d; --color-secondary-light: #2b6f9e; --color-bg-light: #fffef7; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #7f8c8d; --color-accent: #f4d03f; }`,
+        blue: `:root { --color-primary: #3498db; --color-primary-dark: #2980b9; --color-secondary: #2c3e50; --color-secondary-light: #3e5a6f; --color-bg-light: #eef6fc; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d5e6f2; --color-text: #1e293b; --color-text-light: #4a6f8a; --color-accent: #3498db; }`
+      };
+      function setTheme(theme) {
+        themeStyles.innerHTML = themes[theme];
+        localStorage.setItem('notula_theme', theme);
+        document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.theme === theme));
       }
-    }
-    initLocalData();
-    function getUsers() { return JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS)); }
-    function getCurrentUser() { return JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER)); }
-    function setCurrentUser(user) { localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user)); }
-    function saveUsers(users) { localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users)); }
+      document.querySelectorAll('.theme-btn').forEach(btn => btn.addEventListener('click', () => setTheme(btn.dataset.theme)));
+      const savedTheme = localStorage.getItem('notula_theme') || 'orange';
+      setTheme(savedTheme);
 
-    // ==================== GLOBAL ====================
-    let items = [];
-    let requests = [];
-    let itemsListener = null;
-    let requestsListener = null;
-    let currentPage = 'login';
-    let itemFormModalObj = null;
+      // ========== AUTH & ROLE ==========
+      const loginOverlay = document.getElementById('loginOverlay');
+      const loginBtn = document.getElementById('loginBtn');
+      const registerBtn = document.getElementById('registerBtn');
+      const loginEmail = document.getElementById('loginEmail');
+      const loginPassword = document.getElementById('loginPassword');
+      const loginError = document.getElementById('loginError');
+      const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+      const resetPasswordModal = document.getElementById('resetPasswordModal');
+      const resetEmailInput = document.getElementById('resetEmailInput');
+      const sendResetBtn = document.getElementById('sendResetBtn');
+      const cancelResetModal = document.getElementById('cancelResetModal');
+      const resetMessage = document.getElementById('resetMessage');
 
-    // ==================== FIRESTORE LISTENERS ====================
-    function startItemsListener(callback) {
-      if (itemsListener) itemsListener();
-      itemsListener = db.collection('items').onSnapshot(snapshot => {
-        items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (callback) callback(items);
-        if (['inventory', 'borrowForm', 'myBorrows', 'borrowRequests', 'history', 'manageUsers'].includes(currentPage)) renderPage();
-      }, error => { console.error(error); alert('Gagal sync inventory'); });
-    }
-    function startRequestsListener(callback) {
-      if (requestsListener) requestsListener();
-      requestsListener = db.collection('borrow_requests').onSnapshot(snapshot => {
-        requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (callback) callback(requests);
-        if (['myBorrows', 'borrowRequests', 'history'].includes(currentPage)) renderPage();
-      }, error => { console.error(error); alert('Gagal sync peminjaman'); });
-    }
+      function showLogin() { loginOverlay.style.display = 'flex'; }
+      function hideLogin() { loginOverlay.style.display = 'none'; }
 
-    // ==================== CRUD ITEMS ====================
-    async function addItem(itemData) { try { await db.collection('items').add(itemData); return true; } catch(e){ alert(e.message); return false; } }
-    async function updateItem(itemId, newData) { try { await db.collection('items').doc(itemId).update(newData); return true; } catch(e){ alert(e.message); return false; } }
-    async function deleteItem(itemId) { try { await db.collection('items').doc(itemId).delete(); return true; } catch(e){ alert(e.message); return false; } }
-
-    // ==================== CRUD USER ====================
-    function getAllUsers() { return getUsers(); }
-    function addUser(userData) { const users = getUsers(); const newId = 'u' + Date.now() + Math.random().toString(36).substr(2,6); users.push({ id:newId, ...userData }); saveUsers(users); return newId; }
-    function updateUserById(userId, userData) { const users = getUsers(); const idx = users.findIndex(u=>u.id===userId); if(idx!==-1){ users[idx]={...users[idx], ...userData}; saveUsers(users); return true; } return false; }
-    function deleteUserById(userId) { if(getCurrentUser()?.id===userId){ alert('Tidak bisa hapus akun sendiri'); return false; } const users = getUsers().filter(u=>u.id!==userId); if(users.length===getUsers().length) return false; saveUsers(users); return true; }
-    function getUserById(userId) { return getUsers().find(u=>u.id===userId); }
-
-    // ==================== LUPA PASSWORD ====================
-    let forgotPasswordModal;
-    function showForgotPasswordModal() { document.getElementById('forgotEmail').value=''; document.getElementById('forgotPasswordMessage').classList.add('d-none'); if(!forgotPasswordModal) forgotPasswordModal=new bootstrap.Modal(document.getElementById('forgotPasswordModal')); forgotPasswordModal.show(); }
-    function processForgotPassword() { const email=document.getElementById('forgotEmail').value.trim(); const msgDiv=document.getElementById('forgotPasswordMessage'); if(!email){ msgDiv.classList.remove('d-none'); msgDiv.classList.add('alert-danger'); msgDiv.innerHTML='Email harus diisi'; return; } const user=getUsers().find(u=>u.email===email); if(!user){ msgDiv.classList.remove('d-none'); msgDiv.classList.add('alert-danger'); msgDiv.innerHTML='Email tidak ditemukan'; return; } const tempPass=user.name.toLowerCase().replace(/\s/g,'')+Math.floor(Math.random()*1000); updateUserById(user.id,{password:tempPass}); msgDiv.classList.remove('d-none'); msgDiv.classList.add('alert-success'); msgDiv.innerHTML=`Password baru: <strong>${tempPass}</strong>`; setTimeout(()=>forgotPasswordModal?.hide(),4000); }
-
-    // ==================== UPLOAD GAMBAR ====================
-    function uploadImage(file) { return new Promise((resolve,reject)=>{ const reader=new FileReader(); reader.onload=e=>resolve(e.target.result); reader.onerror=reject; reader.readAsDataURL(file); }); }
-    function triggerFileUploadForItem() { const input=document.getElementById('hiddenFileInput'); input.onchange=async(e)=>{ const file=e.target.files[0]; if(file) try{ const base64=await uploadImage(file); document.getElementById('itemImageUrl').value=base64; alert('Gambar siap'); }catch(err){ alert('Gagal upload'); } input.value=''; }; input.click(); }
-
-    // ==================== MODAL ITEM ====================
-    function showAddItemModal() { resetItemForm(); document.getElementById('editItemId').value=''; document.getElementById('itemFormTitle').innerText='Tambah Barang'; if(!itemFormModalObj) itemFormModalObj=new bootstrap.Modal(document.getElementById('itemFormModal')); itemFormModalObj.show(); }
-    function editItem(id) { const item=items.find(i=>i.id===id); if(!item) return; resetItemForm(); document.getElementById('editItemId').value=item.id; document.getElementById('itemName').value=item.name||''; document.getElementById('itemCategory').value=item.category||''; document.getElementById('itemQuantity').value=item.quantity||0; document.getElementById('itemLocation').value=item.location||''; document.getElementById('itemType').value=item.type||''; document.getElementById('itemLama').value=item.lama||''; document.getElementById('itemBaru').value=item.baru||''; document.getElementById('itemStatus').value=item.status||'Baik'; document.getElementById('itemNotes').value=item.notes||''; document.getElementById('itemImageUrl').value=item.image||''; document.getElementById('itemFormTitle').innerText='Edit Barang'; if(!itemFormModalObj) itemFormModalObj=new bootstrap.Modal(document.getElementById('itemFormModal')); itemFormModalObj.show(); }
-    function resetItemForm() { document.getElementById('itemName').value=''; document.getElementById('itemCategory').value=''; document.getElementById('itemQuantity').value='0'; document.getElementById('itemLocation').value=''; document.getElementById('itemType').value=''; document.getElementById('itemLama').value=''; document.getElementById('itemBaru').value=''; document.getElementById('itemStatus').value='Baik'; document.getElementById('itemNotes').value=''; document.getElementById('itemImageUrl').value=''; }
-    async function saveItemFromModal() { const id=document.getElementById('editItemId').value; const name=document.getElementById('itemName').value.trim(); if(!name){ alert('Nama wajib'); return; } const data={ name, category:document.getElementById('itemCategory').value.trim(), quantity:parseInt(document.getElementById('itemQuantity').value)||0, location:document.getElementById('itemLocation').value.trim(), type:document.getElementById('itemType').value.trim(), lama:document.getElementById('itemLama').value.trim(), baru:document.getElementById('itemBaru').value.trim(), status:document.getElementById('itemStatus').value, notes:document.getElementById('itemNotes').value.trim(), image:document.getElementById('itemImageUrl').value.trim(), updatedAt:firebase.firestore.FieldValue.serverTimestamp() }; if(!id) { data.createdAt=firebase.firestore.FieldValue.serverTimestamp(); await addItem(data); alert('Tambah berhasil'); } else { await updateItem(id,data); alert('Update berhasil'); } if(itemFormModalObj) itemFormModalObj.hide(); }
-
-    // ==================== IMPORT EXCEL (LENGKAP) ====================
-    function showImportModal() { const input=document.createElement('input'); input.type='file'; input.accept='.xlsx,.xls,.csv,.txt'; input.onchange=async(e)=>{ const file=e.target.files[0]; if(!file) return; const ext=file.name.split('.').pop().toLowerCase(); const reader=new FileReader(); reader.onload=async(ev)=>{ let rows=[]; if(ext==='csv'||ext==='txt'){ Papa.parse(ev.target.result,{header:true,complete:res=>{ rows=res.data; importData(rows); }}); }else{ const workbook=XLSX.read(ev.target.result,{type:'binary'}); const sheet=workbook.Sheets[workbook.SheetNames[0]]; rows=XLSX.utils.sheet_to_json(sheet); importData(rows); } }; if(ext==='csv'||ext==='txt') reader.readAsText(file); else reader.readAsBinaryString(file); }; input.click(); }
-    async function importData(rows) { let lastValidName=''; for(let row of rows){ let name=row['NAMA']||row['Nama']||row['nama']||''; if(!name.trim()) name=lastValidName; else lastValidName=name; if(!name.trim()) continue; const type=row['TYPE']||row['Type']||row['type']||''; const lama=row['Lama']||row['lama']||''; const baru=row['Baru']||row['baru']||''; let qty=row['Qty']||row['QTY']||row['quantity']||row['Jumlah']||'0'; let quantity=0; if(typeof qty==='string'){ const match=qty.match(/\d+/); quantity=match?parseInt(match[0]):0; }else{ quantity=parseInt(qty)||0; } const status=row['STATUS']||row['Status']||row['status']||'Baik'; const catatan=row['CATATAN']||row['Catatan']||row['catatan']||''; await addItem({ name:name.trim(), category:'Umum', quantity, location:'Gudang', type, lama, baru, status, notes:catatan, image:'', createdAt:firebase.firestore.FieldValue.serverTimestamp() }); } alert(`Import selesai.`); }
-
-    // ==================== ROUTING ====================
-    function renderNav() { const user=getCurrentUser(); const navLinks=document.getElementById('navLinks'); const userDisplay=document.getElementById('userDisplay'); if(user){ userDisplay.innerText=`Halo, ${user.name} (${user.role==='admin'?'Admin':'Peminjam'})`; let links=''; if(user.role==='admin'){ links=`<li class="nav-item"><a class="nav-link" href="#" onclick="navigate('inventory')">Inventory</a></li><li class="nav-item"><a class="nav-link" href="#" onclick="navigate('borrowRequests')">Permintaan</a></li><li class="nav-item"><a class="nav-link" href="#" onclick="navigate('history')">Riwayat</a></li><li class="nav-item"><a class="nav-link" href="#" onclick="navigate('manageUsers')"><i class="fas fa-users"></i> Kelola User</a></li>`; }else{ links=`<li class="nav-item"><a class="nav-link" href="#" onclick="navigate('inventory')">Lihat Barang</a></li><li class="nav-item"><a class="nav-link" href="#" onclick="navigate('borrowForm')">Pinjam Barang</a></li><li class="nav-item"><a class="nav-link" href="#" onclick="navigate('myBorrows')">Peminjamanku</a></li>`; } navLinks.innerHTML=links; }else{ userDisplay.innerText=''; navLinks.innerHTML=''; } }
-    function navigate(page) { if(page==='borrowForm' && !getCurrentUser()){ alert('Harus login'); currentPage='login'; }else{ currentPage=page; } renderPage(); }
-    function renderPage() { const user=getCurrentUser(); if(!user && currentPage!=='login') currentPage='login'; const content=document.getElementById('pageContent'); if(currentPage==='login') content.innerHTML=renderLogin(); else if(currentPage==='inventory') content.innerHTML=renderInventory(); else if(currentPage==='borrowForm') content.innerHTML=renderBorrowForm(); else if(currentPage==='myBorrows') content.innerHTML=renderMyBorrows(); else if(currentPage==='borrowRequests') content.innerHTML=renderBorrowRequests(); else if(currentPage==='history') content.innerHTML=renderHistory(); else if(currentPage==='manageUsers') content.innerHTML=renderManageUsers(); renderNav(); }
-    function renderLogin() { return `<div class="row justify-content-center"><div class="col-md-6"><div class="card"><div class="card-header bg-primary text-white">Login</div><div class="card-body"><div class="mb-3"><label>Email</label><input type="email" id="loginEmail" class="form-control"></div><div class="mb-3"><label>Password</label><input type="password" id="loginPassword" class="form-control"></div><button class="btn btn-primary w-100" onclick="doLogin()">Login</button><hr><div class="text-center"><span class="forgot-password-link" onclick="showForgotPasswordModal()"><i class="fas fa-key"></i> Lupa Password?</span></div><hr><p class="text-muted text-center">Belum punya akun? Hubungi Pengurus GSM.</p></div></div></div></div>`; }
-    function doLogin() { const email=document.getElementById('loginEmail').value; const pass=document.getElementById('loginPassword').value; const user=getUsers().find(u=>u.email===email && u.password===pass); if(user){ setCurrentUser({id:user.id,name:user.name,email:user.email,role:user.role}); startItemsListener(); startRequestsListener(); navigate('inventory'); }else alert('Email atau password salah'); }
-    function logout() { localStorage.removeItem(STORAGE_KEYS.CURRENT_USER); if(itemsListener) itemsListener(); if(requestsListener) requestsListener(); navigate('login'); }
-
-    // ==================== INVENTORY DENGAN CHECKBOX & HAPUS MASSAL ====================
-    function renderInventory() {
-      const user = getCurrentUser();
-      if (!items.length && user) return '<div class="text-center"><div class="spinner-border"></div> Memuat data...</div>';
-      let html = `<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                    <h3><i class="fas fa-boxes me-2"></i>Daftar Inventory</h3>
-                    <div>`;
-      if (user && user.role === 'admin') {
-        html += `<button class="btn btn-primary me-2" onclick="showAddItemModal()"><i class="fas fa-plus"></i> Tambah</button>
-                 <button class="btn btn-success me-2" onclick="showImportModal()"><i class="fas fa-file-import"></i> Import Excel</button>
-                 <button class="btn btn-danger delete-selected-btn" id="deleteSelectedBtn" onclick="deleteSelectedItems()" style="display:none;"><i class="fas fa-trash-alt"></i> Hapus Terpilih</button>`;
-      }
-      html += `</div></div>
-               <div class="table-responsive">
-               <table class="table table-bordered table-hover">
-                 <thead class="table-light">
-                   <tr>
-                     <th width="40"><input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()"></th>
-                     <th>Nama</th><th>Type</th><th>Lama</th><th>Baru</th><th>Stok</th><th>Status</th><th>Catatan</th><th>Gambar</th><th>QR</th>${user && user.role === 'admin' ? '<th>Aksi</th>' : ''}
-                   </tr>
-                 </thead>
-                 <tbody>`;
-      items.forEach(item => {
-        html += `<tr>
-                   <td class="text-center"><input type="checkbox" class="item-checkbox" value="${item.id}" onclick="updateDeleteButtonVisibility()"></td>
-                   <td>${escapeHtml(item.name)}</td>
-                   <td>${escapeHtml(item.type || '-')}</td>
-                   <td>${escapeHtml(item.lama || '-')}</td>
-                   <td>${escapeHtml(item.baru || '-')}</td>
-                   <td>${item.quantity}</td>
-                   <td>${escapeHtml(item.status || 'Baik')}</td>
-                   <td>${escapeHtml(item.notes ? (item.notes.length>30 ? item.notes.substr(0,30)+'...' : item.notes) : '-')}</td>
-                   <td>${item.image ? `<img src="${item.image}" style="max-height:40px; cursor:pointer;" onclick="showItemDetail('${item.id}')">` : '-'}</td>
-                   <td><div class="qr-code" id="qr-${item.id}" data-url="${window.location.origin+window.location.pathname+'?item='+item.id}" onclick="showItemDetail('${item.id}')"></div></td>
-                   ${user && user.role === 'admin' ? `<td><button class="btn btn-sm btn-warning" onclick="editItem('${item.id}')"><i class="fas fa-edit"></i></button>
-                   <button class="btn btn-sm btn-danger" onclick="deleteItemConfirm('${item.id}')"><i class="fas fa-trash"></i></button></td>` : ''}
-                 </tr>`;
+      forgotPasswordLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        resetEmailInput.value = '';
+        resetMessage.innerText = '';
+        resetPasswordModal.classList.add('active');
       });
-      html += `</tbody></table></div>`;
-      // render QR codes after DOM ready
-      setTimeout(() => {
-        items.forEach(item => {
-          const container = document.getElementById(`qr-${item.id}`);
-          if (container) {
-            container.innerHTML = '';
-            new QRCode(container, { text: window.location.origin+window.location.pathname+'?item='+item.id, width: 100, height: 100 });
+      cancelResetModal.addEventListener('click', () => resetPasswordModal.classList.remove('active'));
+      sendResetBtn.addEventListener('click', async () => {
+        const email = resetEmailInput.value.trim();
+        if (!email) { resetMessage.innerText = 'Email harus diisi.'; resetMessage.style.color = 'red'; return; }
+        try {
+          await auth.sendPasswordResetEmail(email);
+          resetMessage.innerText = 'Email reset telah dikirim. Periksa kotak masuk Anda.';
+          resetMessage.style.color = 'green';
+          resetEmailInput.value = '';
+          setTimeout(() => resetPasswordModal.classList.remove('active'), 3000);
+        } catch (error) {
+          resetMessage.innerText = error.message;
+          resetMessage.style.color = 'red';
+        }
+      });
+      window.addEventListener('click', (e) => { if (e.target === resetPasswordModal) resetPasswordModal.classList.remove('active'); });
+
+      async function fetchUserRole(uid) {
+        try {
+          const user = auth.currentUser;
+          if (!user) return;
+          const userEmail = user.email;
+          const doc = await db.collection('users').doc(uid).get();
+          if (doc.exists) {
+            userRole = doc.data().role || 'member';
+            if (doc.data().email !== userEmail) {
+              await db.collection('users').doc(uid).update({ email: userEmail });
+            }
+          } else {
+            await db.collection('users').doc(uid).set({ role: 'member', email: userEmail });
+            userRole = 'member';
+          }
+        } catch (e) {
+          console.error('Error fetching role:', e);
+          userRole = 'member';
+        }
+        document.getElementById('userRole').innerText = userRole;
+      }
+
+      async function seedDefaultData() {
+        if (!currentUser) return;
+        try {
+          let workspaceId = null;
+          const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
+          if (!workspaceQuery.empty) {
+            workspaceId = workspaceQuery.docs[0].id;
+          } else {
+            const newWorkspace = {
+              name: 'Rapat Pesparawi Distrik VII',
+              description: 'Grup default untuk rapat Pesparawi',
+              createdBy: currentUser.uid,
+              members: [currentUser.uid],
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            const workspaceRef = await db.collection('workspaces').add(newWorkspace);
+            workspaceId = workspaceRef.id;
+          }
+
+          for (const m of defaultMeetings) {
+            const meetingQuery = await db.collection('meetings')
+              .where('title', '==', m.title)
+              .where('workspaceId', '==', workspaceId)
+              .get();
+            if (meetingQuery.empty) {
+              const meetingData = {
+                title: m.title,
+                date: m.date,
+                info: m.info,
+                workspaceId,
+                createdBy: currentUser.uid,
+                sections: m.sections.map(section => ({
+                  id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
+                  name: section.name,
+                  assignedEmails: section.assignedEmails || '',
+                  tasks: section.tasks.map(task => ({
+                    id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
+                    desc: task.desc,
+                    status: task.status,
+                    progress: task.progress,
+                    pic: task.pic,
+                    notes: task.notes,
+                    deadline: task.deadline || ''
+                  }))
+                }))
+              };
+              await db.collection('meetings').add(meetingData);
+            }
+          }
+        } catch (error) {
+          console.error('Gagal menambahkan data default:', error);
+        }
+      }
+
+      async function resetDefaultData() {
+        if (userRole !== 'admin') return;
+        if (!confirm('Reset data default? Semua grup "Rapat Pesparawi Distrik VII" dan rapat di dalamnya akan dihapus, lalu ditambahkan ulang. Data lain tidak terpengaruh.')) return;
+        try {
+          const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
+          for (const doc of workspaceQuery.docs) {
+            const meetingsInGroup = await db.collection('meetings').where('workspaceId', '==', doc.id).get();
+            for (const m of meetingsInGroup.docs) {
+              await db.collection('meetings').doc(m.id).delete();
+            }
+            await db.collection('workspaces').doc(doc.id).delete();
+          }
+          await seedDefaultData();
+          alert('Data default berhasil direset!');
+          window.location.reload();
+        } catch (error) {
+          console.error('Reset gagal:', error);
+          alert('Reset gagal: ' + error.message);
+        }
+      }
+
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          currentUser = user;
+          document.getElementById('userEmail').innerText = user.email;
+          document.getElementById('userInfo').style.display = 'flex';
+          hideLogin();
+          await fetchUserRole(user.uid);
+          if (userRole === 'admin') {
+            await seedDefaultData();
+          }
+
+          if (unsubscribeWorkspaces) unsubscribeWorkspaces();
+          unsubscribeWorkspaces = db.collection('workspaces').where('members', 'array-contains', user.uid).onSnapshot(snapshot => {
+            workspaces = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderWorkspaceList();
+            updateMeetingWorkspaceSelect();
+          }, error => console.error('Workspace listener error:', error));
+
+          if (unsubscribeMeetings) unsubscribeMeetings();
+          unsubscribeMeetings = db.collection('meetings').onSnapshot(snapshot => {
+            meetings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            meetings.sort((a, b) => (a.date < b.date ? 1 : -1));
+
+            renderPrivateMeetings();
+            
+            // PRIORITAS RENDER: Memastikan tidak terpental ke halaman Dashboard (2.jpg)
+            if (currentMeetingId) {
+              const meeting = meetings.find(m => m.id === currentMeetingId);
+              if (meeting) {
+                renderDetail(meeting);
+              } else {
+                currentMeetingId = null;
+                if (currentWorkspaceId) {
+                  renderWorkspaceMeetings(currentWorkspaceId);
+                } else {
+                  document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.</div>';
+                }
+              }
+            } else if (currentWorkspaceId) {
+              renderWorkspaceMeetings(currentWorkspaceId);
+            } else {
+              document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.</div>';
+            }
+
+            updateButtonsByRole();
+            updateDeleteSelectedButton();
+          }, error => console.error('Meetings listener error:', error));
+        } else {
+          currentUser = null;
+          userRole = 'member';
+          document.getElementById('userInfo').style.display = 'none';
+          meetings = [];
+          workspaces = [];
+          renderWorkspaceList();
+          renderPrivateMeetings();
+          document.getElementById('contentArea').innerHTML = '';
+          showLogin();
+          if (unsubscribeMeetings) unsubscribeMeetings();
+          if (unsubscribeWorkspaces) unsubscribeWorkspaces();
+        }
+      });
+
+      loginBtn.addEventListener('click', async () => {
+        try { await auth.signInWithEmailAndPassword(loginEmail.value, loginPassword.value); }
+        catch (e) { loginError.innerText = e.message; }
+      });
+      registerBtn.addEventListener('click', async () => {
+        try { await auth.createUserWithEmailAndPassword(loginEmail.value, loginPassword.value); }
+        catch (e) { loginError.innerText = e.message; }
+      });
+      document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+      // ========== HELPERS FOR LATEST MEETING, LOGS & PERMISSIONS ==========
+      
+      function isMeetingLatest(meeting) {
+        if (!meeting) return false;
+        let latest = null;
+        if (meeting.workspaceId) {
+          latest = getLastMeetingInWorkspace(meeting.workspaceId);
+        } else {
+          latest = getLastPrivateMeeting();
+        }
+        return latest && latest.id === meeting.id;
+      }
+
+      function canUserEditSection(meeting, section) {
+        if (!meeting) return false;
+        if (userRole === 'admin') return true;
+        if (meeting.createdBy === currentUser?.uid) return true; 
+        if (!isMeetingLatest(meeting)) return false; 
+        if (!section) return true; 
+        if (!section.assignedEmails) return true; 
+        
+        const emails = section.assignedEmails.split(',').map(e => e.trim().toLowerCase());
+        return emails.includes(currentUser?.email?.toLowerCase());
+      }
+
+      async function addLog(meetingId, message) {
+        if (!meetingId || !currentUser) return;
+        const newLog = {
+          user: currentUser.email,
+          msg: message,
+          time: new Date().toISOString()
+        };
+        try {
+          await db.collection('meetings').doc(meetingId).update({
+            logs: firebase.firestore.FieldValue.arrayUnion(newLog)
+          });
+        } catch (e) {
+          console.error("Gagal menyimpan log: ", e);
+        }
+      }
+
+      function renderLogs(meeting) {
+        const logs = meeting.logs || [];
+        if (logs.length === 0) return '';
+        
+        const sortedLogs = [...logs].sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 5);
+        let html = `<div class="log-card">
+          <h4><i class="fas fa-history"></i> Riwayat Aktivitas Terakhir</h4>
+          <ul class="log-list">`;
+        
+        sortedLogs.forEach(log => {
+            const time = new Date(log.time).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+            const shortEmail = log.user.split('@')[0];
+            html += `<li><span class="log-time">${time}</span> <strong>${escapeHtml(shortEmail)}</strong> ${escapeHtml(log.msg)}</li>`;
+        });
+        html += `</ul></div>`;
+        return html;
+      }
+
+      // ========== WORKSPACE ==========
+      async function deleteWorkspace(workspaceId) {
+        if (userRole !== 'admin') return;
+        const workspace = workspaces.find(w => w.id === workspaceId);
+        if (!workspace) return;
+        if (workspace.createdBy !== currentUser.uid) {
+          alert('Anda tidak memiliki izin untuk menghapus grup ini.');
+          return;
+        }
+        if (!confirm(`Hapus grup "${workspace.name}" beserta semua rapat di dalamnya?`)) return;
+        try {
+          const groupMeetings = meetings.filter(m => m.workspaceId === workspaceId);
+          for (const m of groupMeetings) {
+            await db.collection('meetings').doc(m.id).delete();
+          }
+          await db.collection('workspaces').doc(workspaceId).delete();
+          if (currentWorkspaceId === workspaceId) {
+            currentWorkspaceId = null;
+            currentMeetingId = null;
+            renderWorkspaceList();
+            document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.</div>';
+          } else {
+            renderWorkspaceList();
+          }
+        } catch (error) {
+          alert('Gagal menghapus grup: ' + error.message);
+        }
+      }
+
+      function renderWorkspaceList() {
+        const container = document.getElementById('workspaceList');
+        container.innerHTML = '';
+        workspaces.forEach(w => {
+          const div = document.createElement('div');
+          div.className = `workspace-item ${currentWorkspaceId === w.id ? 'active' : ''}`;
+          div.title = w.name;
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'workspace-checkbox';
+          checkbox.checked = selectedWorkspaceIds.has(w.id);
+          if (userRole !== 'admin') {
+            checkbox.disabled = true;
+            checkbox.style.display = 'none';
+          }
+          checkbox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (checkbox.checked) selectedWorkspaceIds.add(w.id);
+            else selectedWorkspaceIds.delete(w.id);
+            updateDeleteSelectedButton();
+          });
+
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'workspace-name';
+          nameSpan.innerText = w.name;
+          const badge = document.createElement('span');
+          badge.className = 'workspace-badge';
+          badge.innerText = w.members.length;
+
+          const actionsDiv = document.createElement('div');
+          actionsDiv.className = 'workspace-actions';
+          const manageBtn = document.createElement('button');
+          manageBtn.innerHTML = '<i class="fas fa-cog"></i>';
+          manageBtn.title = 'Kelola anggota';
+          if (w.createdBy === currentUser?.uid) {
+            manageBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              openManageMembers(w.id);
+            });
+          } else {
+            manageBtn.disabled = true;
+            manageBtn.style.opacity = '0.5';
+          }
+          actionsDiv.appendChild(manageBtn);
+          let deleteBtn = null;
+          if (w.createdBy === currentUser?.uid && userRole === 'admin') {
+            deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.className = 'delete-workspace';
+            deleteBtn.title = 'Hapus grup';
+            deleteBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              deleteWorkspace(w.id);
+            });
+            actionsDiv.appendChild(deleteBtn);
+          }
+
+          div.appendChild(checkbox);
+          div.appendChild(nameSpan);
+          div.appendChild(badge);
+          div.appendChild(actionsDiv);
+          div.addEventListener('click', (e) => {
+            if (e.target !== checkbox && e.target !== manageBtn && e.target !== deleteBtn && !e.target.closest('.workspace-actions')) {
+              currentWorkspaceId = w.id;
+              currentMeetingId = null;
+              renderWorkspaceList();
+              renderWorkspaceMeetings(w.id);
+            }
+          });
+          container.appendChild(div);
+        });
+      }
+
+      window.openManageMembers = async (workspaceId) => {
+        const workspace = workspaces.find(w => w.id === workspaceId);
+        if (!workspace) return;
+        const memberListDiv = document.getElementById('memberList');
+        memberListDiv.innerHTML = '';
+        for (const uid of workspace.members) {
+          try {
+            const userDoc = await db.collection('users').doc(uid).get();
+            const email = userDoc.exists ? userDoc.data().email || uid : uid;
+            const item = document.createElement('div');
+            item.className = 'member-item';
+            item.innerHTML = `<span>${escapeHtml(email)}</span>${workspace.createdBy === currentUser?.uid ? `<button class="btn-danger" onclick="removeMember('${workspaceId}', '${uid}')">Hapus</button>` : ''}`;
+            memberListDiv.appendChild(item);
+          } catch (e) { console.error(e); }
+        }
+        document.getElementById('manageMembersModal').dataset.workspaceId = workspaceId;
+        document.getElementById('manageMembersModal').classList.add('active');
+      };
+
+      // FUNGSI BARU UNTUK HAPUS DAN TAMBAH ANGGOTA (OPTIMISTIC UPDATE)
+      window.removeMember = async (workspaceId, uid) => {
+        if (!confirm('Hapus anggota ini?')) return;
+        try {
+          const workspaceRef = db.collection('workspaces').doc(workspaceId);
+          await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayRemove(uid) });
+          
+          alert('Anggota berhasil dihapus!'); // Menampilkan konfirmasi berhasil dihapus
+          
+          // Memperbarui data lokal agar langsung hilang dari tampilan
+          const workspace = workspaces.find(w => w.id === workspaceId);
+          if (workspace) workspace.members = workspace.members.filter(id => id !== uid);
+          
+          // Render ulang daftar anggota secara real-time
+          openManageMembers(workspaceId);
+        } catch (error) {
+          alert('Gagal menghapus anggota: ' + error.message);
+        }
+      };
+
+      document.getElementById('addMemberBtn').addEventListener('click', async () => {
+        const email = document.getElementById('memberEmailInput').value.trim();
+        if (!email) return;
+        const usersRef = db.collection('users');
+        const snapshot = await usersRef.where('email', '==', email).get();
+        if (snapshot.empty) {
+          alert('Email tidak ditemukan di sistem. Pastikan pengguna telah login minimal sekali.');
+          return;
+        }
+        const uid = snapshot.docs[0].id;
+        const workspaceId = document.getElementById('manageMembersModal').dataset.workspaceId;
+        const workspaceRef = db.collection('workspaces').doc(workspaceId);
+        
+        try {
+          await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayUnion(uid) });
+          document.getElementById('memberEmailInput').value = '';
+          alert('Anggota berhasil ditambahkan!');
+          
+          // Memperbarui data lokal agar langsung muncul di tampilan
+          const workspace = workspaces.find(w => w.id === workspaceId);
+          if (workspace && !workspace.members.includes(uid)) workspace.members.push(uid);
+          
+          // Render ulang daftar anggota secara real-time
+          openManageMembers(workspaceId);
+        } catch (error) {
+          alert('Gagal menambahkan anggota: ' + error.message);
+        }
+      });
+
+      document.getElementById('closeMembersModal').addEventListener('click', () => {
+        document.getElementById('manageMembersModal').classList.remove('active');
+      });
+
+      document.getElementById('newWorkspaceBtn').addEventListener('click', () => {
+        document.getElementById('workspaceModal').classList.add('active');
+      });
+      document.getElementById('cancelWorkspaceModal').addEventListener('click', () => {
+        document.getElementById('workspaceModal').classList.remove('active');
+      });
+      document.getElementById('saveWorkspaceModal').addEventListener('click', async () => {
+        const name = document.getElementById('workspaceNameInput').value.trim();
+        const desc = document.getElementById('workspaceDescInput').value.trim();
+        if (!name) return alert('Nama grup harus diisi');
+        try {
+          await db.collection('workspaces').add({
+            name,
+            description: desc,
+            createdBy: currentUser.uid,
+            members: [currentUser.uid],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          document.getElementById('workspaceModal').classList.remove('active');
+          document.getElementById('workspaceNameInput').value = '';
+          document.getElementById('workspaceDescInput').value = '';
+        } catch (error) {
+          alert('Gagal membuat grup: ' + error.message);
+        }
+      });
+
+      // ========== RAPAT ==========
+      function renderPrivateMeetings() {
+        const container = document.getElementById('privateMeetingList');
+        container.innerHTML = '';
+        const privateMeetings = meetings.filter(m => !m.workspaceId && m.createdBy === currentUser?.uid);
+        privateMeetings.forEach(m => {
+          const div = document.createElement('div');
+          div.className = `meeting-item ${m.id === currentMeetingId && !currentWorkspaceId ? 'active' : ''}`;
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'meeting-checkbox';
+          checkbox.checked = selectedMeetingIds.has(m.id);
+          if (userRole !== 'admin') {
+            checkbox.disabled = true;
+            checkbox.style.display = 'none';
+          }
+          checkbox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (checkbox.checked) selectedMeetingIds.add(m.id);
+            else selectedMeetingIds.delete(m.id);
+            updateDeleteSelectedButton();
+          });
+
+          const content = document.createElement('div');
+          content.className = 'meeting-content';
+          content.innerHTML = `
+            <div class="meeting-title">${escapeHtml(m.title)}</div>
+            <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
+          `;
+
+          div.appendChild(checkbox);
+          div.appendChild(content);
+          div.addEventListener('click', (e) => {
+            if (e.target !== checkbox) {
+              currentWorkspaceId = null;
+              currentMeetingId = m.id;
+              renderPrivateMeetings();
+              renderDetail(m);
+            }
+          });
+          container.appendChild(div);
+        });
+      }
+
+      function getLastMeetingInWorkspace(workspaceId) {
+        const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
+        if (workspaceMeetings.length === 0) return null;
+        const sorted = [...workspaceMeetings].sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+          return b.id.localeCompare(a.id);
+        });
+        return sorted[0];
+      }
+
+      function getLastPrivateMeeting() {
+        const privateMeetings = meetings.filter(m => !m.workspaceId && m.createdBy === currentUser?.uid);
+        if (privateMeetings.length === 0) return null;
+        return [...privateMeetings].sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+          return b.id.localeCompare(a.id);
+        })[0];
+      }
+
+      const workspaceSelect = document.getElementById('meetingWorkspaceSelect');
+
+      // ========== DASHBOARD GLOBAL ==========
+      let activeTooltip = null;
+
+      function showStatTooltip(statType, event, statsData) {
+        if (activeTooltip) {
+          activeTooltip.remove();
+          activeTooltip = null;
+        }
+        const div = document.createElement('div');
+        div.className = 'stat-tooltip';
+        let title = '';
+        let items = [];
+        switch(statType) {
+          case 'total':
+            title = 'Total Tugas per Seksi';
+            items = statsData.sectionTotals;
+            break;
+          case 'selesai':
+            title = 'Tugas Selesai per Seksi';
+            items = statsData.selesaiBySection;
+            break;
+          case 'berlangsung':
+            title = 'Tugas Berlangsung per Seksi';
+            items = statsData.berlangsungBySection;
+            break;
+          case 'rencana':
+            title = 'Tugas Rencana per Seksi';
+            items = statsData.rencanaBySection;
+            break;
+          case 'kendala':
+            title = 'Tugas Kendala per Seksi';
+            items = statsData.kendalaBySection;
+            break;
+          case 'avg-progress':
+            title = 'Rata-rata Progress per Seksi';
+            items = statsData.avgProgressBySection;
+            break;
+          default: return;
+        }
+        if (!items || items.length === 0) {
+          div.innerHTML = `<h4>${title}</h4><p>Belum ada data.</p><div class="close-tooltip">Tutup</div>`;
+        } else {
+          let listHtml = '<ul>';
+          items.forEach(item => {
+            listHtml += `<li><strong>${escapeHtml(item.name)}</strong> <span>${item.count} ${statType === 'avg-progress' ? '' : 'tugas'}</span></li>`;
+          });
+          listHtml += '</ul>';
+          div.innerHTML = `<h4>${title}</h4>${listHtml}<div class="close-tooltip">Tutup</div>`;
+        }
+        document.body.appendChild(div);
+        const rect = event.target.closest('.global-stat-item, .stat-item').getBoundingClientRect();
+        if (window.innerWidth <= 768) {
+          div.style.left = '50%';
+          div.style.top = '50%';
+          div.style.transform = 'translate(-50%, -50%)';
+        } else {
+          div.style.left = rect.left + 'px';
+          div.style.top = (rect.bottom + 10) + 'px';
+        }
+        div.classList.add('active');
+        activeTooltip = div;
+        const closeTooltip = () => {
+          if (activeTooltip) {
+            activeTooltip.remove();
+            activeTooltip = null;
+          }
+          document.removeEventListener('click', outsideClickListener);
+        };
+        const outsideClickListener = (e) => {
+          if (!div.contains(e.target)) {
+            closeTooltip();
+          }
+        };
+        setTimeout(() => {
+          document.addEventListener('click', outsideClickListener);
+        }, 10);
+        div.querySelector('.close-tooltip')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          closeTooltip();
+        });
+      }
+
+      function renderGlobalDashboard(workspaceId) {
+        const latestMeeting = getLastMeetingInWorkspace(workspaceId);
+
+        let totalTasks = 0;
+        let totalProgress = 0;
+        let taskCount = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
+        let kendalaTasks = [];
+        let sectionTotals = {};
+        let selesaiBySection = {};
+        let berlangsungBySection = {};
+        let rencanaBySection = {};
+        let kendalaBySection = {};
+        let progressSumBySection = {};
+
+        const seenKendalaKeys = new Set();
+
+        if (latestMeeting && latestMeeting.sections) {
+          latestMeeting.sections.forEach(section => {
+            if (!sectionTotals[section.name]) sectionTotals[section.name] = 0;
+            if (!selesaiBySection[section.name]) selesaiBySection[section.name] = 0;
+            if (!berlangsungBySection[section.name]) berlangsungBySection[section.name] = 0;
+            if (!rencanaBySection[section.name]) rencanaBySection[section.name] = 0;
+            if (!kendalaBySection[section.name]) kendalaBySection[section.name] = 0;
+            if (!progressSumBySection[section.name]) progressSumBySection[section.name] = 0;
+            
+            section.tasks?.forEach(task => {
+              totalTasks++;
+              totalProgress += task.progress || 0;
+              progressSumBySection[section.name] += (task.progress || 0);
+              taskCount[task.status] = (taskCount[task.status] || 0) + 1;
+              sectionTotals[section.name]++;
+              
+              if (task.status === 'selesai') selesaiBySection[section.name]++;
+              else if (task.status === 'berlangsung') berlangsungBySection[section.name]++;
+              else if (task.status === 'rencana') rencanaBySection[section.name]++;
+              else if (task.status === 'kendala') {
+                kendalaBySection[section.name]++;
+                const taskKey = task.id ? task.id : task.desc;
+                const key = `${latestMeeting.id}|${section.id}|${taskKey}`;
+                if (!seenKendalaKeys.has(key)) {
+                  seenKendalaKeys.add(key);
+                  kendalaTasks.push({
+                    taskDesc: task.desc,
+                    meetingTitle: latestMeeting.title,
+                    meetingDate: latestMeeting.date,
+                    pic: task.pic || '-',
+                    notes: task.notes || ''
+                  });
+                }
+              }
+            });
+          });
+        }
+
+        const avgProgress = totalTasks ? (totalProgress / totalTasks) : 0;
+        const sectionsList = Object.keys(sectionTotals).map(name => ({ name, count: sectionTotals[name] }));
+        const selesaiList = Object.keys(selesaiBySection).map(name => ({ name, count: selesaiBySection[name] }));
+        const berlangsungList = Object.keys(berlangsungBySection).map(name => ({ name, count: berlangsungBySection[name] }));
+        const rencanaList = Object.keys(rencanaBySection).map(name => ({ name, count: rencanaBySection[name] }));
+        const kendalaList = Object.keys(kendalaBySection).map(name => ({ name, count: kendalaBySection[name] }));
+        
+        const avgProgressList = Object.keys(sectionTotals).map(name => {
+           const avg = sectionTotals[name] > 0 ? (progressSumBySection[name] / sectionTotals[name]) : 0;
+           return { name, count: Math.round(avg) + '%' };
+        });
+
+        const statsData = {
+          sectionTotals: sectionsList,
+          selesaiBySection: selesaiList,
+          berlangsungBySection: berlangsungList,
+          rencanaBySection: rencanaList,
+          kendalaBySection: kendalaList,
+          avgProgressBySection: avgProgressList
+        };
+
+        let html = `
+          <div class="global-dashboard">
+            <h3><i class="fas fa-chart-line"></i> Dashboard Progres Keseluruhan (Update Terakhir)</h3>
+            <div class="global-stats">
+              <div class="global-stat-item" data-stat="total">
+                <span class="global-stat-label">Total Tugas</span>
+                <div class="global-stat-value">${totalTasks}</div>
+              </div>
+              <div class="global-stat-item" data-stat="selesai">
+                <span class="global-stat-label">Selesai</span>
+                <div class="global-stat-value" style="color:#14633b;">${taskCount.selesai || 0}</div>
+              </div>
+              <div class="global-stat-item" data-stat="berlangsung">
+                <span class="global-stat-label">Berlangsung</span>
+                <div class="global-stat-value" style="color:#9e5e04;">${taskCount.berlangsung || 0}</div>
+              </div>
+              <div class="global-stat-item" data-stat="rencana">
+                <span class="global-stat-label">Rencana</span>
+                <div class="global-stat-value" style="color:#0a5585;">${taskCount.rencana || 0}</div>
+              </div>
+              <div class="global-stat-item" data-stat="kendala">
+                <span class="global-stat-label">Kendala</span>
+                <div class="global-stat-value" style="color:#b13e2d;">${taskCount.kendala || 0}</div>
+              </div>
+              <div class="global-stat-item" data-stat="avg-progress">
+                <span class="global-stat-label">Rata-rata Progress</span>
+                <div class="global-stat-value">${Math.round(avgProgress)}%</div>
+              </div>
+            </div>
+        `;
+
+        if (kendalaTasks.length > 0) {
+          html += `<div class="kendala-list"><strong><i class="fas fa-exclamation-triangle"></i> Tugas dengan Kendala:</strong><div style="margin-top: 8px;">`;
+          kendalaTasks.forEach(kt => {
+            html += `
+              <div class="kendala-item">
+                <div class="kendala-task">📌 ${escapeHtml(kt.taskDesc)}</div>
+                <div class="kendala-meeting">📅 ${formatDate(kt.meetingDate)} – ${escapeHtml(kt.meetingTitle)} | 👤 ${escapeHtml(kt.pic)}</div>
+                ${kt.notes ? `<div class="kendala-notes" style="font-size:0.8rem; margin-top:4px;">📝 ${escapeHtml(kt.notes)}</div>` : ''}
+              </div>
+            `;
+          });
+          html += `</div></div>`;
+        } else {
+          html += `<div style="margin-top:16px; color: var(--color-text-light);"><i class="fas fa-check-circle"></i> Tidak ada kendala saat ini.</div>`;
+        }
+        html += `</div>`;
+
+        setTimeout(() => {
+          const statItems = document.querySelectorAll('.global-stat-item');
+          statItems.forEach(item => {
+            const stat = item.getAttribute('data-stat');
+            const showTooltip = (e) => {
+              e.stopPropagation();
+              showStatTooltip(stat, e, statsData);
+            };
+            item.removeEventListener('mouseenter', showTooltip);
+            item.removeEventListener('click', showTooltip);
+            item.addEventListener('mouseenter', showTooltip);
+            item.addEventListener('click', showTooltip);
+          });
+        }, 50);
+
+        return html;
+      }
+
+      function renderWorkspaceMeetings(workspaceId) {
+        const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
+        const content = document.getElementById('contentArea');
+        if (workspaceMeetings.length === 0) {
+          content.innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-users"></i> Belum ada rapat di grup ini.<br>Klik tombol "Rapat baru" untuk membuat rapat di grup ini.</div>';
+          return;
+        }
+
+        let html = renderGlobalDashboard(workspaceId);
+        html += '<div class="meeting-list" style="padding:0; margin-top:24px;"><h3 style="margin-bottom:16px; font-size:1.1rem;">Daftar Rapat dalam Grup</h3>';
+        workspaceMeetings.forEach(m => {
+          html += `
+            <div class="meeting-item ${m.id === currentMeetingId ? 'active' : ''}" data-id="${m.id}">
+              <input type="checkbox" class="meeting-checkbox" data-id="${m.id}" ${userRole !== 'admin' ? 'disabled' : ''}>
+              <div class="meeting-content">
+                <div class="meeting-title">${escapeHtml(m.title)}</div>
+                <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+        content.innerHTML = html;
+
+        workspaceMeetings.forEach(m => {
+          const el = content.querySelector(`.meeting-item[data-id="${m.id}"]`);
+          if (el) {
+            const cb = el.querySelector('.meeting-checkbox');
+            if (cb) {
+              cb.checked = selectedMeetingIds.has(m.id);
+              cb.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (cb.checked) selectedMeetingIds.add(m.id);
+                else selectedMeetingIds.delete(m.id);
+                updateDeleteSelectedButton();
+              });
+            }
+            el.addEventListener('click', (e) => {
+              if (e.target !== cb) {
+                currentMeetingId = m.id;
+                renderDetail(m);
+              }
+            });
           }
         });
-        updateDeleteButtonVisibility(); // ensure button visibility after render
-      }, 100);
-      return html;
-    }
-
-    // Helper untuk escape HTML
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-
-    // Menampilkan atau menyembunyikan tombol hapus terpilih berdasarkan ada/tidaknya checkbox yang dicentang
-    function updateDeleteButtonVisibility() {
-      const checkboxes = document.querySelectorAll('.item-checkbox');
-      const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-      const deleteBtn = document.getElementById('deleteSelectedBtn');
-      if (deleteBtn) deleteBtn.style.display = anyChecked ? 'inline-block' : 'none';
-    }
-
-    // Toggle select all
-    function toggleSelectAll() {
-      const selectAll = document.getElementById('selectAllCheckbox');
-      const checkboxes = document.querySelectorAll('.item-checkbox');
-      checkboxes.forEach(cb => cb.checked = selectAll.checked);
-      updateDeleteButtonVisibility();
-    }
-
-    // Konfirmasi hapus satu item (tetap dipertahankan)
-    async function deleteItemConfirm(itemId) {
-      if (confirm('Hapus barang ini?')) {
-        await deleteItem(itemId);
       }
-    }
 
-    // Hapus semua item yang tercentang
-    async function deleteSelectedItems() {
-      const checkboxes = document.querySelectorAll('.item-checkbox:checked');
-      if (checkboxes.length === 0) {
-        alert('Tidak ada item yang dipilih.');
-        return;
+      // ========== RENDER DETAIL ==========
+      function renderDetail(meeting) {
+        const content = document.getElementById('contentArea');
+        const headerTitle = document.getElementById('meetingTitle');
+        const headerDate = document.getElementById('meetingDate');
+        headerTitle.innerText = meeting.title;
+        headerDate.innerHTML = `<i class="far fa-calendar-alt"></i> ${formatDate(meeting.date)}`;
+        
+        const canEditMeeting = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
+        const isLatest = isMeetingLatest(meeting);
+        const showGlobalReadOnly = !canEditMeeting && !isLatest;
+
+        let html = `
+          <div class="info-card">
+            <div style="font-weight:600; margin-bottom:10px; color:var(--color-secondary);"><i class="fas fa-info-circle"></i> Informasi rapat ${showGlobalReadOnly ? '<span style="color:#e63946; font-size:0.8rem; font-weight:normal; margin-left:8px;">(Read-Only: Rapat Lama)</span>' : ''}</div>
+            <div class="info-grid">
+              <div class="info-item"><i class="fas fa-tag"></i> ${meeting.info || 'Tidak ada catatan'}</div>
+            </div>
+          </div>
+        `;
+        
+        html += renderDashboard(meeting);
+        html += renderLogs(meeting);
+
+        html += `
+          <div class="section-header">
+            <h3><i class="fas fa-layer-group"></i> ${selectedSectionFilter === 'ALL' ? 'Semua Seksi' : 'Detail Seksi'}</h3>
+            <button class="btn-add-section" id="addSectionBtn"><i class="fas fa-plus"></i> Seksi baru</button>
+          </div>
+        `;
+        html += renderFilteredSections(meeting);
+
+        content.innerHTML = html;
+
+        document.getElementById('addSectionBtn')?.addEventListener('click', () => openSectionModal(null));
+
+        const filterSelect = document.getElementById('sectionFilterSelect');
+        if (filterSelect) {
+          filterSelect.addEventListener('change', (e) => {
+            selectedSectionFilter = e.target.value;
+            renderDetail(meeting);
+          });
+        }
+        document.getElementById('resetFilterBtn')?.addEventListener('click', () => {
+          selectedSectionFilter = 'ALL';
+          renderDetail(meeting);
+        });
+
+        meeting.sections?.forEach(section => {
+          document.getElementById(`edit-section-${section.id}`)?.addEventListener('click', () => openSectionModal(section.id));
+          document.getElementById(`del-section-${section.id}`)?.addEventListener('click', () => deleteSection(section.id));
+          document.getElementById(`add-task-${section.id}`)?.addEventListener('click', () => openTaskModal(section.id, null));
+          section.tasks?.forEach(task => {
+            document.getElementById(`edit-task-${task.id}`)?.addEventListener('click', () => openTaskModal(section.id, task.id));
+            document.getElementById(`del-task-${task.id}`)?.addEventListener('click', () => deleteTask(section.id, task.id));
+          });
+        });
+        updateExportButtons();
+        updateButtonsByRole();
       }
-      const confirmMsg = `Anda akan menghapus ${checkboxes.length} item. Tindakan ini tidak dapat dibatalkan. Lanjutkan?`;
-      if (!confirm(confirmMsg)) return;
+
+      function renderDashboard(meeting) {
+        if (!meeting.sections) return '';
+        const sections = meeting.sections;
+        let totalTasks = 0, totalProgress = 0, taskCountByStatus = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
+        const sectionProgress = [];
+
+        sections.forEach(sec => {
+          let secSum = 0;
+          sec.tasks.forEach(task => {
+            totalTasks++;
+            secSum += task.progress || 0;
+            taskCountByStatus[task.status] = (taskCountByStatus[task.status] || 0) + 1;
+          });
+          const avg = sec.tasks.length ? (secSum / sec.tasks.length) : 0;
+          sectionProgress.push({ id: sec.id, name: sec.name, progress: avg });
+          totalProgress += secSum;
+        });
+
+        const overallAvg = totalTasks ? (totalProgress / totalTasks) : 0;
+
+        let html = `
+          <div class="dashboard-card">
+            <div class="dashboard-title"><i class="fas fa-chart-pie"></i> Dashboard Progress Rapat Ini</div>
+            <div class="stats-grid">
+              <div class="stat-item"><span class="stat-label">Total Tugas</span><div class="stat-value">${totalTasks}</div></div>
+              <div class="stat-item"><span class="stat-label">Rata-rata Progress</span><div class="stat-value">${Math.round(overallAvg)}%</div></div>
+              <div class="stat-item"><span class="stat-label">Selesai</span><div class="stat-value" style="color:#14633b;">${taskCountByStatus.selesai || 0}</div></div>
+              <div class="stat-item"><span class="stat-label">Berlangsung</span><div class="stat-value" style="color:#9e5e04;">${taskCountByStatus.berlangsung || 0}</div></div>
+              <div class="stat-item"><span class="stat-label">Rencana</span><div class="stat-value" style="color:#0a5585;">${taskCountByStatus.rencana || 0}</div></div>
+              <div class="stat-item"><span class="stat-label">Kendala</span><div class="stat-value" style="color:#b13e2d;">${taskCountByStatus.kendala || 0}</div></div>
+            </div>
+            <div class="progress-section-list">
+        `;
+        sectionProgress.forEach(sp => {
+          html += `
+            <div class="section-progress-item">
+              <span class="section-progress-name">${escapeHtml(sp.name)}</span>
+              <div class="section-progress-bar"><div class="section-progress-fill" style="width: ${sp.progress}%;"></div></div>
+              <span class="section-progress-percent">${Math.round(sp.progress)}%</span>
+            </div>
+          `;
+        });
+        html += `
+            </div>
+            <div class="filter-row">
+              <span class="filter-label"><i class="fas fa-filter"></i> Tampilkan seksi:</span>
+              <select id="sectionFilterSelect" class="section-filter-select">
+                <option value="ALL">Semua Seksi</option>
+        `;
+        sections.forEach(sec => {
+          html += `<option value="${sec.id}" ${selectedSectionFilter === sec.id ? 'selected' : ''}>${escapeHtml(sec.name)}</option>`;
+        });
+        html += `
+              </select>
+              <button class="reset-filter" id="resetFilterBtn">Reset</button>
+            </div>
+          </div>
+        `;
+        return html;
+      }
+
+      function renderFilteredSections(meeting) {
+        if (!meeting.sections) return '';
+        let sectionsToRender = meeting.sections;
+        if (selectedSectionFilter !== 'ALL') {
+          sectionsToRender = meeting.sections.filter(s => s.id === selectedSectionFilter);
+        }
+        if (sectionsToRender.length === 0) return '<p>Tidak ada seksi.</p>';
+
+        let html = '';
+        sectionsToRender.forEach(section => {
+          html += renderSectionCard(meeting.id, section);
+        });
+        return html;
+      }
+
+      function renderSectionCard(meetingId, section) {
+        const meeting = meetings.find(m => m.id === meetingId);
+        const canEditSec = canUserEditSection(meeting, section);
+        
+        // FIX HAK AKSES MENGHAPUS: Hanya Admin dan Pembuat Rapat
+        const canDeleteSec = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
+
+        let tasksHtml = '';
+        section.tasks?.forEach(task => {
+          const statusClass = `status-${task.status}`;
+          const progress = task.progress ?? 0;
+          const pic = task.pic || '—';
+          const deadline = task.deadline ? new Date(task.deadline) : null;
+          const deadlineStr = deadline ? deadline.toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+          tasksHtml += `
+            <div class="task-item">
+              <div class="task-row">
+                <div class="task-status"><span class="status-badge ${statusClass}">${translateStatus(task.status)}</span></div>
+                <div class="task-desc">${escapeHtml(task.desc)}</div>
+                <div class="task-pic"><i class="fas fa-user"></i> ${escapeHtml(pic)}</div>
+                <div class="progress-container">
+                  <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${progress}%;"></div></div>
+                  <span class="progress-percent">${progress}%</span>
+                </div>
+                ${deadline ? `<div class="task-deadline"><i class="fas fa-calendar-alt"></i> ${deadlineStr}</div>` : ''}
+                <div class="task-actions">
+                  <button id="edit-task-${task.id}" title="Edit" ${!canEditSec ? 'disabled class="disabled"' : ''}><i class="fas fa-pencil-alt"></i></button>
+                  <button id="del-task-${task.id}" title="Hapus" ${!canEditSec ? 'disabled class="disabled"' : ''}><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+              ${task.notes ? `<div style="font-size:0.8rem; color:#6a7f9b; margin-top:6px; margin-left:110px;"><i class="fas fa-comment"></i> ${escapeHtml(task.notes)}</div>` : ''}
+            </div>
+          `;
+        });
+
+        return `
+          <div class="section-card">
+            <div class="section-title">
+              <div>
+                 <h4>${escapeHtml(section.name)}</h4>
+                 ${section.assignedEmails 
+                    ? `<div style="font-size:0.75rem; color:#8ba0bb; margin-top:4px;"><i class="fas fa-lock"></i> Akses: ${escapeHtml(section.assignedEmails)}</div>` 
+                    : `<div style="font-size:0.75rem; color:#8ba0bb; margin-top:4px;"><i class="fas fa-globe"></i> Akses Terbuka</div>`}
+              </div>
+              <div class="section-actions">
+                <button id="edit-section-${section.id}" title="Edit seksi" ${!canEditSec ? 'disabled class="disabled"' : ''}><i class="fas fa-edit"></i></button>
+                <button id="del-section-${section.id}" title="Hapus seksi" ${!canDeleteSec ? 'disabled class="disabled"' : ''}><i class="fas fa-times-circle"></i></button>
+              </div>
+            </div>
+            <div class="task-list">
+              ${tasksHtml || '<div style="color:#9fb3cc; padding:8px;">Belum ada tugas</div>'}
+            </div>
+            <button class="add-task-btn ${!canEditSec ? 'disabled' : ''}" id="add-task-${section.id}" ${!canEditSec ? 'disabled' : ''}><i class="fas fa-plus-circle"></i> Tambah tugas</button>
+          </div>
+        `;
+      }
+
+      // ========== CRUD OPERATIONS ==========
+      async function saveMeeting(meetingData) {
+        try {
+          if (meetingData.id) {
+            await db.collection('meetings').doc(meetingData.id).set(meetingData, { merge: true });
+          } else {
+            const ref = await db.collection('meetings').add(meetingData);
+            currentMeetingId = ref.id;
+          }
+        } catch (error) {
+          alert('Gagal menyimpan rapat: ' + error.message);
+        }
+      }
+
+      async function deleteMeeting(meetingId) {
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (!meeting) return;
+        const isAdmin = userRole === 'admin';
+        const isCreator = meeting.createdBy === currentUser?.uid;
+        if (!isAdmin && !isCreator) {
+          alert('Anda tidak memiliki izin untuk menghapus rapat ini.');
+          return;
+        }
+        if (!confirm('Hapus rapat ini? Semua seksi dan tugas akan ikut terhapus.')) return;
+        try {
+          await db.collection('meetings').doc(meetingId).delete();
+          if (currentMeetingId === meetingId) currentMeetingId = null;
+        } catch (error) {
+          alert('Gagal menghapus rapat: ' + error.message);
+        }
+      }
+
+      async function saveSection(sectionData, meetingId) {
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (!meeting) return;
+        
+        let existingSection = null;
+        if (sectionData.id) existingSection = meeting.sections?.find(s => s.id === sectionData.id);
+        
+        const canEdit = existingSection ? canUserEditSection(meeting, existingSection) : canUserEditSection(meeting, null);
+        if (!canEdit) return alert('Akses ditolak');
+
+        if (!meeting.sections) meeting.sections = [];
+        
+        let isNew = false;
+        if (sectionData.id) {
+          const index = meeting.sections.findIndex(s => s.id === sectionData.id);
+          if (index !== -1) meeting.sections[index] = sectionData;
+        } else {
+          isNew = true;
+          sectionData.id = 'sec_' + Date.now() + '_' + Math.random().toString(36);
+          meeting.sections.push(sectionData);
+        }
+        try {
+          await db.collection('meetings').doc(meetingId).update({ sections: meeting.sections });
+          const actionMsg = isNew ? `menambahkan seksi baru` : `memperbarui seksi`;
+          await addLog(meetingId, `${actionMsg}: "${sectionData.name}"`);
+        } catch (error) {
+          alert('Gagal menyimpan seksi: ' + error.message);
+        }
+      }
+
+      async function deleteSection(sectionId) {
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+        const section = meeting.sections.find(s => s.id === sectionId);
+        if (!section) return;
+
+        // FIX HAK AKSES MENGHAPUS VALIDASI DI SINI JUGA
+        const isAdmin = userRole === 'admin';
+        const isCreator = meeting.createdBy === currentUser?.uid;
+        if (!isAdmin && !isCreator) {
+            return alert('Akses ditolak: Hanya Admin atau Pembuat Rapat yang berhak menghapus seksi.');
+        }
+
+        if (!confirm(`Hapus seksi "${section.name}"?`)) return;
+
+        meeting.sections = meeting.sections.filter(s => s.id !== sectionId);
+        try {
+          await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+          await addLog(currentMeetingId, `menghapus seksi: "${section.name}"`);
+        } catch (error) {
+          alert('Gagal menghapus seksi: ' + error.message);
+        }
+      }
+
+      async function saveTask(taskData, sectionId) {
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+        const section = meeting.sections.find(s => s.id === sectionId);
+        if (!section) return;
+        
+        if (!canUserEditSection(meeting, section)) return alert('Akses ditolak');
+        if (!section.tasks) section.tasks = [];
+        
+        let isNew = false;
+        if (taskData.id) {
+          const index = section.tasks.findIndex(t => t.id === taskData.id);
+          if (index !== -1) section.tasks[index] = taskData;
+        } else {
+          isNew = true;
+          taskData.id = 'task_' + Date.now() + '_' + Math.random().toString(36);
+          section.tasks.push(taskData);
+        }
+        
+        try {
+          await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+          const actionMsg = isNew ? `menambahkan tugas baru` : `memperbarui progress/tugas`;
+          await addLog(currentMeetingId, `${actionMsg}: "${taskData.desc}"`);
+        } catch (error) {
+          alert('Gagal menyimpan tugas: ' + error.message);
+        }
+      }
+
+      async function deleteTask(sectionId, taskId) {
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        if (!meeting) return;
+        const section = meeting.sections.find(s => s.id === sectionId);
+        if (!section) return;
+        
+        if (!canUserEditSection(meeting, section)) return alert('Akses ditolak');
+
+        const task = section.tasks.find(t => t.id === taskId);
+        if (!task) return;
+        if (!confirm('Hapus tugas ini?')) return;
+
+        section.tasks = section.tasks.filter(t => t.id !== taskId);
+        try {
+          await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+          await addLog(currentMeetingId, `menghapus tugas: "${task.desc}"`);
+        } catch (error) {
+          alert('Gagal menghapus tugas: ' + error.message);
+        }
+      }
+
+      // ========== MODAL HANDLING ==========
+      const meetingModal = document.getElementById('meetingModal');
+      const sectionModal = document.getElementById('sectionModal');
+      const taskModal = document.getElementById('taskModal');
+
+      function closeAllModals() { 
+        meetingModal.classList.remove('active');
+        sectionModal.classList.remove('active');
+        taskModal.classList.remove('active');
+      }
+
+      document.getElementById('newMeetingBtn').addEventListener('click', () => {
+        document.getElementById('modalMeetingTitle').innerText = 'Rapat baru';
+        document.getElementById('meetingNameInput').value = '';
+        document.getElementById('meetingDateInput').value = '';
+        document.getElementById('meetingInfoInput').value = '';
+        document.getElementById('meetingWorkspaceSelect').value = currentWorkspaceId || 'private';
+        delete document.getElementById('saveMeetingModal').dataset.editId;
+        meetingModal.classList.add('active');
+      });
+
+      document.getElementById('editMeetingBtn').addEventListener('click', () => {
+        if (!currentMeetingId) return;
+        const m = meetings.find(m => m.id === currentMeetingId);
+        if (!m) return;
+        if (userRole !== 'admin' && m.createdBy !== currentUser.uid) return alert('Akses ditolak');
+
+        document.getElementById('modalMeetingTitle').innerText = 'Edit rapat';
+        document.getElementById('meetingNameInput').value = m.title;
+        document.getElementById('meetingDateInput').value = m.date;
+        document.getElementById('meetingInfoInput').value = m.info || '';
+        document.getElementById('meetingWorkspaceSelect').value = m.workspaceId || 'private';
+        document.getElementById('saveMeetingModal').dataset.editId = m.id;
+        meetingModal.classList.add('active');
+      });
+
+      document.getElementById('deleteMeetingBtn').addEventListener('click', async () => {
+        if (!currentMeetingId) return;
+        await deleteMeeting(currentMeetingId);
+      });
+
+      document.getElementById('cancelMeetingModal').addEventListener('click', closeAllModals);
+
+      document.getElementById('saveMeetingModal').addEventListener('click', async () => {
+        const title = document.getElementById('meetingNameInput').value.trim();
+        const date = document.getElementById('meetingDateInput').value;
+        const info = document.getElementById('meetingInfoInput').value.trim();
+        const workspaceSelectVal = document.getElementById('meetingWorkspaceSelect').value;
+        const workspaceId = workspaceSelectVal === 'private' ? null : workspaceSelectVal;
+        if (!title || !date) return alert('Judul dan tanggal harus diisi');
+
+        const editId = document.getElementById('saveMeetingModal').dataset.editId;
+        if (editId) {
+          const existing = meetings.find(m => m.id === editId);
+          if (existing && userRole !== 'admin' && existing.createdBy !== currentUser.uid) {
+             return alert('Akses ditolak');
+          }
+        }
+
+        let sections = [];
+        if (!editId) {
+          let lastMeeting = null;
+          if (workspaceId !== null) {
+            lastMeeting = getLastMeetingInWorkspace(workspaceId);
+          } else {
+            lastMeeting = getLastPrivateMeeting();
+          }
+
+          if (lastMeeting && lastMeeting.sections) {
+            sections = lastMeeting.sections.map(section => ({
+              id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+              name: section.name,
+              assignedEmails: section.assignedEmails || '', // Salin Akses Email juga
+              tasks: section.tasks.map(task => ({
+                id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+                desc: task.desc,
+                status: task.status,
+                progress: task.progress,
+                pic: task.pic,
+                notes: task.notes,
+                deadline: task.deadline || ''
+              }))
+            }));
+          }
+        }
+
+        const meetingData = { title, date, info, workspaceId, createdBy: currentUser.uid, sections };
+        if (editId) {
+          meetingData.id = editId;
+          const existing = meetings.find(m => m.id === editId);
+          if (existing) meetingData.sections = existing.sections;
+        }
+        
+        await saveMeeting(meetingData);
+        closeAllModals();
+      });
+
+      function openSectionModal(sectionId) {
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        let sec = null;
+        if (sectionId) sec = meeting?.sections.find(s => s.id === sectionId);
+        
+        if (!canUserEditSection(meeting, sec)) return alert('Akses ditolak');
+
+        currentSectionId = sectionId;
+        const modalTitle = document.getElementById('modalSectionTitle');
+        const nameInput = document.getElementById('sectionNameInput');
+        const emailsInput = document.getElementById('sectionEmailsInput');
+        
+        if (sectionId && sec) {
+          nameInput.value = sec.name; 
+          emailsInput.value = sec.assignedEmails || '';
+          modalTitle.innerText = 'Edit seksi'; 
+        } else {
+          nameInput.value = '';
+          emailsInput.value = currentUser?.email || ''; // Default diisi oleh email si pembuat
+          modalTitle.innerText = 'Tambah seksi';
+        }
+        sectionModal.classList.add('active');
+      }
+
+      document.getElementById('cancelSectionModal').addEventListener('click', closeAllModals);
       
-      // Nonaktifkan tombol sementara
-      const deleteBtn = document.getElementById('deleteSelectedBtn');
-      if (deleteBtn) deleteBtn.disabled = true;
-      
-      let deletedCount = 0;
-      for (let cb of checkboxes) {
-        const itemId = cb.value;
-        const success = await deleteItem(itemId);
-        if (success) deletedCount++;
-      }
-      
-      if (deleteBtn) deleteBtn.disabled = false;
-      alert(`${deletedCount} item berhasil dihapus.`);
-      // Setelah hapus, render ulang (akan otomatis karena listener Firestore)
-      // Namun kita perlu memastikan checkbox selectAll tidak centang lagi
-      const selectAll = document.getElementById('selectAllCheckbox');
-      if (selectAll) selectAll.checked = false;
-      updateDeleteButtonVisibility();
-    }
+      document.getElementById('saveSectionModal').addEventListener('click', async () => {
+        if (!currentMeetingId) return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        
+        let sec = null;
+        if (currentSectionId) sec = meeting?.sections.find(s => s.id === currentSectionId);
+        if (!canUserEditSection(meeting, sec)) return alert('Akses ditolak');
 
-    // ==================== PEMINJAMAN (fungsi tetap) ====================
-    function renderBorrowForm() { const user=getCurrentUser(); if(!user) return '<div class="alert alert-warning">Login dulu</div>'; let options='<option value="">Pilih Barang</option>'; items.forEach(i=>options+=`<option value="${i.id}" data-max="${i.quantity}">${i.name} (stok ${i.quantity})</option>`); return `<div class="card"><div class="card-header bg-primary text-white">Form Peminjaman</div><div class="card-body"><div class="mb-3"><label>Nama Peminjam</label><input type="text" id="borrowerName" class="form-control" value="${user.name}" readonly></div><div class="mb-3"><label>Barang</label><select id="borrowItem" class="form-select">${options}</select></div><div class="mb-3"><label>Jumlah</label><input type="number" id="borrowQty" class="form-control" min="1"></div><div class="mb-3"><label>Tanggal Pinjam</label><input type="date" id="borrowDate" class="form-control" value="${new Date().toISOString().slice(0,10)}"></div><div class="mb-3"><label>Rencana Kembali</label><input type="date" id="returnDate" class="form-control"></div><div class="mb-3"><label>Keperluan</label><textarea id="purpose" class="form-control" rows="2"></textarea></div><button class="btn btn-primary" onclick="submitBorrow()">Ajukan Peminjaman</button></div></div>`; }
-    async function submitBorrow() { const user=getCurrentUser(); if(!user) return; const itemId=document.getElementById('borrowItem').value; if(!itemId) return alert('Pilih barang'); const item=items.find(i=>i.id===itemId); const qty=parseInt(document.getElementById('borrowQty').value); if(qty<=0||qty>item.quantity) return alert('Jumlah tidak valid'); const borrowDate=document.getElementById('borrowDate').value; const returnDate=document.getElementById('returnDate').value; if(!borrowDate||!returnDate) return alert('Isi tanggal'); const purpose=document.getElementById('purpose').value; await db.collection('borrow_requests').add({ itemId, itemName:item.name, borrowerId:user.id, borrowerName:user.name, quantity:qty, borrowDate, returnDate, purpose, status:'pending', createdAt:firebase.firestore.FieldValue.serverTimestamp() }); alert('Permintaan diajukan'); navigate('myBorrows'); }
-    function renderMyBorrows() { const user=getCurrentUser(); if(!user) return ''; const my=requests.filter(r=>r.borrowerId===user.id); if(!my.length) return '<h3>Peminjamanku</h3><p>Belum ada.</p>'; let html='<h3>Peminjamanku</h3><table class="table"><thead><tr><th>Barang</th><th>Jumlah</th><th>Tgl Pinjam</th><th>Tgl Kembali</th><th>Status</th></tr></thead><tbody>'; my.forEach(r=>{ html+=`<tr><td>${r.itemName}</td><td>${r.quantity}</td><td>${r.borrowDate}</td><td>${r.returnDate}</td><td class="${r.status==='approved'?'text-success':r.status==='rejected'?'text-danger':'text-warning'}">${r.status}</td></tr>`; }); html+='</tbody></table>'; return html; }
-    function renderBorrowRequests() { const pending=requests.filter(r=>r.status==='pending'); if(!pending.length) return '<h3>Permintaan Pending</h3><p>Tidak ada.</p>'; let html='<h3>Permintaan Pending</h3><table class="table"><thead><tr><th>Peminjam</th><th>Barang</th><th>Jumlah</th><th>Aksi</th></tr></thead><tbody>'; pending.forEach(r=>{ html+=`<tr><td>${r.borrowerName}</td><td>${r.itemName}</td><td>${r.quantity}</td><td><button class="btn btn-sm btn-success" onclick="approveRequest('${r.id}')">Setujui</button> <button class="btn btn-sm btn-danger" onclick="rejectRequest('${r.id}')">Tolak</button></td></tr>`; }); html+='</tbody></table>'; return html; }
-    async function approveRequest(id) { const req=requests.find(r=>r.id===id); if(!req) return; const item=items.find(i=>i.id===req.itemId); if(item.quantity<req.quantity){ alert('Stok tidak cukup'); return; } item.quantity-=req.quantity; await updateItem(item.id,{quantity:item.quantity}); await db.collection('borrow_requests').doc(id).update({status:'approved'}); alert('Disetujui'); }
-    async function rejectRequest(id) { await db.collection('borrow_requests').doc(id).update({status:'rejected'}); alert('Ditolak'); }
-    function renderHistory() { if(!requests.length) return '<h3>Riwayat</h3><p>Kosong</p>'; let html='<h3>Riwayat Peminjaman</h3><table class="table"><thead><tr><th>Peminjam</th><th>Barang</th><th>Jumlah</th><th>Status</th></tr></thead><tbody>'; requests.forEach(r=>{ html+=`<tr><td>${r.borrowerName}</td><td>${r.itemName}</td><td>${r.quantity}</td><td>${r.status}</td></tr>`; }); html+='</tbody></table>'; return html; }
-    function renderManageUsers() { const currentUser=getCurrentUser(); if(!currentUser||currentUser.role!=='admin') return '<div class="alert alert-danger">Akses ditolak</div>'; const users=getAllUsers(); let html=`<div class="d-flex justify-content-between"><h3>Kelola User</h3><button class="btn btn-primary" onclick="showAddUserModal()">Tambah User</button></div><table class="table"><thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Aksi</th></tr></thead><tbody>`; users.forEach(u=>{ html+=`<tr><td>${u.name} ${currentUser.id===u.id?'(Anda)':''}</td><td>${u.email}</td><td>${u.role}</td><td><button class="btn btn-sm btn-warning" onclick="editUser('${u.id}')">Edit</button> <button class="btn btn-sm btn-danger" onclick="deleteUser('${u.id}')" ${currentUser.id===u.id?'disabled':''}>Hapus</button></td></tr>`; }); html+='</tbody></table>'; return html; }
-    function showAddUserModal() { openUserModal(''); }
-    function editUser(id) { openUserModal(id); }
-    function openUserModal(id) { const user=id?getUserById(id):null; document.getElementById('editUserId').value=id||''; document.getElementById('userName').value=user?user.name:''; document.getElementById('userEmail').value=user?user.email:''; document.getElementById('userPassword').value=''; document.getElementById('userRole').value=user?user.role:'borrower'; if(!window.userModal) window.userModal=new bootstrap.Modal(document.getElementById('userModal')); window.userModal.show(); }
-    function saveUser() { const userId=document.getElementById('editUserId').value; const name=document.getElementById('userName').value.trim(); const email=document.getElementById('userEmail').value.trim(); const password=document.getElementById('userPassword').value; const role=document.getElementById('userRole').value; if(!name||!email) return alert('Nama dan email harus diisi'); const users=getAllUsers(); if(users.some(u=>u.email===email && u.id!==userId)) return alert('Email sudah terdaftar'); if(!userId){ if(!password||password.length<4) return alert('Password minimal 4 karakter'); addUser({name,email,password,role}); }else{ const update={name,email,role}; if(password&&password.length>=4) update.password=password; updateUserById(userId,update); if(getCurrentUser().id===userId) setCurrentUser({...getCurrentUser(), name, email, role}); } if(window.userModal) window.userModal.hide(); renderPage(); }
-    function deleteUser(id){ if(confirm('Hapus user?')) deleteUserById(id) && renderPage(); }
-    function showItemDetail(itemId) { const item=items.find(i=>i.id===itemId); if(item) displayItemDetailModal(item); else alert('Tidak ditemukan'); }
-    function displayItemDetailModal(item) { const modalBody=document.getElementById('itemDetailBody'); modalBody.innerHTML=`<div class="text-center mb-3">${item.image?`<img src="${item.image}" class="item-image">`:'<div class="alert alert-secondary">Tidak ada gambar</div>'}</div><p><strong>Nama:</strong> ${item.name}</p><p><strong>Type:</strong> ${item.type||'-'}</p><p><strong>Lama:</strong> ${item.lama||'-'}</p><p><strong>Baru:</strong> ${item.baru||'-'}</p><p><strong>Stok:</strong> ${item.quantity}</p><p><strong>Lokasi:</strong> ${item.location||'-'}</p><p><strong>Status:</strong> ${item.status||'Baik'}</p><p><strong>Catatan:</strong> ${item.notes||'-'}</p>`; new bootstrap.Modal(document.getElementById('itemDetailModal')).show(); }
+        const name = document.getElementById('sectionNameInput').value.trim();
+        const assignedEmails = document.getElementById('sectionEmailsInput').value.trim();
+        if (!name) return alert('Nama seksi harus diisi');
 
-    // ==================== INIT ====================
-    window.onload = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('item')) {
-        const itemId = urlParams.get('item');
-        const doc = await db.collection('items').doc(itemId).get();
-        if(doc.exists) displayItemDetailModal({id:doc.id,...doc.data()});
-        else document.getElementById('pageContent').innerHTML='<div class="alert alert-danger">Barang tidak ditemukan</div>';
-      } else {
-        if(getCurrentUser()) { startItemsListener(); startRequestsListener(); navigate('inventory'); }
-        else navigate('login');
+        const sectionData = { name, assignedEmails, tasks: [] };
+        if (currentSectionId) {
+          sectionData.id = currentSectionId;
+          const existing = meeting.sections.find(s => s.id === currentSectionId);
+          if (existing) sectionData.tasks = existing.tasks;
+        }
+        
+        await saveSection(sectionData, currentMeetingId);
+        closeAllModals();
+      });
+
+      function openTaskModal(sectionId, taskId) {
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const section = meeting?.sections.find(s => s.id === sectionId);
+        if (!canUserEditSection(meeting, section)) return alert('Akses ditolak');
+
+        currentSectionId = sectionId;
+        currentTaskId = taskId;
+        const task = taskId ? section?.tasks.find(t => t.id === taskId) : null;
+
+        document.getElementById('taskDescInput').value = task ? task.desc : '';
+        document.getElementById('taskStatusInput').value = task ? task.status : 'rencana';
+        document.getElementById('taskProgressInput').value = task ? (task.progress ?? 0) : 0;
+        document.getElementById('taskPicInput').value = task ? (task.pic || '') : '';
+        document.getElementById('taskDeadlineInput').value = task && task.deadline ? task.deadline.slice(0, 16) : '';
+        document.getElementById('taskNotesInput').value = task ? (task.notes || '') : '';
+        document.getElementById('modalTaskTitle').innerText = task ? 'Edit tugas' : 'Tugas baru';
+        document.getElementById('deleteTaskBtn').classList.toggle('hidden', !task);
+        taskModal.classList.add('active');
       }
-    };
+
+      document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
+      
+      document.getElementById('saveTaskModal').addEventListener('click', async () => {
+        if (!currentMeetingId || !currentSectionId) return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const section = meeting?.sections.find(s => s.id === currentSectionId);
+        if (!canUserEditSection(meeting, section)) return alert('Akses ditolak');
+
+        const desc = document.getElementById('taskDescInput').value.trim();
+        if (!desc) return alert('Deskripsi tugas harus diisi');
+        const status = document.getElementById('taskStatusInput').value;
+        const progress = parseInt(document.getElementById('taskProgressInput').value, 10) || 0;
+        const pic = document.getElementById('taskPicInput').value.trim();
+        const deadline = document.getElementById('taskDeadlineInput').value;
+        const notes = document.getElementById('taskNotesInput').value.trim();
+
+        const taskData = { desc, status, progress, pic, notes, deadline };
+        if (currentTaskId) taskData.id = currentTaskId;
+        
+        await saveTask(taskData, currentSectionId);
+        closeAllModals();
+      });
+
+      document.getElementById('deleteTaskBtn').addEventListener('click', async () => {
+        if (!currentMeetingId || !currentSectionId || !currentTaskId) return;
+        await deleteTask(currentSectionId, currentTaskId);
+        closeAllModals();
+      });
+
+      // ========== HAPUS TERPILIH ==========
+      function updateDeleteSelectedButton() {
+        const btn = document.getElementById('deleteSelectedBtn');
+        if (!btn) return;
+        btn.disabled = !(userRole === 'admin' && (selectedMeetingIds.size > 0 || selectedWorkspaceIds.size > 0));
+      }
+
+      async function deleteSelectedMeetings() {
+        if (userRole !== 'admin') return;
+        const total = selectedMeetingIds.size + selectedWorkspaceIds.size;
+        if (total === 0) return;
+        if (!confirm(`Hapus ${total} item terpilih? (Rapat dan grup akan dihapus beserta seluruh isinya)`)) return;
+
+        const promises = [];
+        selectedMeetingIds.forEach(id => {
+          promises.push(db.collection('meetings').doc(id).delete());
+        });
+        for (const wsId of selectedWorkspaceIds) {
+          const groupMeetings = meetings.filter(m => m.workspaceId === wsId);
+          for (const m of groupMeetings) {
+            promises.push(db.collection('meetings').doc(m.id).delete());
+          }
+          promises.push(db.collection('workspaces').doc(wsId).delete());
+        }
+
+        try {
+          await Promise.all(promises);
+          selectedMeetingIds.clear();
+          selectedWorkspaceIds.clear();
+          updateDeleteSelectedButton();
+          if (currentMeetingId && !meetings.find(m => m.id === currentMeetingId)) {
+            currentMeetingId = null;
+            renderDetail(null);
+          }
+          if (currentWorkspaceId && !workspaces.find(w => w.id === currentWorkspaceId)) {
+            currentWorkspaceId = null;
+            renderWorkspaceList();
+            document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:#778faa; margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.</div>';
+          }
+        } catch (error) {
+          alert('Gagal menghapus: ' + error.message);
+        }
+      }
+
+      document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedMeetings);
+      document.getElementById('resetDefaultDataBtn').addEventListener('click', resetDefaultData);
+
+      // ========== ROLE-BASED UI ==========
+      function updateButtonsByRole() {
+        const isAdmin = userRole === 'admin';
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const isCreator = meeting && meeting.createdBy === currentUser?.uid;
+
+        // Admin only buttons
+        const adminBtns = [
+          document.getElementById('deleteSelectedBtn'),
+          document.getElementById('newWorkspaceBtn'),
+          document.getElementById('resetDefaultDataBtn')
+        ].filter(Boolean);
+
+        adminBtns.forEach(btn => {
+          btn.disabled = !isAdmin;
+          btn.classList.toggle('disabled', !isAdmin);
+        });
+
+        // Meeting level edit buttons
+        const canEditMeeting = isAdmin || isCreator;
+        const meetingBtns = [
+          document.getElementById('editMeetingBtn'),
+          document.getElementById('deleteMeetingBtn')
+        ].filter(Boolean);
+
+        meetingBtns.forEach(btn => {
+          btn.disabled = !canEditMeeting;
+          btn.classList.toggle('disabled', !canEditMeeting);
+        });
+
+        const addSectionBtn = document.getElementById('addSectionBtn');
+        if (addSectionBtn) {
+            const canAdd = isAdmin || isCreator || isMeetingLatest(meeting);
+            addSectionBtn.disabled = !canAdd;
+            addSectionBtn.classList.toggle('disabled', !canAdd);
+        }
+      }
+
+      // ========== FUNGSI UTILITY ==========
+      function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+      function formatDate(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }); }
+      function translateStatus(st) { const map = { selesai:'Selesai', berlangsung:'Berlangsung', rencana:'Rencana', kendala:'Kendala' }; return map[st] || st; }
+
+      function updateExportButtons() {
+        const disabled = !currentMeetingId;
+        document.getElementById('exportExcelBtn').disabled = disabled;
+        document.getElementById('exportPdfBtn').disabled = disabled;
+        document.getElementById('printBtn').disabled = disabled;
+      }
+
+      function updateMeetingWorkspaceSelect() {
+        const select = document.getElementById('meetingWorkspaceSelect');
+        select.innerHTML = '<option value="private">Pribadi (hanya saya)</option>';
+        workspaces.forEach(w => {
+          select.innerHTML += `<option value="${w.id}">${escapeHtml(w.name)}</option>`;
+        });
+      }
+
+      // ========== EXPORT ==========
+      function getCurrentMeeting() { return meetings.find(m => m.id === currentMeetingId); }
+      function exportToExcel() {
+        const meeting = getCurrentMeeting();
+        if (!meeting) return;
+        const data = [];
+        data.push(['Seksi', 'Tugas', 'Status', 'Progress (%)', 'PIC', 'Deadline', 'Catatan']);
+        meeting.sections.forEach(section => {
+          section.tasks.forEach(task => {
+            const deadline = task.deadline ? new Date(task.deadline).toLocaleString('id-ID') : '';
+            data.push([section.name, task.desc, translateStatus(task.status), task.progress ?? 0, task.pic || '-', deadline, task.notes || '']);
+          });
+        });
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Progress');
+        XLSX.writeFile(wb, `notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
+      }
+      function exportToPDF() {
+        const meeting = getCurrentMeeting();
+        if (!meeting) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text(meeting.title, 14, 20);
+        doc.setFontSize(11);
+        doc.text(`Tanggal: ${formatDate(meeting.date)}`, 14, 28);
+        doc.text(`Informasi: ${meeting.info || '-'}`, 14, 35);
+        const tableData = [];
+        meeting.sections.forEach(section => {
+          section.tasks.forEach(task => {
+            const deadline = task.deadline ? new Date(task.deadline).toLocaleString('id-ID') : '';
+            tableData.push([section.name, task.desc, translateStatus(task.status), (task.progress ?? 0).toString(), task.pic || '-', deadline, task.notes || '']);
+          });
+        });
+        doc.autoTable({
+          head: [['Seksi', 'Tugas', 'Status', 'Prog(%)', 'PIC', 'Deadline', 'Catatan']],
+          body: tableData,
+          startY: 45,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [249, 115, 22] }
+        });
+        doc.save(`notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+      }
+      function printMeeting() { window.print(); }
+
+      document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+      document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
+      document.getElementById('printBtn').addEventListener('click', printMeeting);
+    })();
   </script>
 </body>
 </html>
