@@ -2905,7 +2905,7 @@ function switchWorkspace(wsId) {
       var niDash = document.getElementById('ni-dashboard');
       if (niDash) showSection('dashboard', niDash);
     }).catch(function(e) {
-      notify('Gagal memuat role workspace, menggunakan role default', 'info');
+      notify('Gagal memuat role workspace: ' + e.message + '. Menggunakan role default.', 'info');
       currentWsRole = currentProfile ? currentProfile.role : 'viewer';
       applyRoleUI();
       updateDropdowns();
