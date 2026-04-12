@@ -1,57 +1,27 @@
-const CACHE_NAME = 'notula-cache-v8';
-const urlsToCache = [
-    '/',
-    '/index.html',
-    '/manifest.json',
-    '/logo.jpg',
-    '/icon.jpg'
-];
+const CACHE_NAME = 'notula-cache-v7';
+const urlsToCache = ['/', '/index.html', '/icon.jpg', '/logo.jpg', '/manifest.json'];
 
-// Install Service Worker
 self.addEventListener('install', event => {
-    self.skipWaiting();
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('Opened cache');
-                return cache.addAll(urlsToCache);
-            })
-            .catch(err => {
-                console.log('Cache addAll failed:', err);
-            })
-    );
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+  );
 });
 
-// Activate Service Worker
 self.addEventListener('activate', event => {
-    event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cache => {
-                    if (cache !== CACHE_NAME) {
-                        return caches.delete(cache);
-                    }
-                })
-            );
-        }).then(() => {
-            return self.clients.claim();
-        })
-    );
+  event.waitUntil(
+    caches.keys().then(cacheNames => Promise.all(
+      cacheNames.map(cache => {
+        if (cache !== CACHE_NAME) return caches.delete(cache);
+      })
+    )).then(() => self.clients.claim())
+  );
 });
 
-// Fetch Event
 self.addEventListener('fetch', event => {
-    event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                if (response) {
-                    return response;
-                }
-                return fetch(event.request).catch(() => {
-                    if (event.request.mode === 'navigate') {
-                        return caches.match('/');
-                    }
-                });
-            })
-    );
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
+    }).catch(() => caches.match('/'))
+  );
 });

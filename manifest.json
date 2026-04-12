@@ -1,12 +1,11 @@
 {
   "name": "Notula - Manajemen Rapat",
   "short_name": "Notula",
-  "description": "Aplikasi Workspace, Grup, dan Template Otomatis Rapat",
+  "description": "Aplikasi Workspace, Grup, dan Template Otomatis Rapat.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#f97316",
-  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/logo.jpg",
@@ -20,7 +19,5 @@
       "type": "image/jpeg",
       "purpose": "any maskable"
     }
-  ],
-  "categories": ["productivity", "business"],
-  "lang": "id-ID"
+  ]
 }
