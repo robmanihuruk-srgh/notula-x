@@ -4,13 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
+  
+  <!-- PWA Meta Tags (Ditambahkan) -->
   <link rel="manifest" href="/manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Notula">
-<link rel="apple-touch-icon" href="/logo.jpg">
-<link rel="icon" type="image/jpeg" href="/logo.jpg">
+  <meta name="theme-color" content="#f97316">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Notula">
+  <link rel="apple-touch-icon" href="/logo.jpg">
+  <link rel="icon" type="image/jpeg" href="/logo.jpg">
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
@@ -21,6 +25,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  
   <style id="theme-style">
     :root {
       --color-primary: #f97316;
@@ -218,8 +223,78 @@
     .kendala-item { background: #fff5f0; padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; font-size: 0.9rem; border-left: 3px solid var(--color-primary); }
     .kendala-task { font-weight: 500; color: var(--color-secondary); }
     .kendala-meeting { font-size: 0.8rem; color: var(--color-text-light); margin-top: 4px; }
+    
+    /* ===== INSTALL BUTTON & iOS BANNER STYLES (DITAMBAHKAN) ===== */
+    .install-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 15px 25px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
+        display: none;
+        align-items: center;
+        gap: 10px;
+        z-index: 1000;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .install-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+    }
+    
+    .install-button:active {
+        transform: translateY(0);
+    }
+    
+    .install-button.show {
+        display: flex;
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(100px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .install-icon { width: 24px; height: 24px; }
+    
+    /* iOS Install Banner */
+    .ios-install-banner {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 20px;
+        text-align: center;
+        z-index: 1001;
+        display: none;
+        animation: fadeIn 0.3s;
+    }
+    
+    .ios-install-banner.show { display: block; }
+    .ios-install-banner p { margin: 10px 0; font-size: 14px; }
+    .ios-install-banner .close-banner {
+        background: #f97316;
+        border: none;
+        color: white;
+        padding: 8px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+    
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
     @media print {
-      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .btn-delete-meeting, .theme-switcher, .user-info, .log-card { display: none !important; }
+      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .btn-delete-meeting, .theme-switcher, .user-info, .log-card, .install-button, .ios-install-banner { display: none !important; }
       body, .main-panel, .content { background: white; overflow: visible; height: auto; }
       .content { padding: 0.5in; }
       .section-card { break-inside: avoid; border: 1px solid #ccc; }
@@ -244,10 +319,27 @@
       .task-status, .task-desc, .task-pic, .progress-container, .task-deadline, .task-actions { width: 100%; margin-left: 0; }
       .progress-container { min-width: 100%; }
       .global-stats { gap: 12px; padding: 12px; }
+      .install-button { bottom: 10px; right: 10px; padding: 12px 20px; font-size: 14px; }
     }
   </style>
 </head>
 <body>
+  <!-- ========== INSTALL BUTTON (DITAMBAHKAN) ========== -->
+  <button id="installButton" class="install-button" title="Install aplikasi Notula">
+    <svg class="install-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+    </svg>
+    Install App
+  </button>
+  
+  <!-- iOS Install Banner (DITAMBAHKAN) -->
+  <div id="iosBanner" class="ios-install-banner">
+    <p>📲 Untuk menginstall aplikasi ini di iPhone/iPad:</p>
+    <p>1. Tap tombol <strong>Share</strong> (<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:middle"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>) di Safari</p>
+    <p>2. Pilih <strong>"Add to Home Screen"</strong></p>
+    <button class="close-banner" onclick="closeIOSBanner()">Tutup</button>
+  </div>
+
   <div id="loginOverlay">
     <div class="login-card">
       <h2><img src="icon.jpg" alt="Logo" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);"> Notula</h2>
@@ -2079,6 +2171,76 @@
       document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
       document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
       document.getElementById('printBtn').addEventListener('click', printMeeting);
+
+      // ========== PWA INSTALL LOGIC (DITAMBAHKAN) ==========
+      let deferredPrompt;
+      const installButton = document.getElementById('installButton');
+      const iosBanner = document.getElementById('iosBanner');
+
+      function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      }
+
+      function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || 
+               navigator.standalone === true;
+      }
+
+      function closeIOSBanner() {
+        iosBanner.classList.remove('show');
+      }
+      window.closeIOSBanner = closeIOSBanner;
+
+      if (isIOS() && !isStandalone()) {
+        setTimeout(() => {
+          iosBanner.classList.add('show');
+        }, 3000);
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (!isIOS() && !isStandalone()) {
+          installButton.classList.add('show');
+        }
+      });
+
+      installButton.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User response to install prompt: ${outcome}`);
+          deferredPrompt = null;
+          installButton.classList.remove('show');
+        }
+      });
+
+      window.addEventListener('appinstalled', () => {
+        installButton.classList.remove('show');
+        console.log('PWA was installed');
+      });
+
+      if (!isIOS() && !isStandalone()) {
+        setTimeout(() => {
+          if (!installButton.classList.contains('show') && deferredPrompt) {
+            installButton.classList.add('show');
+          }
+        }, 5000);
+      }
+
+      // Service Worker Registration
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('ServiceWorker registration successful:', registration.scope);
+            })
+            .catch(err => {
+              console.log('ServiceWorker registration failed:', err);
+            });
+        });
+      }
+
     })();
   </script>
 </body>
