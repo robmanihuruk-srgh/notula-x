@@ -279,7 +279,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 .u-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 
 /* BOTTOM NAV */
-.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:100;padding:6px 0 8px;grid-template-columns:repeat(7,1fr);}
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:100;padding:6px 0 8px;grid-template-columns:repeat(6,1fr);}
 .bnav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;cursor:pointer;color:var(--text3);font-size:10px;font-weight:500;transition:color .15s;}
 .bnav-item.active{color:var(--accent);}
 .bnav-icon{font-size:17px;line-height:1;}
@@ -294,20 +294,6 @@ input[type=range]{flex:1;accent-color:var(--accent);}
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:10px;}
-/* MULTI-RAPAT: member avatars */
-.member-stack{display:flex;align-items:center;}.member-av{width:22px;height:22px;border-radius:50%;border:2px solid var(--bg2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;margin-left:-6px;flex-shrink:0;}.member-av:first-child{margin-left:0;}
-.member-av-lg{width:36px;height:36px;border-radius:50%;border:2px solid var(--bg3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
-.rapat-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px 3px 7px;border-radius:20px;border:1px solid rgba(45,212,191,0.3);background:rgba(45,212,191,0.08);color:var(--teal);white-space:nowrap;}
-.rapat-chip.is-creator{border-color:rgba(123,108,246,0.35);background:rgba(123,108,246,0.1);color:var(--accent2);}
-.invite-user-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:6px;background:var(--bg3);transition:background .15s;}
-.invite-user-row:hover{background:var(--bg4);}
-.invite-user-row.selected{border-color:var(--accent);background:rgba(91,138,240,0.1);}
-.invite-user-row .iu-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;cursor:pointer;}
-.invite-user-row.selected .iu-check{background:var(--accent);border-color:var(--accent);}
-.invite-user-row.selected .iu-check::after{content:'✓';color:#fff;font-size:10px;font-weight:700;}
-/* Discover banner */
-.discover-banner{background:rgba(91,138,240,0.08);border:1px solid rgba(91,138,240,0.2);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:12px;}
-
 
 /* RESPONSIVE */
 @media(max-width:1024px){
@@ -353,44 +339,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   .topbar{padding:10px 12px;}
 }
 </style>
-  
-<!-- Modal Undang Anggota ke Rapat -->
-<div class="modal-overlay" id="modal-invite">
-  <div class="modal" style="max-width:520px;">
-    <div class="modal-header">
-      <span class="modal-title">👥 Undang Anggota ke Rapat</span>
-      <button class="close-btn" onclick="closeModal('modal-invite')">×</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="mi-rapat-id" />
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">
-        Centang pengguna yang ingin Anda tambahkan ke rapat ini. Anggota yang sudah bergabung ditandai ✓.
-      </div>
-      <input class="form-input" id="mi-search" type="text" placeholder="🔍 Cari nama atau email..." oninput="filterInviteUsers(this.value)" style="margin-bottom:12px;" />
-      <div id="mi-user-list" style="max-height:300px;overflow-y:auto;"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-invite')">Batal</button>
-      <button class="btn btn-primary" onclick="saveInviteMembers()">Simpan Anggota</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Lihat Anggota Rapat (non-admin) -->
-<div class="modal-overlay" id="modal-members-view">
-  <div class="modal" style="max-width:440px;">
-    <div class="modal-header">
-      <span class="modal-title">👥 Anggota Rapat</span>
-      <button class="close-btn" onclick="closeModal('modal-members-view')">×</button>
-    </div>
-    <div class="modal-body">
-      <div id="mv-list"></div>
-      <div id="mv-leave-wrap" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Lupa Password -->
+  <!-- Modal Lupa Password -->
 <div class="modal-overlay" id="modal-forgot">
   <div class="modal" style="max-width:440px;">
     <div class="modal-header">
@@ -536,8 +485,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   <nav class="sidebar-nav">
     <div class="nav-section-label">Menu</div>
     <div class="nav-item active" id="ni-dashboard" onclick="showSection('dashboard',this)"><span class="nav-icon">⬡</span> Dashboard</div>
-    <div class="nav-item" id="ni-rapat" onclick="showSection('rapat',this)"><span class="nav-icon">📋</span> Rapat Saya <span class="nav-badge" id="nb-rapat">0</span></div>
-    <div class="nav-item" id="ni-discover" onclick="showSection('discover',this)"><span class="nav-icon">🔍</span> Temukan Rapat</div>
+    <div class="nav-item" id="ni-rapat" onclick="showSection('rapat',this)"><span class="nav-icon">📋</span> Daftar Rapat <span class="nav-badge" id="nb-rapat">0</span></div>
     <div class="nav-item" id="ni-progress" onclick="showSection('progress',this)"><span class="nav-icon">◎</span> Monitor Progress</div>
     <div class="nav-item" id="ni-todo" onclick="showSection('todo',this)"><span class="nav-icon">✓</span> To Do List <span class="nav-badge" id="nb-todo">0</span></div>
     <div class="nav-item" id="ni-kendala" onclick="showSection('kendala',this)"><span class="nav-icon">⚠</span> Kendala</div>
@@ -627,31 +575,14 @@ input[type=range]{flex:1;accent-color:var(--accent);}
           <div class="dtab" onclick="showDTab('todo',this)">To Do List</div>
           <div class="dtab" onclick="showDTab('progress',this)">Progress Seksi</div>
           <div class="dtab" onclick="showDTab('kendala-tab',this)">Kendala</div>
-          <div class="dtab" onclick="showDTab('members-tab',this)">👥 Anggota</div>
         </div>
         <div class="detail-body">
           <div class="tab-content active" id="dtab-agenda"></div>
           <div class="tab-content" id="dtab-todo"></div>
           <div class="tab-content" id="dtab-progress"></div>
           <div class="tab-content" id="dtab-kendala-tab"></div>
-          <div class="tab-content" id="dtab-members-tab"></div>
         </div>
       </div>
-    </div>
-
-    <!-- TEMUKAN RAPAT -->
-    <div class="section" id="section-discover">
-      <div class="section-header">
-        <div><div class="section-heading">Temukan Rapat</div><div class="section-sub">Rapat yang bisa Anda ikuti</div></div>
-      </div>
-      <div class="discover-banner">
-        <span style="font-size:24px;">🔍</span>
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text);">Bergabung ke Rapat</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px;">Di sini tampil semua rapat yang belum Anda ikuti. Admin/creator rapat dapat mengundang Anda secara langsung.</div>
-        </div>
-      </div>
-      <div class="meeting-list" id="discover-list"></div>
     </div>
 
     <!-- MONITOR PROGRESS -->
@@ -784,8 +715,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   <div class="bnav-item" id="bn-progress" onclick="showSection('progress',this)"><span class="bnav-icon">◎</span><span>Progress</span></div>
   <div class="bnav-item" id="bn-todo" onclick="showSection('todo',this)"><div class="bnav-wrap"><span class="bnav-icon">✓</span><span class="bnav-badge" id="bnb-todo">0</span></div><span>To Do</span></div>
   <div class="bnav-item" id="bn-kendala" onclick="showSection('kendala',this)"><span class="bnav-icon">⚠</span><span>Kendala</span></div>
-  <div class="bnav-item" id="bn-discover" onclick="showSection('discover',this)"><span class="bnav-icon">🔍</span><span>Temukan</span></div>
-  <div class="bnav-item" id="bn-users" onclick="showSection('users',this)"><span class="bnav-icon">👥</span><span>Users</span></div>
+  <div class="bnav-item" id="bn-users" id="bn-users" onclick="showSection('users',this)"><span class="bnav-icon">👥</span><span>Users</span></div>
 </nav>
 
 <!-- MODALS -->
@@ -984,13 +914,12 @@ var SEKSI_LIST = [
 var ROLE_LABELS = { admin:'Admin', notulen:'Notulen', seksi:'Seksi', viewer:'Viewer' };
 
 // ── STATE ──
-var currentUser     = null;
-var currentProfile  = null;
-var currentFilter   = 'all';
-var currentRapatId  = null;
-var todoFilter      = 'all';
-var unsubListeners  = [];
-var inviteSelection = {}; // uid -> true/false untuk modal invite
+var currentUser    = null;
+var currentProfile = null;
+var currentFilter  = 'all';
+var currentRapatId = null;
+var todoFilter     = 'all';
+var unsubListeners = [];
 
 // ── FIRESTORE LOCAL CACHE ──
 var localRapat      = [];
@@ -1108,41 +1037,6 @@ function showApp() {
   startListeners();
 }
 
-// ── HELPER: Rapat yang user bisa lihat ──
-function getVisibleRapat() {
-  if (!currentUser) return [];
-  // Semua role termasuk admin: hanya rapat yang uid-nya ada di members
-  // atau rapat yang dia buat sendiri (belum punya members field = data lama)
-  return localRapat.filter(function(r) {
-    if (r.members && r.members.length) {
-      return r.members.indexOf(currentUser.uid) >= 0;
-    }
-    return r.createdBy === currentUser.uid;
-  });
-}
-
-// ── HELPER: Rapat yang bisa di-discover (belum bergabung) ──
-function getDiscoverableRapat() {
-  if (!currentUser) return [];
-  var joined = getVisibleRapat().map(function(r){return r.id;});
-  return localRapat.filter(function(r) {
-    return joined.indexOf(r.id) < 0;
-  });
-}
-
-// ── HELPER: apakah user punya hak kelola rapat (creator, atau admin yang sudah join) ──
-function isRapatAdmin(r) {
-  if (!currentUser) return false;
-  // Creator selalu bisa kelola rapatnya sendiri
-  if (r.createdBy === currentUser.uid) return true;
-  // Admin global hanya bisa kelola rapat yang dia sudah ikuti (ada di members)
-  if (currentProfile && currentProfile.role === 'admin') {
-    var members = r.members || [];
-    return members.indexOf(currentUser.uid) >= 0;
-  }
-  return false;
-}
-
 function applyRoleUI() {
   function show(id, v) { var el = document.getElementById(id); if (el) el.style.display = v ? '' : 'none'; }
   var ni = document.getElementById('ni-users');
@@ -1157,9 +1051,6 @@ function applyRoleUI() {
   show('btn-export',      can('create_rapat'));
   var bnUsers = document.getElementById('bn-users');
   if (bnUsers) bnUsers.style.display = currentProfile.role === 'admin' ? '' : 'none';
-  // Discover nav always visible
-  var niDiscover = document.getElementById('ni-discover');
-  if (niDiscover) niDiscover.style.display = '';
 }
 
 // ── LOGIN / LOGOUT ──
@@ -1278,20 +1169,9 @@ function doChangePassword() {
 
 // ── REALTIME LISTENERS ──
 function startListeners() {
-  // ── RAPAT: where array-contains tidak bisa digabung orderBy tanpa composite index ──
-  // Solusi: query tanpa orderBy, sort client-side setelah data diterima
-  var rapatQuery = db.collection('rapat')
-    .where('members', 'array-contains', currentUser.uid);
-
   unsubListeners.push(
-    rapatQuery.onSnapshot(function(snap) {
+    db.collection('rapat').orderBy('tanggal', 'desc').onSnapshot(function(snap) {
       localRapat = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
-      // Sort client-side by tanggal descending
-      localRapat.sort(function(a, b) {
-        var ta = a.tanggal || '';
-        var tb = b.tanggal || '';
-        return tb < ta ? -1 : tb > ta ? 1 : 0;
-      });
       renderAll();
     }, function(e) { notify('Error rapat: ' + e.message, 'error'); })
   );
@@ -1384,7 +1264,6 @@ function statusBadge(s) {
 function renderAll() {
   updateStats();
   renderRapatList();
-  renderDiscoverList();
   renderProgressGlobal();
   renderGlobalTodo();
   renderKendalaGlobal();
@@ -1396,27 +1275,21 @@ function renderAll() {
 
 // ── STATS ──
 function updateStats() {
-  var visRapatSt = getVisibleRapat();
-  var visIds = visRapatSt.map(function(r){return r.id;});
-  var visTodo = localTodo.filter(function(t){ return !t.rapatId || visIds.indexOf(t.rapatId) >= 0; });
-  var visKendala = localKendala.filter(function(k){ return !k.rapatId || visIds.indexOf(k.rapatId) >= 0; });
-  document.getElementById('st-rapat').textContent     = visRapatSt.length;
-  document.getElementById('st-rapat-sub').textContent = visRapatSt.length ? formatTanggal(visRapatSt[0].tanggal) : '—';
-  var done = visTodo.filter(function(t) { return t.done; }).length;
+  document.getElementById('st-rapat').textContent     = localRapat.length;
+  document.getElementById('st-rapat-sub').textContent = localRapat.length ? formatTanggal(localRapat[0].tanggal) : '—';
+  var done = localTodo.filter(function(t) { return t.done; }).length;
   document.getElementById('st-done').textContent       = done;
-  document.getElementById('st-total-todo').textContent = visTodo.length;
-  document.getElementById('st-kendala').textContent    = visKendala.filter(function(k) { return k.status === 'aktif'; }).length;
+  document.getElementById('st-total-todo').textContent = localTodo.length;
+  document.getElementById('st-kendala').textContent    = localKendala.filter(function(k) { return k.status === 'aktif'; }).length;
   var pcts = SEKSI_LIST.map(function(s) { return (localProgress[s] && localProgress[s].pct) || 0; });
   var avg  = pcts.length ? Math.round(pcts.reduce(function(a, b) { return a + b; }, 0) / pcts.length) : 0;
   document.getElementById('st-avg').textContent = avg + '%';
 }
 
 function updateBadges() {
-  var visRapatBadge = getVisibleRapat().length;
-  var visIds = getVisibleRapat().map(function(r){return r.id;});
-  document.getElementById('nb-rapat').textContent   = visRapatBadge;
-  document.getElementById('bnb-rapat').textContent  = visRapatBadge;
-  var pending = localTodo.filter(function(t){ return !t.done && (!t.rapatId || visIds.indexOf(t.rapatId) >= 0); }).length;
+  document.getElementById('nb-rapat').textContent   = localRapat.length;
+  document.getElementById('bnb-rapat').textContent  = localRapat.length;
+  var pending = localTodo.filter(function(t) { return !t.done; }).length;
   document.getElementById('nb-todo').textContent    = pending;
   document.getElementById('bnb-todo').textContent   = pending;
 }
@@ -1425,11 +1298,10 @@ function updateBadges() {
 function renderDashboard() {
   // Recent rapat
   var rc = document.getElementById('db-rapat-list');
-  var visRapat = getVisibleRapat();
-  if (!visRapat.length) {
-    rc.innerHTML = '<div class="empty"><div class="empty-text">Belum ada rapat yang Anda ikuti</div></div>';
+  if (!localRapat.length) {
+    rc.innerHTML = '<div class="empty"><div class="empty-text">Belum ada rapat</div></div>';
   } else {
-    rc.innerHTML = visRapat.slice(0, 4).map(function(r) {
+    rc.innerHTML = localRapat.slice(0, 4).map(function(r) {
       return '<div class="upcoming-item" onclick="quickViewRapat(\'' + r.id + '\')">'
         + '<div class="u-dot" style="background:' + (r.status==='selesai'?'var(--green)':r.status==='berlangsung'?'var(--accent)':'var(--yellow)') + ';"></div>'
         + '<div style="flex:1;min-width:0;">'
@@ -1469,8 +1341,7 @@ function renderDashboard() {
 // ── RAPAT LIST ──
 function renderRapatList() {
   var cont = document.getElementById('rapat-list');
-  var visRapat = getVisibleRapat();
-  var list = currentFilter === 'all' ? visRapat : visRapat.filter(function(r) { return r.status === currentFilter; });
+  var list = currentFilter === 'all' ? localRapat : localRapat.filter(function(r) { return r.status === currentFilter; });
   if (!list.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Tidak ada rapat</div></div>'; return; }
   cont.innerHTML = list.map(function(r) {
     var todos   = localTodo.filter(function(t) { return t.rapatId === r.id; });
@@ -1494,31 +1365,6 @@ function renderRapatList() {
       + '<span class="tb-count">' + pending + '/' + total + ' to do</span>'
       + '</button>';
 
-    // Member avatars
-    var members = r.members || [];
-    var memberAvatars = '';
-    if (members.length) {
-      var memberColors = ['var(--accent)','var(--green)','var(--accent2)','var(--teal)','var(--orange)','var(--pink)'];
-      var shown = members.slice(0,4);
-      memberAvatars = '<div class="member-stack" style="margin-left:4px;">';
-      shown.forEach(function(uid, idx) {
-        var u = localUsers.filter(function(x){return x.uid===uid;})[0];
-        var lbl = u ? initials(u.nama||u.email) : '?';
-        memberAvatars += '<div class="member-av" style="background:' + memberColors[idx%memberColors.length] + ';" title="' + (u?u.nama||u.email:'') + '">' + lbl + '</div>';
-      });
-      if (members.length > 4) memberAvatars += '<div class="member-av" style="background:var(--bg4);color:var(--text2);">+' + (members.length-4) + '</div>';
-      memberAvatars += '</div>';
-    }
-    // Creator chip
-    var isCreator = currentUser && r.createdBy === currentUser.uid;
-    var creatorChip = isCreator ? '<span class="rapat-chip is-creator">👑 Creator</span>' : '';
-    // Invite button (creator or admin)
-    var inviteBtn = '';
-    if (isRapatAdmin(r)) {
-      inviteBtn = '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openInviteModal(\'' + r.id + '\')" title="Undang anggota">👥 Undang</button>';
-    } else if (members.length > 0) {
-      inviteBtn = '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openMembersView(\'' + r.id + '\')" title="Lihat anggota">👥 ' + members.length + '</button>';
-    }
     return '<div class="meeting-card' + sel + '" id="mc-' + r.id + '" onclick="viewRapat(\'' + r.id + '\')">'
       + '<div class="meeting-date-block"><div class="meeting-day">' + getDay(r.tanggal) + '</div><div class="meeting-month">' + getMonth(r.tanggal) + '</div></div>'
       + '<div class="meeting-info">'
@@ -1526,13 +1372,11 @@ function renderRapatList() {
       + '<div class="meeting-meta"><span>📅 ' + formatTanggal(r.tanggal) + '</span><span>⏱ ' + (r.waktu||'—') + '</span><span>📍 ' + (r.lokasi||'—') + '</span><span>📋 ' + agCount + ' agenda</span></div>'
       + '<div class="meeting-tags"><span class="tag ' + tagClass(r.status) + '">' + statusLabel(r.status) + '</span>'
       + (r.pimpinan ? '<span class="tag tag-teal">👤 ' + r.pimpinan + '</span>' : '')
-      + creatorChip
       + todoBadge
-      + memberAvatars
       + '</div></div>'
       + '<div class="meeting-actions">'
       + '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:' + pct + '%;background:' + pctColor(pct) + ';"></div></div>'
-      + '<div style="display:flex;gap:6px;margin-top:6px;">' + (editBtn||'') + inviteBtn + '</div>'
+      + (editBtn ? '<div style="display:flex;gap:6px;margin-top:6px;">' + editBtn + '</div>' : '')
       + '</div></div>';
   }).join('');
 }
@@ -1591,17 +1435,9 @@ function viewRapat(id) {
     + '<span class="detail-meta-item">👤 ' + (r.pimpinan||'—') + '</span>'
     + '<span class="detail-meta-item">✍ ' + (r.notulen||'—') + '</span>'
     + '<span class="tag ' + tagClass(r.status) + '" style="margin-left:auto;">' + statusLabel(r.status) + '</span>';
-  var actHtml = '';
-  if (can('edit_rapat')) actHtml += '<button class="btn btn-ghost btn-sm" onclick="editRapat(\'' + r.id + '\')">✏ Edit Rapat</button>';
-  if (isRapatAdmin(r)) {
-    actHtml += '<button class="btn btn-primary btn-sm" onclick="openInviteModal(\'' + r.id + '\')" style="margin-left:8px;">👥 Undang Anggota</button>';
-  }
-  // Leave button (non-creator members)
-  if (r.members && r.members.indexOf(currentUser.uid) >= 0 && r.createdBy !== currentUser.uid) {
-    actHtml += '<button class="btn btn-ghost btn-sm" onclick="leaveRapat(\'' + r.id + '\')" style="margin-left:8px;color:var(--red);">↩ Keluar dari Rapat</button>';
-  }
-  document.getElementById('dp-actions').innerHTML = actHtml;
-  renderAgendaTab(id); renderTodoTab(id); renderProgressTab(id); renderKendalaTab(id); renderMembersTab(id);
+  document.getElementById('dp-actions').innerHTML = can('edit_rapat')
+    ? '<button class="btn btn-ghost btn-sm" onclick="editRapat(\'' + r.id + '\')">✏ Edit Rapat</button>' : '';
+  renderAgendaTab(id); renderTodoTab(id); renderProgressTab(id); renderKendalaTab(id);
   dp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -1787,14 +1623,9 @@ function renderProgressGlobal() {
 function renderGlobalTodo() {
   var cont = document.getElementById('global-todo-list');
   if (!cont) return;
-  // Filter todo hanya dari rapat yang user bisa lihat
-  var visibleRapatIds = getVisibleRapat().map(function(r){return r.id;});
-  var allTodo = localTodo.filter(function(t){
-    return !t.rapatId || visibleRapatIds.indexOf(t.rapatId) >= 0;
-  });
-  var list = todoFilter === 'done' ? allTodo.filter(function(t){return t.done;})
-           : todoFilter === 'pending' ? allTodo.filter(function(t){return !t.done;})
-           : allTodo;
+  var list = todoFilter === 'done' ? localTodo.filter(function(t){return t.done;})
+           : todoFilter === 'pending' ? localTodo.filter(function(t){return !t.done;})
+           : localTodo;
   if (!list.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">Tidak ada tugas</div></div>'; return; }
   var bySeksi = {};
   list.forEach(function(t) { var k=t.seksi||'Umum'; if(!bySeksi[k]) bySeksi[k]=[]; bySeksi[k].push(t); });
@@ -1835,15 +1666,10 @@ function filterTodo(f, el) {
 function renderKendalaGlobal() {
   var cont = document.getElementById('kendala-global-list');
   if (!cont) return;
-  // Filter kendala hanya dari rapat yang user bisa lihat
-  var visibleRapatIds = getVisibleRapat().map(function(r){return r.id;});
-  var visibleKendala = localKendala.filter(function(k){
-    return !k.rapatId || visibleRapatIds.indexOf(k.rapatId) >= 0;
-  });
-  if (!visibleKendala.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">⚠</div><div class="empty-text">Tidak ada kendala</div></div>'; return; }
+  if (!localKendala.length) { cont.innerHTML = '<div class="empty"><div class="empty-icon">⚠</div><div class="empty-text">Tidak ada kendala</div></div>'; return; }
   var html = '';
-  var aktif  = visibleKendala.filter(function(k){return k.status==='aktif';});
-  var selesai = visibleKendala.filter(function(k){return k.status==='selesai';});
+  var aktif  = localKendala.filter(function(k){return k.status==='aktif';});
+  var selesai = localKendala.filter(function(k){return k.status==='selesai';});
   if (aktif.length) {
     html += '<div style="font-size:11px;font-weight:700;color:var(--red);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">Aktif (' + aktif.length + ')</div>';
     aktif.forEach(function(k,i) {
@@ -2103,7 +1929,7 @@ function updateDropdowns() {
   ['mt-rapat','mk-rapat'].forEach(function(id) {
     var el = document.getElementById(id); if (!el) return;
     while (el.options.length > 1) el.remove(1);
-    getVisibleRapat().forEach(function(r) {
+    localRapat.forEach(function(r) {
       var o = document.createElement('option');
       o.value = r.id;
       o.textContent = formatTanggal(r.tanggal) + ' — ' + r.nama.substring(0,28) + '...';
@@ -2122,7 +1948,7 @@ function globalSearch(q) {
   showSection('rapat', document.getElementById('ni-rapat'));
   if (!q) { renderRapatList(); return; }
   var cont = document.getElementById('rapat-list');
-  var matched = getVisibleRapat().filter(function(r) {
+  var matched = localRapat.filter(function(r) {
     return r.nama.toLowerCase().indexOf(q) >= 0
       || (r.catatan||'').toLowerCase().indexOf(q) >= 0
       || (r.pimpinan||'').toLowerCase().indexOf(q) >= 0
@@ -2193,15 +2019,8 @@ function saveRapat() {
   } else {
     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
     data.createdBy = currentUser.uid;
-    data.members   = [currentUser.uid]; // Creator otomatis jadi member
     db.collection('rapat').add(data)
-      .then(function(docRef) {
-        closeModal('modal-rapat');
-        notify('Rapat baru berhasil dibuat! Undang anggota dari tombol 👥', 'success');
-        logAktivitas('create_rapat', 'Membuat rapat baru: ' + data.nama, data.nama);
-        // Auto-view rapat baru
-        setTimeout(function() { viewRapat(docRef.id); showSection('rapat', document.getElementById('ni-rapat')); }, 400);
-      })
+      .then(function() { closeModal('modal-rapat'); notify('Rapat baru berhasil dibuat!', 'success'); })
       .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
   }
 }
@@ -2837,177 +2656,6 @@ function exportReportExcel(type) {
   XLSX.writeFile(wb, fileName);
   notify('File Excel (.xlsx) berhasil diunduh!', 'success');
 }
-
-
-// ══════════════════════════════════════════════════════
-// MULTI-RAPAT — New Functions
-// ══════════════════════════════════════════════════════
-
-// ── RENDER DISCOVER LIST ──
-function renderDiscoverList() {
-  var cont = document.getElementById('discover-list');
-  if (!cont) return;
-  var list = getDiscoverableRapat();
-  if (!list.length) {
-    cont.innerHTML = '<div class="empty"><div class="empty-icon">🎉</div><div class="empty-text">Anda sudah bergabung di semua rapat yang ada, atau belum ada rapat lain.</div></div>';
-    return;
-  }
-  cont.innerHTML = list.map(function(r) {
-    var creator = localUsers.filter(function(u){return u.uid===r.createdBy;})[0];
-    var members = r.members || [];
-    return '<div class="meeting-card">'      + '<div class="meeting-date-block"><div class="meeting-day">' + getDay(r.tanggal) + '</div><div class="meeting-month">' + getMonth(r.tanggal) + '</div></div>'      + '<div class="meeting-info">'      + '<div class="meeting-title">' + r.nama + '</div>'      + '<div class="meeting-meta"><span>📅 ' + formatTanggal(r.tanggal) + '</span><span>📍 ' + (r.lokasi||'—') + '</span><span>👤 Dibuat oleh: ' + (creator?creator.nama||creator.email:'—') + '</span></div>'      + '<div class="meeting-tags"><span class="tag ' + tagClass(r.status) + '">' + statusLabel(r.status) + '</span>'      + '<span class="tag tag-gray">' + members.length + ' anggota</span>'      + '</div></div>'      + '<div class="meeting-actions">'      + '<div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-align:right;">Belum bergabung</div>'      + '</div></div>';
-  }).join('');
-}
-
-// ── RENDER MEMBERS TAB ──
-function renderMembersTab(rid) {
-  var cont = document.getElementById('dtab-members-tab');
-  if (!cont) return;
-  var r = localRapat.filter(function(x){return x.id===rid;})[0];
-  if (!r) return;
-  var members = r.members || [];
-  var colors = ['var(--accent)','var(--green)','var(--accent2)','var(--teal)','var(--orange)','var(--pink)'];
-  var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
-    + '<div style="font-size:13px;font-weight:600;">' + members.length + ' Anggota</div>';
-  if (isRapatAdmin(r)) {
-    html += '<button class="btn btn-primary btn-sm" onclick="openInviteModal(\'' + rid + '\');">＋ Undang</button>';
-  }
-  html += '</div>';
-  if (!members.length) {
-    html += '<div class="empty"><div class="empty-text">Belum ada anggota. Undang dengan tombol di atas.</div></div>';
-    cont.innerHTML = html;
-    return;
-  }
-  members.forEach(function(uid, idx) {
-    var u = localUsers.filter(function(x){return x.uid===uid;})[0];
-    var nama  = u ? (u.nama || u.email) : uid;
-    var email = u ? (u.email || '') : '';
-    var role  = u ? (ROLE_LABELS[u.role]||u.role) : '';
-    var isCreator = r.createdBy === uid;
-    var isSelf = currentUser && uid === currentUser.uid;
-    html += '<div class="invite-user-row selected" style="cursor:default;">'      + '<div class="member-av-lg" style="background:' + colors[idx%colors.length] + ';">' + initials(nama) + '</div>'      + '<div style="flex:1;min-width:0;">'      + '<div style="font-size:13px;font-weight:600;">' + nama + (isCreator ? ' 👑' : '') + (isSelf ? ' (Saya)' : '') + '</div>'      + '<div style="font-size:11px;color:var(--text3);margin-top:2px;">' + email + (role ? ' · ' + role : '') + '</div>'      + '</div>';
-    // Remove member button (admin/creator only, can't remove self-creator)
-    if (isRapatAdmin(r) && !(isCreator && isSelf)) {
-      html += '<button class="btn btn-danger btn-sm" onclick="removeMemberFromRapat(\'' + rid + '\',\'' + uid + '\')" title="Hapus dari rapat">✕</button>';
-    }
-    html += '</div>';
-  });
-  cont.innerHTML = html;
-}
-
-// ── OPEN INVITE MODAL ──
-function openInviteModal(rid) {
-  inviteSelection = {};
-  var r = localRapat.filter(function(x){return x.id===rid;})[0];
-  if (!r) return;
-  document.getElementById('mi-rapat-id').value = rid;
-  document.getElementById('mi-search').value = '';
-  // Pre-select current members
-  var members = r.members || [];
-  members.forEach(function(uid){ inviteSelection[uid] = true; });
-  renderInviteUserList('');
-  openModal('modal-invite');
-}
-
-function renderInviteUserList(query) {
-  var cont = document.getElementById('mi-user-list');
-  var rid = document.getElementById('mi-rapat-id').value;
-  var r = localRapat.filter(function(x){return x.id===rid;})[0];
-  var members = r ? (r.members||[]) : [];
-  var colors = ['var(--accent)','var(--green)','var(--accent2)','var(--teal)','var(--orange)','var(--pink)'];
-  var filtered = localUsers.filter(function(u) {
-    var q = query.toLowerCase();
-    return !q || (u.nama||'').toLowerCase().indexOf(q)>=0 || (u.email||'').toLowerCase().indexOf(q)>=0;
-  });
-  if (!filtered.length) { cont.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text3);font-size:13px;">Tidak ada pengguna ditemukan</div>'; return; }
-  cont.innerHTML = filtered.map(function(u, idx) {
-    var isAlready = inviteSelection[u.uid] ? ' selected' : '';
-    var isCreator = r && r.createdBy === u.uid;
-    return '<div class="invite-user-row' + isAlready + '" onclick="toggleInviteUser(\'' + u.uid + '\')" style="cursor:' + (isCreator?'default':'pointer') + ';">'      + '<div class="iu-check"></div>'      + '<div class="member-av-lg" style="background:' + colors[idx%colors.length] + ';width:32px;height:32px;font-size:11px;">' + initials(u.nama||u.email) + '</div>'      + '<div style="flex:1;min-width:0;">'      + '<div style="font-size:13px;font-weight:600;">' + (u.nama||u.email) + (isCreator?' 👑 Creator':'') + '</div>'      + '<div style="font-size:11px;color:var(--text3);">' + (u.email||'') + ' · ' + (ROLE_LABELS[u.role]||u.role||'') + '</div>'      + '</div></div>';
-  }).join('');
-}
-
-function filterInviteUsers(q) { renderInviteUserList(q); }
-
-function toggleInviteUser(uid) {
-  var r = localRapat.filter(function(x){return x.id===document.getElementById('mi-rapat-id').value;})[0];
-  // Cannot remove creator
-  if (r && r.createdBy === uid) return;
-  inviteSelection[uid] = !inviteSelection[uid];
-  renderInviteUserList(document.getElementById('mi-search').value);
-}
-
-function saveInviteMembers() {
-  var rid = document.getElementById('mi-rapat-id').value;
-  var newMembers = Object.keys(inviteSelection).filter(function(uid){ return inviteSelection[uid]; });
-  if (!newMembers.length) { notify('Pilih minimal 1 anggota', 'error'); return; }
-  db.collection('rapat').doc(rid).update({ members: newMembers, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
-    .then(function() {
-      closeModal('modal-invite');
-      notify('Anggota rapat berhasil diperbarui!', 'success');
-      if (currentRapatId === rid) renderMembersTab(rid);
-      logAktivitas('invite_member', 'Memperbarui anggota rapat (' + newMembers.length + ' orang)', 'Rapat');
-    })
-    .catch(function(e){ notify('Gagal: ' + e.message, 'error'); });
-}
-
-// ── REMOVE MEMBER ──
-function removeMemberFromRapat(rid, uid) {
-  if (!confirm('Hapus anggota ini dari rapat?')) return;
-  var r = localRapat.filter(function(x){return x.id===rid;})[0];
-  if (!r) return;
-  var newM = (r.members||[]).filter(function(m){return m!==uid;});
-  db.collection('rapat').doc(rid).update({ members: newM, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
-    .then(function() { notify('Anggota dihapus dari rapat', 'success'); if (currentRapatId===rid) renderMembersTab(rid); })
-    .catch(function(e){ notify('Gagal: ' + e.message, 'error'); });
-}
-
-// ── LEAVE RAPAT ──
-function leaveRapat(rid) {
-  if (!confirm('Anda yakin ingin keluar dari rapat ini?')) return;
-  var r = localRapat.filter(function(x){return x.id===rid;})[0];
-  if (!r) return;
-  var newM = (r.members||[]).filter(function(m){return m!==currentUser.uid;});
-  db.collection('rapat').doc(rid).update({ members: newM, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
-    .then(function() {
-      notify('Anda keluar dari rapat', 'success');
-      currentRapatId = null;
-      document.getElementById('detail-panel').style.display = 'none';
-      renderRapatList();
-      renderDiscoverList();
-    })
-    .catch(function(e){ notify('Gagal: ' + e.message, 'error'); });
-}
-
-// ── OPEN MEMBERS VIEW (non-admin) ──
-function openMembersView(rid) {
-  var r = localRapat.filter(function(x){return x.id===rid;})[0];
-  if (!r) return;
-  var members = r.members || [];
-  var colors = ['var(--accent)','var(--green)','var(--accent2)','var(--teal)','var(--orange)','var(--pink)'];
-  var html = members.map(function(uid, idx) {
-    var u = localUsers.filter(function(x){return x.uid===uid;})[0];
-    var nama = u ? (u.nama||u.email) : uid;
-    var isCreator = r.createdBy === uid;
-    return '<div class="invite-user-row selected" style="cursor:default;">'      + '<div class="member-av-lg" style="background:' + colors[idx%colors.length] + ';">' + initials(nama) + '</div>'      + '<div style="flex:1;">'      + '<div style="font-size:13px;font-weight:600;">' + nama + (isCreator?' 👑':'') + '</div>'      + '<div style="font-size:11px;color:var(--text3);">' + (u?u.email:'') + '</div>'      + '</div></div>';
-  }).join('') || '<div style="color:var(--text3);font-size:13px;">Belum ada anggota</div>';
-  document.getElementById('mv-list').innerHTML = html;
-  // Show leave button if user is a member and not creator
-  var isMember = members.indexOf(currentUser.uid) >= 0;
-  var isCreator2 = r.createdBy === currentUser.uid;
-  document.getElementById('mv-leave-wrap').innerHTML = (isMember && !isCreator2)
-    ? '<button class="btn btn-danger" onclick="closeModal(\"modal-members-view\");leaveRapat(\'' + rid + '\')">↩ Keluar dari Rapat Ini</button>'
-    : '';
-  openModal('modal-members-view');
-}
-
-// ── DASHBOARD: Rapat count uses visible ──
-function updateStatsMulti() {
-  var vis = getVisibleRapat();
-  document.getElementById('st-rapat').textContent = vis.length;
-  document.getElementById('st-rapat-sub').textContent = vis.length ? formatTanggal(vis[0].tanggal) : '—';
-}
-
 
 // ── EVENT LISTENERS ──
 document.querySelectorAll('.modal-overlay').forEach(function(o) {
