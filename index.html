@@ -398,7 +398,6 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
-
 <body>
 
 <!-- LOADING SCREEN -->
@@ -647,6 +646,112 @@ input[type=range]{flex:1;accent-color:var(--accent);}
       <div class="section-header">
         <div><div class="section-heading">Laporan & Export</div><div class="section-sub">Generate laporan dalam berbagai format</div></div>
       </div>
+
+      <!-- FILTER: Laporan Lengkap -->
+      <div class="card card-pad" style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer;" onclick="toggleReportFilter('filter-lengkap')">
+          <div style="font-size:13px;font-weight:700;color:var(--accent);">📋 Filter Laporan Lengkap</div>
+          <span id="icon-filter-lengkap" style="font-size:12px;color:var(--text3);">▼</span>
+        </div>
+        <div id="filter-lengkap" style="display:none;">
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">Tanggal Dari</label>
+              <input type="date" id="rf-lengkap-dari" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;" onchange="reportFilter.lengkap.tanggalDari=this.value">
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">Tanggal Sampai</label>
+              <input type="date" id="rf-lengkap-sampai" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;" onchange="reportFilter.lengkap.tanggalSampai=this.value">
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="reportFilter.lengkap.tanggalDari='';reportFilter.lengkap.tanggalSampai='';document.getElementById('rf-lengkap-dari').value='';document.getElementById('rf-lengkap-sampai').value='';" style="white-space:nowrap;">✕ Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER: Laporan Pengguna -->
+      <div class="card card-pad" style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer;" onclick="toggleReportFilter('filter-pengguna')">
+          <div style="font-size:13px;font-weight:700;color:var(--accent);">👥 Filter Laporan Pengguna</div>
+          <span id="icon-filter-pengguna" style="font-size:12px;color:var(--text3);">▼</span>
+        </div>
+        <div id="filter-pengguna" style="display:none;">
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+            <div style="flex:1;min-width:180px;">
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">Seksi</label>
+              <select id="rf-pengguna-seksi" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;" onchange="reportFilter.pengguna.seksi=this.value">
+                <option value="">— Semua Seksi —</option>
+                <option>Seksi Acara</option><option>Koordinator Lomba</option><option>Seksi Perlengkapan</option>
+                <option>Seksi Konsumsi</option><option>Seksi Humas</option><option>Seksi Keamanan</option>
+                <option>Seksi Kesehatan</option><option>Seksi Dana</option><option>Bendahara</option><option>Sekretariat</option>
+              </select>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="reportFilter.pengguna.seksi='';document.getElementById('rf-pengguna-seksi').value='';" style="white-space:nowrap;">✕ Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER: Laporan Progress -->
+      <div class="card card-pad" style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer;" onclick="toggleReportFilter('filter-progress')">
+          <div style="font-size:13px;font-weight:700;color:var(--accent);">◎ Filter Laporan Progress</div>
+          <span id="icon-filter-progress" style="font-size:12px;color:var(--text3);">▼</span>
+        </div>
+        <div id="filter-progress" style="display:none;">
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+            <div style="flex:1;min-width:180px;">
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">Status</label>
+              <select id="rf-progress-status" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;" onchange="reportFilter.progress.status=this.value">
+                <option value="">— Semua Status —</option>
+                <option value="selesai">Selesai</option>
+                <option value="berlangsung">Berlangsung</option>
+                <option value="rencana">Rencana</option>
+                <option value="terkendala">Terkendala</option>
+              </select>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="reportFilter.progress.status='';document.getElementById('rf-progress-status').value='';" style="white-space:nowrap;">✕ Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER: Laporan To Do List -->
+      <div class="card card-pad" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer;" onclick="toggleReportFilter('filter-todo')">
+          <div style="font-size:13px;font-weight:700;color:var(--accent);">✓ Filter Laporan To Do List</div>
+          <span id="icon-filter-todo" style="font-size:12px;color:var(--text3);">▼</span>
+        </div>
+        <div id="filter-todo" style="display:none;">
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">Status</label>
+              <select id="rf-todo-status" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;" onchange="reportFilter.todo.status=this.value">
+                <option value="">— Semua Status —</option>
+                <option value="selesai">Selesai</option>
+                <option value="belum">Belum Selesai</option>
+              </select>
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">Seksi</label>
+              <select id="rf-todo-seksi" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;" onchange="reportFilter.todo.seksi=this.value">
+                <option value="">— Semua Seksi —</option>
+                <option>Seksi Acara</option><option>Koordinator Lomba</option><option>Seksi Perlengkapan</option>
+                <option>Seksi Konsumsi</option><option>Seksi Humas</option><option>Seksi Keamanan</option>
+                <option>Seksi Kesehatan</option><option>Seksi Dana</option><option>Bendahara</option><option>Sekretariat</option>
+              </select>
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">Prioritas</label>
+              <select id="rf-todo-prioritas" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;" onchange="reportFilter.todo.prioritas=this.value">
+                <option value="">— Semua Prioritas —</option>
+                <option value="tinggi">🔴 Tinggi</option>
+                <option value="sedang">🟡 Sedang</option>
+                <option value="rendah">🟢 Rendah</option>
+              </select>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="reportFilter.todo.status='';reportFilter.todo.seksi='';reportFilter.todo.prioritas='';document.getElementById('rf-todo-status').value='';document.getElementById('rf-todo-seksi').value='';document.getElementById('rf-todo-prioritas').value='';" style="white-space:nowrap;">✕ Reset</button>
+          </div>
+        </div>
+      </div>
+
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:24px;">
         <div class="card card-pad" style="cursor:pointer;" onclick="generateReport('lengkap')">
           <div style="font-size:28px;margin-bottom:10px;">📋</div>
@@ -920,6 +1025,14 @@ var currentProfile = null;
 var currentFilter  = 'all';
 var currentRapatId = null;
 var todoFilter     = 'all';
+
+// ── REPORT FILTERS ──
+var reportFilter = {
+  lengkap: { tanggalDari: '', tanggalSampai: '' },
+  pengguna: { seksi: '' },
+  progress: { status: '' },
+  todo:     { status: '', seksi: '', prioritas: '' }
+};
 var unsubListeners = [];
 
 // ── FIRESTORE LOCAL CACHE ──
@@ -2386,6 +2499,7 @@ function buildReportHTML(type) {
     + '.rpt-hdr{text-align:center;border-bottom:2px solid #2563eb;padding-bottom:14px;margin-bottom:20px;}'
     + '.rpt-hdr h1{font-size:20px;color:#2563eb;margin:0 0 4px;}'
     + '.rpt-hdr p{font-size:12px;color:#555;margin:0;}'
+    + '.rpt-filter{background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px 12px;font-size:11px;color:#1e40af;margin-bottom:16px;}'
     + '.rpt-sec{margin-bottom:28px;}'
     + '.rpt-sec-ttl{font-size:14px;font-weight:700;color:#2563eb;border-bottom:1px solid #93c5fd;padding-bottom:5px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}'
     + '.rpt table{width:100%;border-collapse:collapse;font-size:12px;}'
@@ -2401,18 +2515,40 @@ function buildReportHTML(type) {
     + '.pct-fill{height:100%;border-radius:4px;}'
     + '.rpt-footer{text-align:center;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:10px;margin-top:24px;}'
     + '</style>';
-  var html = css + '<div class="rpt"><div class="rpt-hdr"><h1>NOTULA — Sistem Monitor Rapat</h1><h2 style="font-size:15px;margin:4px 0 2px;font-weight:600;">' + (titles[type]||type) + '</h2><p>Dicetak: ' + now + '</p></div>';
+
+  // Build filter summary labels
+  var filterLabels = [];
+  if (type === 'lengkap') {
+    if (reportFilter.lengkap.tanggalDari) filterLabels.push('Dari: ' + fmtDate(reportFilter.lengkap.tanggalDari));
+    if (reportFilter.lengkap.tanggalSampai) filterLabels.push('Sampai: ' + fmtDate(reportFilter.lengkap.tanggalSampai));
+  }
+  if (type === 'pengguna' && reportFilter.pengguna.seksi) filterLabels.push('Seksi: ' + reportFilter.pengguna.seksi);
+  if (type === 'progress' && reportFilter.progress.status) filterLabels.push('Status: ' + statusStr(reportFilter.progress.status));
+  if (type === 'todo') {
+    if (reportFilter.todo.status) filterLabels.push('Status: ' + (reportFilter.todo.status === 'selesai' ? 'Selesai' : 'Belum Selesai'));
+    if (reportFilter.todo.seksi) filterLabels.push('Seksi: ' + reportFilter.todo.seksi);
+    if (reportFilter.todo.prioritas) filterLabels.push('Prioritas: ' + reportFilter.todo.prioritas.charAt(0).toUpperCase() + reportFilter.todo.prioritas.slice(1));
+  }
+  var filterInfo = filterLabels.length ? '<div class="rpt-filter">🔍 Filter aktif: ' + filterLabels.join(' &nbsp;|&nbsp; ') + '</div>' : '';
+
+  var html = css + '<div class="rpt"><div class="rpt-hdr"><h1>NOTULA — Sistem Monitor Rapat</h1><h2 style="font-size:15px;margin:4px 0 2px;font-weight:600;">' + (titles[type]||type) + '</h2><p>Dicetak: ' + now + '</p></div>' + filterInfo;
 
   // RAPAT section
   if (type === 'lengkap') {
-    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Rapat (' + localRapat.length + ')</div><table><thead><tr><th>#</th><th>Nama Rapat</th><th>Tanggal</th><th>Lokasi</th><th>Pimpinan</th><th>Notulen</th><th>Peserta</th><th>Status</th><th>Agenda</th></tr></thead><tbody>';
-    localRapat.forEach(function(r, i) {
+    // Apply tanggal filter
+    var filteredRapat = localRapat.filter(function(r) {
+      if (reportFilter.lengkap.tanggalDari && r.tanggal < reportFilter.lengkap.tanggalDari) return false;
+      if (reportFilter.lengkap.tanggalSampai && r.tanggal > reportFilter.lengkap.tanggalSampai) return false;
+      return true;
+    });
+    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Rapat (' + filteredRapat.length + ')</div><table><thead><tr><th>#</th><th>Nama Rapat</th><th>Tanggal</th><th>Lokasi</th><th>Pimpinan</th><th>Notulen</th><th>Peserta</th><th>Status</th><th>Agenda</th></tr></thead><tbody>';
+    filteredRapat.forEach(function(r, i) {
       var agCount = localAgenda.filter(function(a){return a.rapatId===r.id;}).length;
       html += '<tr><td>' + (i+1) + '</td><td><strong>' + (r.nama||'—') + '</strong>' + (r.catatan ? '<br><span style="color:#6b7280;font-size:11px;">' + r.catatan.substring(0,80) + '</span>' : '') + '</td><td style="white-space:nowrap;">' + fmtDate(r.tanggal) + '</td><td>' + (r.lokasi||'—') + '</td><td>' + (r.pimpinan||'—') + '</td><td>' + (r.notulen||'—') + '</td><td style="font-size:11px;color:#374151;">' + (r.peserta||'—') + '</td><td><span class="badge b-' + r.status + '">' + statusStr(r.status) + '</span></td><td style="text-align:center;">' + agCount + '</td></tr>';
     });
     html += '</tbody></table></div>';
-    // Agenda per rapat
-    localRapat.forEach(function(r) {
+    // Agenda per rapat (filtered)
+    filteredRapat.forEach(function(r) {
       var ags = localAgenda.filter(function(a){return a.rapatId===r.id;}).sort(function(a,b){return (a.no||0)-(b.no||0);});
       if (!ags.length) return;
       html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Agenda — ' + r.nama + ' (' + fmtDate(r.tanggal) + ')</div><table><thead><tr><th>#</th><th>Topik</th><th>Pembahasan</th><th>Seksi</th></tr></thead><tbody>';
@@ -2421,9 +2557,11 @@ function buildReportHTML(type) {
       });
       html += '</tbody></table></div>';
     });
-    // Kendala
-    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Kendala (' + localKendala.filter(function(k){return k.status==='aktif';}).length + ' aktif)</div><table><thead><tr><th>#</th><th>Deskripsi</th><th>Seksi</th><th>Prioritas</th><th>Rapat</th><th>Status</th><th>Solusi</th><th>Rencana Penyelesaian</th></tr></thead><tbody>';
-    localKendala.forEach(function(k, i) {
+    // Kendala (filtered by same rapatId set)
+    var filteredRapatIds = filteredRapat.map(function(r){return r.id;});
+    var filteredKendala = localKendala.filter(function(k){ return filteredRapatIds.indexOf(k.rapatId) >= 0; });
+    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Kendala (' + filteredKendala.filter(function(k){return k.status==='aktif';}).length + ' aktif)</div><table><thead><tr><th>#</th><th>Deskripsi</th><th>Seksi</th><th>Prioritas</th><th>Rapat</th><th>Status</th><th>Solusi</th><th>Rencana Penyelesaian</th></tr></thead><tbody>';
+    filteredKendala.forEach(function(k, i) {
       var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
       var priMapK = {tinggi:'<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🔴 Tinggi</span>',sedang:'<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Sedang</span>',rendah:'<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟢 Rendah</span>'};
       var priHTMLK = priMapK[k.prioritas] || '<span style="color:#9ca3af;font-size:11px;">—</span>';
@@ -2434,9 +2572,16 @@ function buildReportHTML(type) {
 
   // PROGRESS section
   if (type === 'lengkap' || type === 'progress') {
-    var avgPct = Math.round(SEKSI_LIST.map(function(s){return (localProgress[s]&&localProgress[s].pct)||0;}).reduce(function(a,b){return a+b;},0)/SEKSI_LIST.length);
+    var filteredSeksiProgress = SEKSI_LIST.filter(function(s) {
+      if (type === 'progress' && reportFilter.progress.status) {
+        var p = localProgress[s] || { status: 'rencana' };
+        return p.status === reportFilter.progress.status;
+      }
+      return true;
+    });
+    var avgPct = filteredSeksiProgress.length ? Math.round(filteredSeksiProgress.map(function(s){return (localProgress[s]&&localProgress[s].pct)||0;}).reduce(function(a,b){return a+b;},0)/filteredSeksiProgress.length) : 0;
     html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Monitor Progress Seksi (Rata-rata: ' + avgPct + '%)</div><table><thead><tr><th>Seksi</th><th>Status</th><th>Progress</th><th>Catatan</th></tr></thead><tbody>';
-    SEKSI_LIST.forEach(function(s) {
+    filteredSeksiProgress.forEach(function(s) {
       var p = localProgress[s] || { pct:0, status:'rencana', catatan:'' };
       var pct = p.pct || 0;
       var pColor = pct>=80?'#16a34a':pct>=50?'#2563eb':pct>=25?'#ca8a04':'#dc2626';
@@ -2447,10 +2592,19 @@ function buildReportHTML(type) {
 
   // TODO section
   if (type === 'lengkap' || type === 'todo') {
-    var doneCount = localTodo.filter(function(t){return t.done;}).length;
-    var pctTodo = localTodo.length ? Math.round(doneCount/localTodo.length*100) : 0;
-    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">To Do List (' + doneCount + '/' + localTodo.length + ' selesai — ' + pctTodo + '%)</div><table><thead><tr><th>#</th><th>Tugas</th><th>Seksi</th><th>Prioritas</th><th>Status</th><th>Deadline</th><th>Rapat</th></tr></thead><tbody>';
-    localTodo.forEach(function(t, i) {
+    var filteredTodo = localTodo.filter(function(t) {
+      if (type === 'todo') {
+        if (reportFilter.todo.status === 'selesai' && !t.done) return false;
+        if (reportFilter.todo.status === 'belum' && t.done) return false;
+        if (reportFilter.todo.seksi && t.seksi !== reportFilter.todo.seksi) return false;
+        if (reportFilter.todo.prioritas && t.prioritas !== reportFilter.todo.prioritas) return false;
+      }
+      return true;
+    });
+    var doneCount = filteredTodo.filter(function(t){return t.done;}).length;
+    var pctTodo = filteredTodo.length ? Math.round(doneCount/filteredTodo.length*100) : 0;
+    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">To Do List (' + doneCount + '/' + filteredTodo.length + ' selesai — ' + pctTodo + '%)</div><table><thead><tr><th>#</th><th>Tugas</th><th>Seksi</th><th>Prioritas</th><th>Status</th><th>Deadline</th><th>Rapat</th></tr></thead><tbody>';
+    filteredTodo.forEach(function(t, i) {
       var r = localRapat.filter(function(x){return x.id===t.rapatId;})[0];
       var priMap = {tinggi:'<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🔴 Tinggi</span>',sedang:'<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Sedang</span>',rendah:'<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟢 Rendah</span>'};
       var priHTML = priMap[t.prioritas] || '<span style="color:#9ca3af;font-size:11px;">—</span>';
@@ -2502,20 +2656,28 @@ function buildReportHTML(type) {
   }
 
   if (type === 'pengguna') {
-    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Pengguna Sistem (' + localUsers.length + ')</div><table><thead><tr><th>#</th><th>Nama</th><th>Email</th><th>Role</th><th>Seksi</th></tr></thead><tbody>';
-    localUsers.forEach(function(u, i) {
+    var filteredUsers = localUsers.filter(function(u) {
+      if (reportFilter.pengguna.seksi && u.seksi !== reportFilter.pengguna.seksi) return false;
+      return true;
+    });
+    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Pengguna Sistem (' + filteredUsers.length + ')</div><table><thead><tr><th>#</th><th>Nama</th><th>Email</th><th>Role</th><th>Seksi</th></tr></thead><tbody>';
+    filteredUsers.forEach(function(u, i) {
       html += '<tr><td>' + (i+1) + '</td><td><strong>' + (u.nama||'—') + '</strong></td><td>' + (u.email||'—') + '</td><td><span class="badge b-' + u.role + '">' + (ROLE_LABELS[u.role]||u.role) + '</span></td><td>' + (u.seksi||'—') + '</td></tr>';
     });
     html += '</tbody></table></div>';
+    var seksiScope = reportFilter.pengguna.seksi ? [reportFilter.pengguna.seksi] : SEKSI_LIST;
     html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Anggota per Seksi</div><table><thead><tr><th>Seksi</th><th>Pengguna Sistem</th><th>Anggota Tim</th></tr></thead><tbody>';
-    SEKSI_LIST.forEach(function(s) {
+    seksiScope.forEach(function(s) {
       var usrs = localUsers.filter(function(u){return u.seksi===s;}).map(function(u){return u.nama||u.email;}).join(', ') || '<em style="color:#9ca3af;">—</em>';
       var angg = localAnggota.filter(function(a){return a.jabatan&&a.jabatan.toLowerCase().indexOf(s.toLowerCase().replace('seksi ',''))>=0;}).map(function(a){return a.nama;}).join(', ') || '<em style="color:#9ca3af;">—</em>';
       html += '<tr><td><strong>' + s + '</strong></td><td>' + usrs + '</td><td>' + angg + '</td></tr>';
     });
     html += '</tbody></table></div>';
-    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Anggota Tim (' + localAnggota.length + ')</div><table><thead><tr><th>#</th><th>Nama</th><th>Jabatan / Seksi</th><th>Kontak</th></tr></thead><tbody>';
-    localAnggota.forEach(function(a, i) {
+    var filteredAnggota = reportFilter.pengguna.seksi
+      ? localAnggota.filter(function(a){ return a.jabatan && a.jabatan.toLowerCase().indexOf(reportFilter.pengguna.seksi.toLowerCase().replace('seksi ','')) >= 0; })
+      : localAnggota;
+    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Anggota Tim (' + filteredAnggota.length + ')</div><table><thead><tr><th>#</th><th>Nama</th><th>Jabatan / Seksi</th><th>Kontak</th></tr></thead><tbody>';
+    filteredAnggota.forEach(function(a, i) {
       html += '<tr><td>' + (i+1) + '</td><td><strong>' + (a.nama||'—') + '</strong></td><td>' + (a.jabatan||'—') + '</td><td>' + (a.kontak||'—') + '</td></tr>';
     });
     html += '</tbody></table></div>';
@@ -2525,98 +2687,27 @@ function buildReportHTML(type) {
   return html;
 }
 
+function toggleReportFilter(id) {
+  var el = document.getElementById(id);
+  var iconId = 'icon-' + id;
+  var icon = document.getElementById(iconId);
+  if (el.style.display === 'none' || el.style.display === '') {
+    el.style.display = 'block';
+    if (icon) icon.textContent = '▲';
+  } else {
+    el.style.display = 'none';
+    if (icon) icon.textContent = '▼';
+  }
+}
+
 function generateReport(type) {
   var labels = { lengkap:'📋 Preview Laporan Lengkap', pengguna:'👥 Preview Laporan Pengguna', progress:'◎ Preview Laporan Progress', todo:'✓ Preview Laporan To Do List', kendala:'⚠ Preview Laporan Kendala' };
   document.getElementById('report-preview-title').textContent = labels[type] || 'Preview';
   var body = document.getElementById('report-preview-body');
   body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);">Memuat preview...</div>';
   setTimeout(function() {
-    var filterHTML = '';
-    
-    // --- TAMBAHAN ANTARMUKA FILTER LAPORAN ---
-    if (type === 'lengkap') {
-       filterHTML = '<div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;"><label style="font-size: 13px; font-weight: bold; color: var(--text2);">Filter Tanggal Rapat:</label><input type="date" id="filter-lengkap-tanggal" onchange="applyReportFilter(\'lengkap\')" style="padding: 6px 12px; border-radius: 6px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); outline: none;"></div>';
-    } else if (type === 'pengguna') {
-       filterHTML = '<div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;"><label style="font-size: 13px; font-weight: bold; color: var(--text2);">Filter Seksi:</label><input type="text" id="filter-pengguna-seksi" placeholder="Ketik nama seksi..." oninput="applyReportFilter(\'pengguna\')" style="padding: 6px 12px; border-radius: 6px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); outline: none;"></div>';
-    } else if (type === 'progress') {
-       filterHTML = '<div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;"><label style="font-size: 13px; font-weight: bold; color: var(--text2);">Filter Status:</label><select id="filter-progress-status" onchange="applyReportFilter(\'progress\')" style="padding: 6px 12px; border-radius: 6px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); outline: none;"><option value="">Semua Status</option><option value="selesai">Selesai</option><option value="berjalan">Berjalan</option><option value="tertunda">Tertunda</option></select></div>';
-    } else if (type === 'todo') {
-       filterHTML = '<div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">' +
-         '<select id="filter-todo-status" onchange="applyReportFilter(\'todo\')" style="padding: 6px 12px; border-radius: 6px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); outline: none;"><option value="">Semua Status</option><option value="selesai">Selesai</option><option value="belum">Belum Selesai</option></select>' +
-         '<input type="text" id="filter-todo-seksi" placeholder="Ketik seksi..." oninput="applyReportFilter(\'todo\')" style="padding: 6px 12px; border-radius: 6px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); outline: none;">' +
-         '<select id="filter-todo-prioritas" onchange="applyReportFilter(\'todo\')" style="padding: 6px 12px; border-radius: 6px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); outline: none;"><option value="">Semua Prioritas</option><option value="tinggi">Tinggi</option><option value="sedang">Sedang</option><option value="rendah">Rendah</option></select>' +
-         '</div>';
-    }
-
-    // Bungkus laporan dengan ID khusus agar tabelnya mudah ditarget oleh filter JS
-    var reportContent = '<div id="generated-report-content" style="background:#fff;border-radius:8px;padding:24px;overflow-x:auto;">' + buildReportHTML(type) + '</div>';
-    body.innerHTML = filterHTML + reportContent;
+    body.innerHTML = '<div style="background:#fff;border-radius:8px;padding:24px;overflow-x:auto;">' + buildReportHTML(type) + '</div>';
   }, 100);
-}
-
-// --- LOGIKA PENYARINGAN FILTER (BARU) ---
-function applyReportFilter(type) {
-    var container = document.getElementById('generated-report-content');
-    if (!container) return;
-    var tables = container.getElementsByTagName('table');
-
-    if (type === 'lengkap') {
-        var filterDate = document.getElementById('filter-lengkap-tanggal').value; 
-        // Ubah format YYYY-MM-DD menjadi format tulisan (misal: 12 Juni 2024) sesuai dengan yang di HTML
-        var formattedDate = filterDate ? fmtDate(filterDate).toLowerCase() : "";
-        if(tables.length > 0) { // Filter Daftar Rapat (Tabel Pertama)
-            var trs = tables[0].getElementsByTagName('tr');
-            for (var i = 1; i < trs.length; i++) {
-                var td = trs[i].getElementsByTagName('td')[2]; // Kolom index 2 = Tanggal
-                if (td) trs[i].style.display = (formattedDate === "" || (td.textContent||td.innerText).toLowerCase().indexOf(formattedDate) > -1) ? "" : "none";
-            }
-        }
-    } else if (type === 'pengguna') {
-        var filterSeksi = document.getElementById('filter-pengguna-seksi').value.toLowerCase();
-        if(tables.length > 0) { // Filter Daftar Pengguna Sistem
-            var trs1 = tables[0].getElementsByTagName('tr');
-            for (var i = 1; i < trs1.length; i++) {
-                var td = trs1[i].getElementsByTagName('td')[4]; // Kolom index 4 = Seksi
-                if (td) trs1[i].style.display = (filterSeksi === "" || (td.textContent||td.innerText).toLowerCase().indexOf(filterSeksi) > -1) ? "" : "none";
-            }
-        }
-        if(tables.length > 2) { // Filter Daftar Anggota Tim
-            var trs2 = tables[2].getElementsByTagName('tr');
-            for (var i = 1; i < trs2.length; i++) {
-                var td = trs2[i].getElementsByTagName('td')[2]; // Kolom index 2 = Jabatan/Seksi
-                if (td) trs2[i].style.display = (filterSeksi === "" || (td.textContent||td.innerText).toLowerCase().indexOf(filterSeksi) > -1) ? "" : "none";
-            }
-        }
-    } else if (type === 'progress') {
-        var filterStatus = document.getElementById('filter-progress-status').value.toLowerCase();
-        if(tables.length > 0) {
-            var trs = tables[0].getElementsByTagName('tr');
-            for (var i = 1; i < trs.length; i++) {
-                var td = trs[i].getElementsByTagName('td')[1]; // Kolom index 1 = Status
-                if (td) trs[i].style.display = (filterStatus === "" || (td.textContent||td.innerText).toLowerCase().indexOf(filterStatus) > -1) ? "" : "none";
-            }
-        }
-    } else if (type === 'todo') {
-        var filterStatus = document.getElementById('filter-todo-status').value.toLowerCase();
-        var filterSeksi = document.getElementById('filter-todo-seksi').value.toLowerCase();
-        var filterPrio = document.getElementById('filter-todo-prioritas').value.toLowerCase();
-        if(tables.length > 0) {
-            var trs = tables[0].getElementsByTagName('tr');
-            for (var i = 1; i < trs.length; i++) {
-                var tdStatus = trs[i].getElementsByTagName('td')[4]; // Index 4 = Status
-                var tdSeksi = trs[i].getElementsByTagName('td')[2];  // Index 2 = Seksi
-                var tdPrio = trs[i].getElementsByTagName('td')[3];   // Index 3 = Prioritas
-                
-                if (tdStatus && tdSeksi && tdPrio) {
-                    var matchStatus = (filterStatus === "" || (tdStatus.textContent||tdStatus.innerText).toLowerCase().indexOf(filterStatus) > -1);
-                    var matchSeksi = (filterSeksi === "" || (tdSeksi.textContent||tdSeksi.innerText).toLowerCase().indexOf(filterSeksi) > -1);
-                    var matchPrio = (filterPrio === "" || (tdPrio.textContent||tdPrio.innerText).toLowerCase().indexOf(filterPrio) > -1);
-                    
-                    trs[i].style.display = (matchStatus && matchSeksi && matchPrio) ? "" : "none";
-                }
-            }
-        }
-    }
 }
 
 function printReport(type) {
@@ -2664,28 +2755,35 @@ function exportReportExcel(type) {
   }
 
   if (type === 'lengkap') {
+    // Apply tanggal filter
+    var filteredRapatXL = localRapat.filter(function(r) {
+      if (reportFilter.lengkap.tanggalDari && r.tanggal < reportFilter.lengkap.tanggalDari) return false;
+      if (reportFilter.lengkap.tanggalSampai && r.tanggal > reportFilter.lengkap.tanggalSampai) return false;
+      return true;
+    });
+    var filteredRapatIdsXL = filteredRapatXL.map(function(r){return r.id;});
     // Sheet 1: Daftar Rapat
-    var rapatRows = localRapat.map(function(r,i){
+    var rapatRows = filteredRapatXL.map(function(r,i){
       return [i+1, r.nama||'—', fmtDate(r.tanggal), r.lokasi||'—', r.pimpinan||'—', r.notulen||'—', r.peserta||'—', statusStr(r.status), localAgenda.filter(function(a){return a.rapatId===r.id;}).length];
     });
     XLSX.utils.book_append_sheet(wb, makeSheet('DAFTAR RAPAT — Dicetak: '+dateStr, ['No','Nama Rapat','Tanggal','Lokasi','Pimpinan','Notulen','Peserta','Status','Jml Agenda'], rapatRows), 'Daftar Rapat');
 
     // Sheet 2: Agenda
-    var agendaRows = localAgenda.map(function(a,i){
+    var agendaRows = localAgenda.filter(function(a){ return filteredRapatIdsXL.indexOf(a.rapatId) >= 0; }).map(function(a,i){
       var r = localRapat.filter(function(x){return x.id===a.rapatId;})[0];
       return [i+1, r?r.nama:'—', r?fmtDate(r.tanggal):'—', a.topik||'—', a.pembahasan||'—', a.seksi||'—', a.prioritas||'—'];
     });
     XLSX.utils.book_append_sheet(wb, makeSheet('AGENDA RAPAT — Dicetak: '+dateStr, ['No','Nama Rapat','Tanggal','Topik','Pembahasan','Seksi','Prioritas'], agendaRows), 'Agenda Rapat');
 
     // Sheet 3: To Do List (dengan Prioritas)
-    var todoRowsL = localTodo.map(function(t,i){
+    var todoRowsL = localTodo.filter(function(t){ return filteredRapatIdsXL.indexOf(t.rapatId) >= 0; }).map(function(t,i){
       var r = localRapat.filter(function(x){return x.id===t.rapatId;})[0];
       return [i+1, t.tugas||'—', t.seksi||'—', t.prioritas||'—', t.done?'Selesai':'Belum Selesai', t.deadline?fmtDate(t.deadline):'—', r?r.nama:'—'];
     });
     XLSX.utils.book_append_sheet(wb, makeSheet('TO DO LIST — Dicetak: '+dateStr, ['No','Tugas','Seksi','Prioritas','Status','Deadline','Rapat'], todoRowsL), 'To Do List');
 
     // Sheet 4: Kendala (dengan Prioritas, Solusi, Rencana Penyelesaian)
-    var kendalaRowsL = localKendala.map(function(k,i){
+    var kendalaRowsL = localKendala.filter(function(k){ return filteredRapatIdsXL.indexOf(k.rapatId) >= 0; }).map(function(k,i){
       var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
       return [i+1, k.desc||'—', k.seksi||'—', k.prioritas||'—', statusStr(k.status), r?r.nama:'—', k.solusi||'—', k.rencana||'—'];
     });
@@ -2700,7 +2798,14 @@ function exportReportExcel(type) {
   }
 
   if (type === 'progress') {
-    var progressRows2 = SEKSI_LIST.map(function(s){
+    var filteredSeksiXL = SEKSI_LIST.filter(function(s) {
+      if (reportFilter.progress.status) {
+        var p = localProgress[s] || { status: 'rencana' };
+        return p.status === reportFilter.progress.status;
+      }
+      return true;
+    });
+    var progressRows2 = filteredSeksiXL.map(function(s){
       var p = localProgress[s] || { pct:0, status:'rencana', catatan:'' };
       return [s, statusStr(p.status), (p.pct||0)+'%', p.catatan||'—'];
     });
@@ -2708,7 +2813,14 @@ function exportReportExcel(type) {
   }
 
   if (type === 'todo') {
-    var todoRows2 = localTodo.map(function(t,i){
+    var filteredTodoXL = localTodo.filter(function(t) {
+      if (reportFilter.todo.status === 'selesai' && !t.done) return false;
+      if (reportFilter.todo.status === 'belum' && t.done) return false;
+      if (reportFilter.todo.seksi && t.seksi !== reportFilter.todo.seksi) return false;
+      if (reportFilter.todo.prioritas && t.prioritas !== reportFilter.todo.prioritas) return false;
+      return true;
+    });
+    var todoRows2 = filteredTodoXL.map(function(t,i){
       var r = localRapat.filter(function(x){return x.id===t.rapatId;})[0];
       return [i+1, t.tugas||'—', t.seksi||'—', t.prioritas||'—', t.done?'Selesai':'Belum Selesai', t.deadline?fmtDate(t.deadline):'—', r?r.nama:'—'];
     });
@@ -2727,11 +2839,18 @@ function exportReportExcel(type) {
   }
 
   if (type === 'pengguna') {
-    var userRows = localUsers.map(function(u,i){
+    var filteredUsersXL = localUsers.filter(function(u) {
+      if (reportFilter.pengguna.seksi && u.seksi !== reportFilter.pengguna.seksi) return false;
+      return true;
+    });
+    var userRows = filteredUsersXL.map(function(u,i){
       return [i+1, u.nama||'—', u.email||'—', ROLE_LABELS[u.role]||u.role||'—', u.seksi||'—'];
     });
     XLSX.utils.book_append_sheet(wb, makeSheet('DAFTAR PENGGUNA SISTEM — Dicetak: '+dateStr, ['No','Nama','Email','Role','Seksi'], userRows), 'Pengguna');
-    var anggotaRows = localAnggota.map(function(a,i){
+    var filteredAnggotaXL = reportFilter.pengguna.seksi
+      ? localAnggota.filter(function(a){ return a.jabatan && a.jabatan.toLowerCase().indexOf(reportFilter.pengguna.seksi.toLowerCase().replace('seksi ','')) >= 0; })
+      : localAnggota;
+    var anggotaRows = filteredAnggotaXL.map(function(a,i){
       return [i+1, a.nama||'—', a.jabatan||'—', a.kontak||'—'];
     });
     XLSX.utils.book_append_sheet(wb, makeSheet('DAFTAR ANGGOTA TIM — Dicetak: '+dateStr, ['No','Nama','Jabatan / Seksi','Kontak'], anggotaRows), 'Anggota Tim');
@@ -2973,158 +3092,6 @@ document.addEventListener('keydown', function(e) {
     showInstallGuide();
   };
 })();
-<script>
-/**
- * KONFIGURASI PENTING (DIUBAH OLEH PENGGUNA)
- * Ubah angka-angka di bawah ini berdasarkan hasil Langkah 1 di atas.
- * JavaScript menghitung kolom dari 0: Kolom 1 = Index 0, Kolom 2 = Index 1, dst.
- */                    
-  
-var TODO_COLUMN_CONFIG = {
-  status: 4,    // GANTI JIKA 'STATUS' BUKAN KOLOM KE-5
-  seksi: 2,     // GANTI JIKA 'SEKSI' BUKAN KOLOM KE-3
-  prioritas: 5  // GANTI JIKA 'PRIORITAS' BUKAN KOLOM KE-6
-};
-
-/**
- * Fungsi ini menimpa fungsi generateReport bawaan untuk 
- * menyisipkan antarmuka filter di atas tabel.
- */
-var originalGenerateReport = window.generateReport; // Simpan fungsi asli jika perlu
-window.generateReport = function(type) {
-  var labels = { 
-    lengkap:'📋 Preview Laporan Lengkap', 
-    pengguna:'👥 Preview Laporan Pengguna', 
-    progress:'◎ Preview Laporan Progress', 
-    todo:'✓ Preview Laporan To Do List', 
-    kendala:'⚠ Preview Laporan Kendala' 
-  };
-  
-  document.getElementById('report-preview-title').textContent = labels[type] || 'Preview';
-  var body = document.getElementById('report-preview-body');
-  body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);">Memuat preview...</div>';
-  
-  setTimeout(function() {
-    var filterHTML = '';
-    
-    // Antarmuka Filter berdasarkan tipe laporan
-    if (type === 'lengkap') {
-       filterHTML = '<div class="filter-box" style="margin-bottom:15px; display:flex; gap:10px; align-items:center;"><label style="font-size:13px; font-weight:bold; color:var(--text2);">Filter Tanggal:</label><input type="date" id="filter-lengkap-tanggal" onchange="applyReportFilter(\'lengkap\')" style="padding:6px 12px; border-radius:6px; background:var(--bg3); color:var(--text); border:1px solid var(--border); outline:none;"></div>';
-    } else if (type === 'pengguna') {
-       filterHTML = '<div class="filter-box" style="margin-bottom:15px; display:flex; gap:10px; align-items:center;"><label style="font-size:13px; font-weight:bold; color:var(--text2);">Filter Seksi:</label><input type="text" id="filter-pengguna-seksi" placeholder="Cari seksi..." oninput="applyReportFilter(\'pengguna\')" style="padding:6px 12px; border-radius:6px; background:var(--bg3); color:var(--text); border:1px solid var(--border); outline:none;"></div>';
-    } else if (type === 'progress') {
-       filterHTML = '<div class="filter-box" style="margin-bottom:15px; display:flex; gap:10px; align-items:center;"><label style="font-size:13px; font-weight:bold; color:var(--text2);">Filter Status:</label><select id="filter-progress-status" onchange="applyReportFilter(\'progress\')" style="padding:6px 12px; border-radius:6px; background:var(--bg3); color:var(--text); border:1px solid var(--border); outline:none;"><option value="">Semua Status</option><option value="selesai">Selesai</option><option value="berjalan">Berjalan</option><option value="tertunda">Tertunda</option></select></div>';
-    } else if (type === 'todo') {
-       filterHTML = '<div class="filter-box" style="margin-bottom:15px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">' +
-         '<select id="filter-todo-status" onchange="applyReportFilter(\'todo\')" style="padding:6px 12px; border-radius:6px; background:var(--bg3); color:var(--text); border:1px solid var(--border);"><option value="">Semua Status</option><option value="selesai">Selesai</option><option value="belum">Belum Selesai</option></select>' +
-         '<input type="text" id="filter-todo-seksi" placeholder="Seksi..." oninput="applyReportFilter(\'todo\')" style="padding:6px 12px; border-radius:6px; background:var(--bg3); color:var(--text); border:1px solid var(--border);">' +
-         '<select id="filter-todo-prioritas" onchange="applyReportFilter(\'todo\')" style="padding:6px 12px; border-radius:6px; background:var(--bg3); color:var(--text); border:1px solid var(--border);"><option value="">Semua Prioritas</option><option value="tinggi">Tinggi</option><option value="sedang">Sedang</option><option value="rendah">Rendah</option></select>' +
-         '</div>';
-    }
-
-    // Bangun isi laporan menggunakan buildReportHTML asli milik aplikasi Anda
-    var reportContent = '<div id="generated-report-content" style="background:#fff;border-radius:8px;padding:24px;overflow-x:auto;">' + buildReportHTML(type) + '</div>';
-    body.innerHTML = filterHTML + reportContent;
-  }, 100);
-};
-
-/**
- * Fungsi Logika Filter Tabel
- */
-window.applyReportFilter = function(type) {
-    var container = document.getElementById('generated-report-content');
-    if (!container) return;
-    var tables = container.getElementsByTagName('table');
-    if(tables.length === 0) return;
-
-    if (type === 'lengkap') {
-        var filterDate = document.getElementById('filter-lengkap-tanggal').value; 
-        var formattedDate = filterDate ? fmtDate(filterDate).toLowerCase() : "";
-        var trs = tables[0].getElementsByTagName('tr');
-        for (var i = 1; i < trs.length; i++) {
-            var td = trs[i].getElementsByTagName('td')[2]; // Index 2 = Tanggal
-            if (td) trs[i].style.display = (formattedDate === "" || (td.textContent||td.innerText).toLowerCase().indexOf(formattedDate) > -1) ? "" : "none";
-        }
-    } else if (type === 'pengguna') {
-        var filterSeksi = document.getElementById('filter-pengguna-seksi').value.toLowerCase();
-        var trs = tables[0].getElementsByTagName('tr');
-        for (var i = 1; i < trs.length; i++) {
-            var td = trs[i].getElementsByTagName('td')[4]; // Index 4 = Seksi
-            if (td) trs[i].style.display = (filterSeksi === "" || (td.textContent||td.innerText).toLowerCase().indexOf(filterSeksi) > -1) ? "" : "none";
-        }
-    } else if (type === 'progress') {
-        var filterStatus = document.getElementById('filter-progress-status').value.toLowerCase();
-        var trs = tables[0].getElementsByTagName('tr');
-        for (var i = 1; i < trs.length; i++) {
-            var td = trs[i].getElementsByTagName('td')[1]; // Index 1 = Status
-            if (td) trs[i].style.display = (filterStatus === "" || (td.textContent||td.innerText).toLowerCase().indexOf(filterStatus) > -1) ? "" : "none";
-        }
-    } else if (type === 'todo') {
-        var fs = document.getElementById('filter-todo-status').value.toLowerCase();
-        var fx = document.getElementById('filter-todo-seksi').value.toLowerCase();
-        var fp = document.getElementById('filter-todo-prioritas').value.toLowerCase();
-        var trs = tables[0].getElementsByTagName('tr');
-        for (var i = 1; i < trs.length; i++) {
-            var tdS = trs[i].getElementsByTagName('td')[TODO_COLUMN_CONFIG.status]; 
-            var tdX = trs[i].getElementsByTagName('td')[TODO_COLUMN_CONFIG.seksi]; 
-            var tdP = trs[i].getElementsByTagName('td')[TODO_COLUMN_CONFIG.prioritas]; 
-            if (tdS && tdX && tdP) {
-                var mS = (fs === "" || (tdS.textContent||tdS.innerText).toLowerCase().indexOf(fs) > -1);
-                var mX = (fx === "" || (tdX.textContent||tdX.innerText).toLowerCase().indexOf(fx) > -1);
-                var mP = (fp === "" || (tdP.textContent||tdP.innerText).toLowerCase().indexOf(fp) > -1);
-                trs[i].style.display = (mS && mX && mP) ? "" : "none";
-            }
-        }
-    }
-};
-
-/**
- * Menimpa fungsi Print (PDF) agar menghormati Filter
- */
-window.printReport = function() {
-  var title = document.getElementById('report-preview-title').textContent;
-  var reportArea = document.getElementById('generated-report-content');
-  if (!reportArea) return alert("Belum ada laporan!");
-
-  var win = window.open('', '', 'height=700,width=900');
-  win.document.write('<html><head><title>' + title + '</title>');
-  // Gaya CSS khusus untuk menyembunyikan baris yang terfilter saat cetak
-  win.document.write('<style>table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ddd;padding:8px;text-align:left;} tr[style*="display: none"]{display:none !important;}</style>');
-  win.document.write('</head><body><h2>' + title + '</h2>');
-  win.document.write(reportArea.innerHTML);
-  win.document.write('</body></html>');
-  win.document.close();
-  setTimeout(function() { win.print(); }, 500);
-};
-
-/**
- * Menimpa fungsi Ekspor Excel agar menghormati Filter
- */
-window.exportExcel = function() {
-  var table = document.querySelector("#generated-report-content table");
-  if (!table) return alert("Data tidak ditemukan!");
-
-  var csv = [];
-  var rows = table.querySelectorAll("tr");
-  for (var i = 0; i < rows.length; i++) {
-    // KUNCI: Lewati baris yang disembunyikan filter
-    if (rows[i].style.display === 'none') continue; 
-    
-    var row = [], cols = rows[i].querySelectorAll("td, th");
-    for (var j = 0; j < cols.length; j++) {
-      row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"');
-    }
-    csv.push(row.join(","));
-  }
-
-  var csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csv.join("\n");
-  var link = document.createElement("a");
-  link.setAttribute("href", encodeURI(csvContent));
-  link.setAttribute("download", "Laporan_Terfilter.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
 </script>
 </body>
 </html>
