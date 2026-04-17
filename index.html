@@ -2973,7 +2973,19 @@ document.addEventListener('keydown', function(e) {
     showInstallGuide();
   };
 })();
-<script>
+<script>                                                                                                                                                                                                                                                
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 /**
  * Fungsi ini menimpa fungsi generateReport bawaan untuk 
  * menyisipkan antarmuka filter di atas tabel.
@@ -3097,7 +3109,6 @@ window.printReport = function() {
 window.exportExcel = function() {
   var table = document.querySelector("#generated-report-content table");
   if (!table) return alert("Data tidak ditemukan!");
-
   var csv = [];
   var rows = table.querySelectorAll("tr");
   for (var i = 0; i < rows.length; i++) {
