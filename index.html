@@ -752,7 +752,26 @@ input[type=range]{flex:1;accent-color:var(--accent);}
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:24px;">
+      <!-- FILTER: Laporan Kendala -->
+      <div class="card card-pad" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer;" onclick="toggleReportFilter('filter-kendala')">
+          <div style="font-size:13px;font-weight:700;color:var(--accent);">⚠ Filter Laporan Kendala</div>
+          <span id="icon-filter-kendala" style="font-size:12px;color:var(--text3);">▼</span>
+        </div>
+        <div id="filter-kendala" style="display:none;">
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+            <div style="flex:1;min-width:180px;">
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">Status</label>
+              <select id="rf-kendala-status" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;" onchange="reportFilter.kendala.status=this.value">
+                <option value="">— Semua Status —</option>
+                <option value="aktif">Aktif</option>
+                <option value="selesai">Selesai</option>
+              </select>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="reportFilter.kendala.status='';document.getElementById('rf-kendala-status').value='';" style="white-space:nowrap;">✕ Reset</button>
+          </div>
+        </div>
+      </div>
         <div class="card card-pad" style="cursor:pointer;" onclick="generateReport('lengkap')">
           <div style="font-size:28px;margin-bottom:10px;">📋</div>
           <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Laporan Lengkap</div>
@@ -1031,7 +1050,8 @@ var reportFilter = {
   lengkap: { tanggalDari: '', tanggalSampai: '' },
   pengguna: { seksi: '' },
   progress: { status: '' },
-  todo:     { status: '', seksi: '', prioritas: '' }
+  todo:     { status: '', seksi: '', prioritas: '' },
+  kendala:  { status: '' }
 };
 var unsubListeners = [];
 
@@ -2529,6 +2549,7 @@ function buildReportHTML(type) {
     if (reportFilter.todo.seksi) filterLabels.push('Seksi: ' + reportFilter.todo.seksi);
     if (reportFilter.todo.prioritas) filterLabels.push('Prioritas: ' + reportFilter.todo.prioritas.charAt(0).toUpperCase() + reportFilter.todo.prioritas.slice(1));
   }
+  if (type === 'kendala' && reportFilter.kendala.status) filterLabels.push('Status: ' + (reportFilter.kendala.status === 'aktif' ? 'Aktif' : 'Selesai'));
   var filterInfo = filterLabels.length ? '<div class="rpt-filter">🔍 Filter aktif: ' + filterLabels.join(' &nbsp;|&nbsp; ') + '</div>' : '';
 
   var html = css + '<div class="rpt"><div class="rpt-hdr"><h1>NOTULA — Sistem Monitor Rapat</h1><h2 style="font-size:15px;margin:4px 0 2px;font-weight:600;">' + (titles[type]||type) + '</h2><p>Dicetak: ' + now + '</p></div>' + filterInfo;
@@ -2618,41 +2639,50 @@ function buildReportHTML(type) {
   if (type === 'kendala') {
     var aktifK  = localKendala.filter(function(k){return k.status==='aktif';});
     var selesaiK= localKendala.filter(function(k){return k.status==='selesai';});
-    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Kendala Aktif (' + aktifK.length + ')</div>';
-    if (aktifK.length) {
-      html += '<table><thead><tr><th>#</th><th>Deskripsi Kendala</th><th>Seksi</th><th>Prioritas</th><th>Rapat Terkait</th><th>Status</th><th>Solusi</th><th>Rencana Penyelesaian</th></tr></thead><tbody>';
-      aktifK.forEach(function(k, i) {
-        var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
-        var priMapK2 = {tinggi:'<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🔴 Tinggi</span>',sedang:'<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Sedang</span>',rendah:'<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟢 Rendah</span>'};
-        html += '<tr><td>' + (i+1) + '</td><td>' + (k.desc||'—') + '</td><td>' + (k.seksi||'—') + '</td>'
-          + '<td>' + (priMapK2[k.prioritas]||'<span style="color:#9ca3af;">—</span>') + '</td>'
-          + '<td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,35)+'...':'—') + '</td>'
-          + '<td><span class="badge b-aktif">Aktif</span></td>'
-          + '<td style="font-size:11px;">' + (k.solusi||'<em style="color:#9ca3af;">—</em>') + '</td>'
-          + '<td style="font-size:11px;">' + (k.rencana||'<em style="color:#9ca3af;">—</em>') + '</td></tr>';
-      });
-      html += '</tbody></table>';
-    } else {
-      html += '<p style="color:#6b7280;font-size:13px;padding:10px 0;">Tidak ada kendala aktif.</p>';
+    var showAktif   = !reportFilter.kendala.status || reportFilter.kendala.status === 'aktif';
+    var showSelesai = !reportFilter.kendala.status || reportFilter.kendala.status === 'selesai';
+
+    if (showAktif) {
+      html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Kendala Aktif (' + aktifK.length + ')</div>';
+      if (aktifK.length) {
+        html += '<table><thead><tr><th>#</th><th>Deskripsi Kendala</th><th>Seksi</th><th>Prioritas</th><th>Rapat Terkait</th><th>Status</th><th>Solusi</th><th>Rencana Penyelesaian</th></tr></thead><tbody>';
+        aktifK.forEach(function(k, i) {
+          var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
+          var priMapK2 = {tinggi:'<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🔴 Tinggi</span>',sedang:'<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Sedang</span>',rendah:'<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟢 Rendah</span>'};
+          html += '<tr><td>' + (i+1) + '</td><td>' + (k.desc||'—') + '</td><td>' + (k.seksi||'—') + '</td>'
+            + '<td>' + (priMapK2[k.prioritas]||'<span style="color:#9ca3af;">—</span>') + '</td>'
+            + '<td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,35)+'...':'—') + '</td>'
+            + '<td><span class="badge b-aktif">Aktif</span></td>'
+            + '<td style="font-size:11px;">' + (k.solusi||'<em style="color:#9ca3af;">—</em>') + '</td>'
+            + '<td style="font-size:11px;">' + (k.rencana||'<em style="color:#9ca3af;">—</em>') + '</td></tr>';
+        });
+        html += '</tbody></table>';
+      } else {
+        html += '<p style="color:#6b7280;font-size:13px;padding:10px 0;">Tidak ada kendala aktif.</p>';
+      }
+      html += '</div>';
     }
-    html += '</div><div class="rpt-sec"><div class="rpt-sec-ttl">Kendala Terselesaikan (' + selesaiK.length + ')</div>';
-    if (selesaiK.length) {
-      html += '<table><thead><tr><th>#</th><th>Deskripsi Kendala</th><th>Seksi</th><th>Prioritas</th><th>Rapat Terkait</th><th>Status</th><th>Solusi</th><th>Rencana Penyelesaian</th></tr></thead><tbody>';
-      selesaiK.forEach(function(k, i) {
-        var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
-        var priMapK3 = {tinggi:'<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🔴 Tinggi</span>',sedang:'<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Sedang</span>',rendah:'<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟢 Rendah</span>'};
-        html += '<tr><td>' + (i+1) + '</td><td style="text-decoration:line-through;color:#9ca3af;">' + (k.desc||'—') + '</td><td>' + (k.seksi||'—') + '</td>'
-          + '<td>' + (priMapK3[k.prioritas]||'<span style="color:#9ca3af;">—</span>') + '</td>'
-          + '<td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,35)+'...':'—') + '</td>'
-          + '<td><span class="badge b-selesai">Selesai</span></td>'
-          + '<td style="font-size:11px;">' + (k.solusi||'<em style="color:#9ca3af;">—</em>') + '</td>'
-          + '<td style="font-size:11px;">' + (k.rencana||'<em style="color:#9ca3af;">—</em>') + '</td></tr>';
-      });
-      html += '</tbody></table>';
-    } else {
-      html += '<p style="color:#6b7280;font-size:13px;padding:10px 0;">Belum ada kendala yang terselesaikan.</p>';
+
+    if (showSelesai) {
+      html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Kendala Terselesaikan (' + selesaiK.length + ')</div>';
+      if (selesaiK.length) {
+        html += '<table><thead><tr><th>#</th><th>Deskripsi Kendala</th><th>Seksi</th><th>Prioritas</th><th>Rapat Terkait</th><th>Status</th><th>Solusi</th><th>Rencana Penyelesaian</th></tr></thead><tbody>';
+        selesaiK.forEach(function(k, i) {
+          var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
+          var priMapK3 = {tinggi:'<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🔴 Tinggi</span>',sedang:'<span style="background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Sedang</span>',rendah:'<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">🟢 Rendah</span>'};
+          html += '<tr><td>' + (i+1) + '</td><td style="text-decoration:line-through;color:#9ca3af;">' + (k.desc||'—') + '</td><td>' + (k.seksi||'—') + '</td>'
+            + '<td>' + (priMapK3[k.prioritas]||'<span style="color:#9ca3af;">—</span>') + '</td>'
+            + '<td style="font-size:11px;color:#6b7280;">' + (r?r.nama.substring(0,35)+'...':'—') + '</td>'
+            + '<td><span class="badge b-selesai">Selesai</span></td>'
+            + '<td style="font-size:11px;">' + (k.solusi||'<em style="color:#9ca3af;">—</em>') + '</td>'
+            + '<td style="font-size:11px;">' + (k.rencana||'<em style="color:#9ca3af;">—</em>') + '</td></tr>';
+        });
+        html += '</tbody></table>';
+      } else {
+        html += '<p style="color:#6b7280;font-size:13px;padding:10px 0;">Belum ada kendala yang terselesaikan.</p>';
+      }
+      html += '</div>';
     }
-    html += '</div>';
   }
 
   if (type === 'pengguna') {
@@ -2830,7 +2860,9 @@ function exportReportExcel(type) {
   if (type === 'kendala') {
     var aktifKE  = localKendala.filter(function(k){return k.status==='aktif';});
     var selesaiKE= localKendala.filter(function(k){return k.status==='selesai';});
-    var allKendala = aktifKE.concat(selesaiKE);
+    var allKendala = reportFilter.kendala.status === 'aktif' ? aktifKE
+                   : reportFilter.kendala.status === 'selesai' ? selesaiKE
+                   : aktifKE.concat(selesaiKE);
     var kendalaRows2 = allKendala.map(function(k,i){
       var r = localRapat.filter(function(x){return x.id===k.rapatId;})[0];
       return [i+1, k.desc||'—', k.seksi||'—', k.prioritas||'—', statusStr(k.status), r?r.nama:'—', k.solusi||'—', k.rencana||'—'];
