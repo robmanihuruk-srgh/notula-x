@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
-  <meta name="theme-color" content="#f97316">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Notula">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Notula App">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f97316">
 
-<link rel="manifest" id="manifest-link">
+<link rel="manifest" id="pwa-manifest">
 
 <link rel="apple-touch-icon" href="pic_ (2).jpg">
-  <link rel="icon" type="image/jpeg" href="pic_ (2).jpg">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2084,54 +2084,34 @@
       document.getElementById('printBtn').addEventListener('click', printMeeting);
     })();
   </script>
-  <script>
-  // 1. Membuat Web Manifest secara dinamis agar tidak perlu file .json terpisah
-  const myManifest = {
-    "short_name": "Notula",
+ <script>
+  // Konfigurasi Manifest
+  const manifestData = {
     "name": "Notula Workspace App",
-    "icons": [
-      {
-        "src": "pic_ (2).jpg",
-        "sizes": "192x192",
-        "type": "image/jpeg"
-      },
-      {
-        "src": "pic_ (2).jpg",
-        "sizes": "512x512",
-        "type": "image/jpeg"
-      }
-    ],
-    "start_url": ".",
+    "short_name": "Notula",
+    "start_url": window.location.href,
     "display": "standalone",
+    "background_color": "#ffffff",
     "theme_color": "#f97316",
-    "background_color": "#ffffff"
+    "icons": [
+      { "src": "pic_ (2).jpg", "sizes": "192x192", "type": "image/jpeg" },
+      { "src": "pic_ (2).jpg", "sizes": "512x512", "type": "image/jpeg" }
+    ]
   };
 
-  const manifestStr = JSON.stringify(myManifest);
+  // Inject Manifest ke HTML
+  const manifestStr = JSON.stringify(manifestData);
   const blob = new Blob([manifestStr], {type: 'application/json'});
-  const manifestURL = URL.createObjectURL(blob);
-  document.querySelector('#manifest-link').setAttribute('href', manifestURL);
+  document.querySelector('#pwa-manifest').setAttribute('href', URL.createObjectURL(blob));
 
-  // 2. Registrasi Service Worker untuk fitur Instalasi & Offline Dasar
+  // Service Worker (Syarat wajib tombol Install muncul)
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      const swCode = `
-        const CACHE_NAME = 'notula-cache-v1';
-        self.addEventListener('install', (event) => {
-          event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(['./'])));
-        });
-        self.addEventListener('fetch', (event) => {
-          event.respondWith(
-            caches.match(event.request).then((response) => response || fetch(event.request))
-          );
-        });
-      `;
-      const swBlob = new Blob([swCode], {type: 'text/javascript'});
-      const swURL = URL.createObjectURL(swBlob);
-      navigator.serviceWorker.register(swURL).then(() => {
-        console.log('Service Worker Registered');
-      });
-    });
+    const swCode = `
+      self.addEventListener('install', e => self.skipWaiting());
+      self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+    `;
+    const swBlob = new Blob([swCode], {type: 'text/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(swBlob));
   }
 </script>
 </body>
