@@ -2083,33 +2083,53 @@
     })();
   </script>
  <script>
-  // Konfigurasi Manifest
+  // 1. Pembuatan Manifest
   const manifestData = {
     "name": "Notula Workspace App",
     "short_name": "Notula",
-    "start_url": window.location.href,
+    "description": "Aplikasi Notula Workspace",
+    "start_url": "./index.html",
     "display": "standalone",
+    "orientation": "portrait",
     "background_color": "#ffffff",
     "theme_color": "#f97316",
     "icons": [
-      { "src": "pic_ (2).jpg", "sizes": "192x192", "type": "image/jpeg" },
-      { "src": "pic_ (2).jpg", "sizes": "512x512", "type": "image/jpeg" }
+      { "src": "pic_ (2).jpg", "sizes": "192x192", "type": "image/jpeg", "purpose": "any maskable" },
+      { "src": "pic_ (2).jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any maskable" }
     ]
   };
 
-  // Inject Manifest ke HTML
   const manifestStr = JSON.stringify(manifestData);
   const blob = new Blob([manifestStr], {type: 'application/json'});
   document.querySelector('#pwa-manifest').setAttribute('href', URL.createObjectURL(blob));
 
-  // Service Worker (Syarat wajib tombol Install muncul)
+  // 2. Service Worker Versi "Full Installable"
   if ('serviceWorker' in navigator) {
     const swCode = `
-      self.addEventListener('install', e => self.skipWaiting());
-      self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+      const CACHE_NAME = 'notula-v1';
+      self.addEventListener('install', (event) => {
+        event.waitUntil(
+          caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll(['./', './index.html']);
+          })
+        );
+      });
+      self.addEventListener('fetch', (event) => {
+        event.respondWith(
+          caches.match(event.request).then((response) => {
+            return response || fetch(event.request);
+          })
+        );
+      });
     `;
     const swBlob = new Blob([swCode], {type: 'text/javascript'});
-    navigator.serviceWorker.register(URL.createObjectURL(swBlob));
+    const swUrl = URL.createObjectURL(swBlob);
+    
+    navigator.serviceWorker.register(swUrl).then(registration => {
+      console.log('Notula PWA Ready');
+    }).catch(err => {
+      console.log('PWA Error:', err);
+    });
   }
 </script>
 </body>
