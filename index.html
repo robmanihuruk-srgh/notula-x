@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Notula App">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#f97316">
-<link rel="manifest" id="pwa-manifest">
-<link rel="apple-touch-icon" href="pic_ (2).jpg">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Notula App">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#f97316">
+  <link rel="manifest" id="pwa-manifest">
+  <link rel="apple-touch-icon" href="pic_ (2).jpg">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -246,6 +246,10 @@
       .progress-container { min-width: 100%; }
       .global-stats { gap: 12px; padding: 12px; }
     }
+
+    /* Tombol Install */
+    .btn-install { background: none; border: 1px solid var(--color-primary); padding: 8px 16px; border-radius: 30px; color: var(--color-primary); font-weight: 500; cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-install:hover { background: var(--color-primary); color: white; }
   </style>
 </head>
 <body>
@@ -425,6 +429,8 @@
         <p id="meetingDate"><i class="far fa-calendar-alt"></i> </p>
       </div>
       <div class="header-actions">
+        <!-- Tombol Install PWA -->
+        <button class="btn-install" id="installAppBtn" style="display: none;"><i class="fas fa-download"></i> Install</button>
         <div class="theme-switcher">
           <div class="theme-btn orange active" data-theme="orange"></div>
           <div class="theme-btn green" data-theme="green"></div>
@@ -2080,57 +2086,104 @@
       document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
       document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
       document.getElementById('printBtn').addEventListener('click', printMeeting);
+
+      // ========== PWA INSTALL PROMPT ==========
+      let deferredPrompt;
+      const installBtn = document.getElementById('installAppBtn');
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'inline-flex';
+      });
+
+      installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('User accepted install prompt');
+        }
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      });
+
+      window.addEventListener('appinstalled', () => {
+        installBtn.style.display = 'none';
+        console.log('PWA installed');
+      });
+
     })();
   </script>
- <script>
-  // 1. Pembuatan Manifest
-  const manifestData = {
-    "name": "Notula Workspace App",
-    "short_name": "Notula",
-    "description": "Aplikasi Notula Workspace",
-    "start_url": "./index.html",
-    "display": "standalone",
-    "orientation": "portrait",
-    "background_color": "#ffffff",
-    "theme_color": "#f97316",
-    "icons": [
-      { "src": "pic_ (2).jpg", "sizes": "192x192", "type": "image/jpeg", "purpose": "any maskable" },
-      { "src": "pic_ (2).jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any maskable" }
-    ]
-  };
+  <script>
+    // ========== PWA MANIFEST & SERVICE WORKER ==========
+    (function() {
+      // Manifest dinamis
+      const manifestData = {
+        name: "Notula Workspace App",
+        short_name: "Notula",
+        start_url: window.location.href,
+        display: "standalone",
+        background_color: "#ffffff",
+        theme_color: "#f97316",
+        icons: [
+          { src: "pic_ (2).jpg", sizes: "192x192", type: "image/jpeg" },
+          { src: "pic_ (2).jpg", sizes: "512x512", type: "image/jpeg" }
+        ]
+      };
+      const manifestStr = JSON.stringify(manifestData);
+      const blob = new Blob([manifestStr], {type: 'application/json'});
+      document.querySelector('#pwa-manifest').setAttribute('href', URL.createObjectURL(blob));
 
-  const manifestStr = JSON.stringify(manifestData);
-  const blob = new Blob([manifestStr], {type: 'application/json'});
-  document.querySelector('#pwa-manifest').setAttribute('href', URL.createObjectURL(blob));
+      // Service Worker dengan cache strategy
+      if ('serviceWorker' in navigator) {
+        const swCode = `
+          const CACHE_NAME = 'notula-v1';
+          const urlsToCache = [
+            './',
+            './index.html',
+            './pic_ (2).jpg',
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css',
+            'https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap',
+            'https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js',
+            'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js',
+            'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js'
+          ];
 
-  // 2. Service Worker Versi "Full Installable"
-  if ('serviceWorker' in navigator) {
-    const swCode = `
-      const CACHE_NAME = 'notula-v1';
-      self.addEventListener('install', (event) => {
-        event.waitUntil(
-          caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(['./', './index.html']);
-          })
-        );
-      });
-      self.addEventListener('fetch', (event) => {
-        event.respondWith(
-          caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
-          })
-        );
-      });
-    `;
-    const swBlob = new Blob([swCode], {type: 'text/javascript'});
-    const swUrl = URL.createObjectURL(swBlob);
-    
-    navigator.serviceWorker.register(swUrl).then(registration => {
-      console.log('Notula PWA Ready');
-    }).catch(err => {
-      console.log('PWA Error:', err);
-    });
-  }
-</script>
+          self.addEventListener('install', event => {
+            event.waitUntil(
+              caches.open(CACHE_NAME)
+                .then(cache => cache.addAll(urlsToCache))
+                .then(() => self.skipWaiting())
+            );
+          });
+
+          self.addEventListener('fetch', event => {
+            event.respondWith(
+              caches.match(event.request)
+                .then(response => response || fetch(event.request))
+            );
+          });
+
+          self.addEventListener('activate', event => {
+            event.waitUntil(
+              caches.keys().then(cacheNames => {
+                return Promise.all(
+                  cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
+                );
+              }).then(() => self.clients.claim())
+            );
+          });
+        `;
+        const swBlob = new Blob([swCode], {type: 'text/javascript'});
+        navigator.serviceWorker.register(URL.createObjectURL(swBlob))
+          .then(() => console.log('Service Worker registered'))
+          .catch(err => console.error('SW registration failed:', err));
+      }
+    })();
+  </script>
 </body>
 </html>
