@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paskah 2026 - Kunjungan Kasih</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // --- KONFIGURASI FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "ISI_API_KEY_ANDA",
+            authDomain: "PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://paskah-sm-gkpstangerang-2026-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "PROJECT_ID",
+            storageBucket: "PROJECT_ID.appspot.com",
+            messagingSenderId: "SENDER_ID",
+            appId: "APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const dbRef = ref(db, 'pendaftaran_paskah_2026');
+
+        // KUOTA DAN DAFTAR KELAS
+        const MAX_KUOTA = 5; 
+        const daftarKelas = ["Daniel", "Paulus", "Ester", "POS PI"];
+        let dataPendaftarGlobal = [];
+
+        // 1. MONITORING REAL-TIME & PEMBUATAN LIST
+        onValue(dbRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            dataPendaftarGlobal = Object.values(data);
+            
+            const selectKelas = document.getElementById('kelasSM');
+            const currentSelection = selectKelas.value;
+            selectKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+
+            const rekapHtml = [];
+            
+            daftarKelas.forEach(kelas => {
+                const listAnak = dataPendaftarGlobal.filter(p => p.kelas === kelas);
+                const jumlah = listAnak.length;
+                const sisa = MAX_KUOTA - jumlah;
+
+                const option = document.createElement('option');
+                option.value = kelas;
+                option.disabled = sisa <= 0;
+                option.textContent = sisa <= 0 ? `Kelas ${kelas} (PENUH)` : `Kelas ${kelas} (Sisa ${sisa} slot)`;
+                selectKelas.appendChild(option);
+
+                // Fitur: Ikon Printer di sebelah nama anak
+                let barisAnak = listAnak.map((p, i) => {
+                    const globalIdx = dataPendaftarGlobal.indexOf(p);
+                    return `
+                    <div class="flex justify-between items-center text-[11px] text-gray-700 border-b border-pink-100 py-1.5 hover:bg-white/50 px-1 rounded transition-colors">
+                        <span class="truncate pr-2">${i+1}. ${p.namaAnak}</span>
+                        <button onclick="showTicketFromData(${globalIdx})" class="text-indigo-400 hover:text-indigo-700 focus:outline-none bg-indigo-50 hover:bg-indigo-100 p-1 rounded transition-colors" title="Cetak Ulang Tiket">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        </button>
+                    </div>`;
+                }).join('');
+
+                rekapHtml.push(`
+                    <div class="border-2 border-indigo-100 p-3 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition">
+                        <div class="flex justify-between items-center mb-2 border-b-2 border-indigo-200 pb-2">
+                            <span class="font-bold text-indigo-800 text-sm">${kelas}</span>
+                            <span class="text-[10px] px-2.5 py-1 rounded-full ${sisa <= 0 ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'} font-bold">${jumlah}/${MAX_KUOTA}</span>
+                        </div>
+                        ${barisAnak || '<span class="text-[10px] italic text-gray-400 pl-1">Belum ada peserta</span>'}
+                    </div>
+                `);
+            });
+            
+            selectKelas.value = currentSelection;
+            document.getElementById('gridAdmin').innerHTML = rekapHtml.join('');
+            document.getElementById('totalPeserta').textContent = dataPendaftarGlobal.length;
+        });
+
+        // FUNGSI UNTUK MEMULAI PENDAFTARAN DARI FLYER
+        window.startRegistration = function() {
+            document.getElementById('flyerWrapper').classList.add('hidden');
+            document.getElementById('mainContentWrapper').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // FUNGSI UNTUK MENAMPILKAN TIKET
+        window.showTicket = function(data) {
+            document.getElementById('ticketNama').textContent = data.namaAnak;
+            document.getElementById('ticketKelas').textContent = data.kelas;
+            document.getElementById('ticketOrtu').textContent = data.namaOrtu;
+            document.getElementById('ticketTelp').textContent = data.noTelp || '-';
+            document.getElementById('ticketWaktu').textContent = data.timestamp;
+
+            document.getElementById('mainContentWrapper').classList.add('hidden');
+            document.getElementById('ticketWrapper').classList.remove('hidden');
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // FUNGSI CETAK ULANG DARI TOMBOL ADMIN
+        window.showTicketFromData = function(index) {
+            const data = dataPendaftarGlobal[index];
+            if (data) {
+                showTicket(data);
+                document.getElementById('successNotification').classList.add('hidden');
+            }
+        };
+
+        // 2. FUNGSI KIRIM DATA PENDAFTARAN BARU
+        window.submitForm = function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            
+            const data = {
+                namaAnak: document.getElementById('namaAnak').value,
+                kelas: document.getElementById('kelasSM').value,
+                namaOrtu: document.getElementById('namaOrtu').value,
+                noTelp: document.getElementById('noTelp').value, 
+                timestamp: new Date().toLocaleString('id-ID')
+            };
+
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memproses...`;
+
+            push(dbRef, data).then(() => {
+                document.getElementById('successNotification').classList.remove('hidden');
+                showTicket(data);
+                document.getElementById('registrationForm').reset();
+            }).catch((error) => {
+                alert("Terjadi kesalahan: " + error.message);
+            }).finally(() => {
+                btn.disabled = false;
+                btn.textContent = "SAYA SETUJU & DAFTAR SEKARANG";
+            });
+        };
+
+        // FUNGSI UNTUK MENCETAK PDF
+        window.printTicket = function() {
+            window.print();
+        };
+
+        // FUNGSI KEMBALI KE FORM UTAMA
+        window.closeTicket = function() {
+            document.getElementById('ticketWrapper').classList.add('hidden');
+            document.getElementById('mainContentWrapper').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // 3. FUNGSI EXPORT EXCEL 
+        window.exportToExcel = function() {
+            if (dataPendaftarGlobal.length === 0) {
+                alert("Belum ada data untuk diexport.");
+                return;
+            }
+
+            const reportData = dataPendaftarGlobal.map((item, index) => ({
+                "No": index + 1,
+                "Nama Anak": item.namaAnak,
+                "Kelas": item.kelas,
+                "Nama Orang Tua": item.namaOrtu,
+                "No Telepon": item.noTelp || "-", 
+                "Waktu Daftar": item.timestamp
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(reportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Pendaftar Paskah");
+            XLSX.writeFile(workbook, `Data_Pendaftaran_Paskah_Tangerang_2026.xlsx`);
+        };
+    </script>
+    <style>
+        /* Easter Themed Background */
+        body {
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            background-color: #fdfbfb;
+            background-image: radial-gradient(#bae6fd 1px, transparent 1px), radial-gradient(#bae6fd 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+        .easter-gradient {
+            background: linear-gradient(to right, #fca5a5, #fcd34d, #86efac, #93c5fd, #c4b5fd);
+        }
+        .card-bg {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #fef3c7; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #fcd34d; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #fbbf24; }
+
+        /* CSS KHUSUS SAAT DICETAK (PRINT) */
+        @media print {
+            body { background: white !important; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .ticket-border { border: 2px dashed #93c5fd !important; box-shadow: none !important; margin: 0 !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12 font-sans text-gray-800 relative">
+
+    <div class="absolute top-0 left-0 w-full h-2 easter-gradient opacity-80 no-print"></div>
+
+    <div id="flyerWrapper" class="no-print pt-8 px-4 max-w-lg mx-auto relative z-10 flex flex-col items-center justify-center min-h-screen">
+        <div class="card-bg rounded-[2rem] shadow-2xl overflow-hidden border border-white w-full">
+            <div class="h-3 w-full easter-gradient"></div>
+            
+            <img src="disclaimer pra-paskah.jpeg" alt="Flyer Kunjungan Kasih Pra-Paskah" class="w-full h-auto object-cover">
+            
+            <div class="p-6 bg-white text-center">
+                <p class="text-[11px] text-gray-500 font-medium mb-4 uppercase tracking-widest">Silakan baca informasi di atas sebelum mendaftar</p>
+                <button onclick="startRegistration()" class="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-black py-5 rounded-2xl shadow-lg shadow-pink-200/50 transition-all active:scale-95 uppercase tracking-widest text-lg animate-pulse border border-pink-400">
+                    Daftar Segera
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="mainContentWrapper" class="hidden no-print">
+        <div class="max-w-md mx-auto pt-10 px-4 relative z-10">
+            <div class="card-bg rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden border border-white">
+                <div class="h-3 w-full easter-gradient"></div>
+                <div class="p-6 sm:p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <img src="LOGO-GKPS-ASLI-1.png" alt="Logo GKPS" class="w-14 h-14 object-contain drop-shadow-sm">
+                        <div class="text-center flex-1 px-2">
+                            <h1 class="text-2xl font-black text-indigo-900 tracking-tight leading-none drop-shadow-sm">Paskah</h1>
+                            <p class="text-pink-500 font-extrabold text-[11px] uppercase tracking-wider mt-1">Kunjungan Kasih</p>
+                        </div>
+                        <img src="Logo GKPS 2026-2030.jpg" alt="Logo Tema GKPS 2026-2030" class="w-14 h-14 object-contain rounded-lg drop-shadow-sm border border-gray-100">
+                    </div>
+
+                    <div class="mb-6 text-center bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100">
+                        <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1.5">Matius 28:5-6</p>
+                        <p class="text-sm font-bold text-indigo-900 italic leading-snug">"Yesus Bangkit, Sukacitaku Penuh! ✝️🐰"</p>
+                    </div>
+
+                    <div class="bg-[#fffbeb] rounded-2xl p-4 sm:p-5 mb-8 border border-[#fde68a] shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-yellow-400"></div>
+                        <h2 class="text-[12px] font-black text-yellow-800 uppercase tracking-widest mb-3 flex items-center border-b border-yellow-200 pb-2">
+                            <svg class="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Lembar Persetujuan
+                        </h2>
+                        
+                        <div class="max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                            <p class="text-[11px] text-yellow-900 leading-relaxed text-justify mb-4 font-medium">
+                                Dengan mengisi formulir ini, saya menyetujui tata tertib Pra-Paskah <strong>Seksi Sekolah Minggu GKPS Tangerang</strong>:
+                            </p>
+                            <div class="space-y-3">
+                                <div class="bg-white/80 rounded-xl p-3 border border-yellow-100 shadow-sm">
+                                    <h3 class="font-bold text-yellow-900 text-[11px] mb-1.5 flex items-center"><span class="bg-yellow-200 text-yellow-800 rounded-full w-4 h-4 flex items-center justify-center text-[9px] mr-1.5">1</span> Detail Kegiatan</h3>
+                                    <ul class="text-[10px] text-yellow-800 leading-tight space-y-1.5 ml-4 list-disc">
+                                        <li><strong>Lokasi:</strong> Rumah Singgah Kanker Anak Yayasan RCBADAK.</li>
+                                        <li><strong>Alamat:</strong> Jl. H. Embang Jaya No.98, Sukaasih, Kota Tangerang.</li>
+                                        <li><strong>Waktu:</strong> Sabtu, 28 Maret 2026 (09.00 – 11.00 WIB).</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-white/80 rounded-xl p-3 border border-yellow-100 shadow-sm">
+                                    <h3 class="font-bold text-yellow-900 text-[11px] mb-1.5 flex items-center"><span class="bg-yellow-200 text-yellow-800 rounded-full w-4 h-4 flex items-center justify-center text-[9px] mr-1.5">2</span> Syarat & Ketentuan</h3>
+                                    <ul class="text-[10px] text-yellow-800 leading-tight space-y-1.5 ml-4 list-disc text-justify pr-2">
+                                        <li><strong>Kuota Terbatas:</strong> Partisipasi ASM terbatas sesuai kapasitas lokasi.</li>
+                                        <li><strong>Kepastian Kehadiran:</strong> Memastikan peserta tidak berhalangan hadir.</li>
+                                        <li><strong>Kondusif:</strong> Peserta menjaga sikap tenang di Rumah Singgah.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="mt-4 p-3.5 bg-rose-50 border-2 border-rose-200 rounded-xl shadow-sm mb-1">
+                                <h3 class="font-black text-rose-800 text-[11px] mb-1.5 flex items-center">
+                                    <span class="mr-1.5 text-rose-500">⚠️</span> Ketentuan Pembatalan
+                                </h3>
+                                <p class="text-[10px] text-rose-700 leading-tight text-justify font-medium">
+                                    Bila berhalangan hadir mendadak, wajib menginformasikan kepada panitia selambat-lambatnya <strong>1 (satu) minggu sebelum acara</strong>.
+                                </p>
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-yellow-600 text-center mt-3 font-semibold italic animate-pulse">↓ Tatal (scroll) untuk membaca sepenuhnya ↓</p>
+                    </div>
+
+                    <form id="registrationForm" onsubmit="submitForm(event)" class="space-y-4.5">
+                        <div>
+                            <label class="text-[11px] font-extrabold text-indigo-900 uppercase ml-1 block mb-1">Nama Lengkap Anak</label>
+                            <input type="text" id="namaAnak" placeholder="Ketik nama anak di sini..." required class="w-full border-2 border-indigo-100 rounded-xl p-3.5 bg-indigo-50/30 focus:bg-white focus:border-pink-400 focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium">
+                        </div>
+                        <div class="mt-4">
+                            <label class="text-[11px] font-extrabold text-indigo-900 uppercase ml-1 block mb-1">Pilih Kelas Sekolah Minggu</label>
+                            <select id="kelasSM" required class="w-full border-2 border-indigo-100 rounded-xl p-3.5 bg-indigo-50/30 focus:bg-white focus:border-pink-400 focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium text-gray-700 appearance-none"></select>
+                        </div>
+                        <div class="mt-4">
+                            <label class="text-[11px] font-extrabold text-indigo-900 uppercase ml-1 block mb-1">Nama Orang Tua / Wali</label>
+                            <input type="text" id="namaOrtu" placeholder="Ketik nama orang tua..." required class="w-full border-2 border-indigo-100 rounded-xl p-3.5 bg-indigo-50/30 focus:bg-white focus:border-pink-400 focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium">
+                        </div>
+                        <div class="mt-4">
+                            <label class="text-[11px] font-extrabold text-indigo-900 uppercase ml-1 block mb-1">No. WhatsApp Orang Tua</label>
+                            <input type="tel" id="noTelp" placeholder="Contoh: 08123456789" required class="w-full border-2 border-indigo-100 rounded-xl p-3.5 bg-indigo-50/30 focus:bg-white focus:border-pink-400 focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium">
+                        </div>
+                        
+                        <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-black py-4.5 rounded-2xl shadow-lg shadow-pink-200/50 transition-all active:scale-95 uppercase tracking-wider mt-6 text-sm border border-pink-400">
+                            SAYA SETUJU & DAFTAR
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-4xl mx-auto mt-12 px-4 relative z-10">
+            <div class="card-bg rounded-[2rem] shadow-xl p-6 sm:p-8 border border-white">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b-2 border-indigo-50 pb-5">
+                    <div class="text-center md:text-left">
+                        <h3 class="text-xl font-black text-indigo-900 uppercase tracking-tighter flex items-center justify-center md:justify-start">
+                            <span class="w-2.5 h-6 bg-pink-400 mr-2.5 rounded-full inline-block"></span>
+                            Area Rekap Panitia
+                        </h3>
+                        <p class="text-[11px] text-gray-500 font-bold uppercase mt-1">Total Anak Terdaftar: <span id="totalPeserta" class="text-pink-600 text-sm bg-pink-50 px-2 py-0.5 rounded-md border border-pink-100">0</span></p>
+                    </div>
+                    
+                    <button onclick="exportToExcel()" class="flex items-center bg-teal-500 hover:bg-teal-600 text-white text-[11px] font-extrabold px-6 py-3.5 rounded-xl shadow-lg shadow-teal-200/50 transition-all active:scale-95 border border-teal-400">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        UNDUH EXCEL
+                    </button>
+                </div>
+                <div id="gridAdmin" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+            </div>
+            <p class="text-center text-[10px] text-gray-400 font-medium mt-8 mb-4">
+                Sistem Pendaftaran Digital &copy; 2026<br>Sie. Sekolah Minggu GKPS Tangerang
+            </p>
+        </div>
+    </div>
+    <div id="ticketWrapper" class="hidden pt-10 px-4 max-w-md mx-auto">
+        
+        <div id="successNotification" class="bg-green-100 border-2 border-green-400 text-green-800 p-4 rounded-xl text-center mb-6 shadow-sm no-print">
+            <h2 class="font-black text-lg">Pendaftaran Berhasil! 🎉</h2>
+            <p class="text-xs mt-1 font-medium">Silakan simpan atau cetak bukti pendaftaran di bawah ini.</p>
+        </div>
+
+        <div class="bg-white rounded-[2rem] shadow-2xl p-8 ticket-border border-4 border-dashed border-pink-200 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-3 easter-gradient"></div>
+            <div class="absolute -left-4 top-1/2 w-8 h-8 bg-gray-100 rounded-full"></div>
+            <div class="absolute -right-4 top-1/2 w-8 h-8 bg-gray-100 rounded-full"></div>
+
+            <div class="text-center border-b-2 border-gray-100 pb-5 mb-5 mt-2">
+                <img src="LOGO-GKPS-ASLI-1.png" alt="Logo GKPS" class="w-12 h-12 mx-auto mb-2 object-contain grayscale-0">
+                <h1 class="font-black text-indigo-900 text-xl tracking-tight uppercase">E-Ticket Paskah</h1>
+                <p class="text-[10px] font-bold text-pink-500 uppercase tracking-widest mt-1">Kunjungan Kasih 2026</p>
+                <p class="text-[10px] text-gray-500 mt-1">GKPS Tangerang</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Nama Anak</p>
+                    <p id="ticketNama" class="text-lg font-black text-gray-800 leading-tight">-</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Kelas Sekolah Minggu</p>
+                    <p id="ticketKelas" class="text-md font-bold text-indigo-600 bg-indigo-50 inline-block px-3 py-1 rounded-lg mt-1">-</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Nama Ortu/Wali</p>
+                        <p id="ticketOrtu" class="text-sm font-bold text-gray-700">-</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">No. WhatsApp</p>
+                        <p id="ticketTelp" class="text-sm font-bold text-gray-700">-</p>
+                    </div>
+                </div>
+                <div class="pt-4 border-t-2 border-dashed border-gray-200">
+                    <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider text-center">Waktu Pendaftaran</p>
+                    <p id="ticketWaktu" class="text-xs font-mono text-gray-600 text-center mt-1">-</p>
+                </div>
+            </div>
+
+            <div class="mt-5 bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-100/70">
+                <p class="text-[10px] font-black text-indigo-800 mb-1.5 flex items-center">
+                    <svg class="w-3.5 h-3.5 mr-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    INFORMASI PENTING:
+                </p>
+                <ul class="text-[9.5px] text-gray-600 list-disc pl-4 space-y-1.5 text-left leading-tight font-medium">
+                    <li>E-ticket ini adalah <strong>tanda bukti pendaftaran</strong> yang sah. Harap tunjukkan kepada panitia (bisa <em>screenshot</em>/cetak).</li>
+                    <li>Ortu/anak yang namanya sudah terdaftar akan dihubungi <strong>kakak/abang GSM</strong> untuk koordinasi lebih lanjut.</li>
+                    <li class="text-rose-600 font-bold">Apabila berhalangan hadir, harap menginformasikan maksimal tgl 21 Maret.</li>
+                </ul>
+            </div>
+            
+        </div>
+
+        <div class="mt-8 space-y-3 no-print">
+            <button onclick="printTicket()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-95 uppercase text-sm flex justify-center items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                Cetak / Simpan PDF
+            </button>
+            <button onclick="closeTicket()" class="w-full bg-white hover:bg-gray-50 text-gray-600 border-2 border-gray-200 font-bold py-3.5 rounded-xl transition-all active:scale-95 uppercase text-xs">
+                Selesai (Kembali ke Awal)
+            </button>
+        </div>
+    </div>
+    </body>
+</html>
