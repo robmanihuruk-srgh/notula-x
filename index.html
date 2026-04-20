@@ -823,7 +823,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
           </div>
         </div>
       </div>
-      <div class="card card-pad">
+      <div class="card card-pad" id="report-preview-card" style="display:none;">
         <div class="card-title" id="report-preview-title">📋 Preview Laporan</div>
         <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Klik salah satu kartu laporan di atas untuk melihat preview.</div>
         <div id="report-preview-body"></div>
@@ -1938,6 +1938,11 @@ function showSection(id, el) {
   document.querySelectorAll('.bnav-item').forEach(function(b) { b.classList.remove('active'); });
   var bn = document.getElementById('bn-' + id);
   if (bn) bn.classList.add('active');
+  // Sembunyikan preview laporan jika bukan section report
+  if (id !== 'report') {
+    var previewCard = document.getElementById('report-preview-card');
+    if (previewCard) previewCard.style.display = 'none';
+  }
   closeSidebar();
 }
 
@@ -2732,11 +2737,14 @@ function toggleReportFilter(id) {
 
 function generateReport(type) {
   var labels = { lengkap:'📋 Preview Laporan Lengkap', pengguna:'👥 Preview Laporan Pengguna', progress:'◎ Preview Laporan Progress', todo:'✓ Preview Laporan To Do List', kendala:'⚠ Preview Laporan Kendala' };
+  var previewCard = document.getElementById('report-preview-card');
+  if (previewCard) previewCard.style.display = '';
   document.getElementById('report-preview-title').textContent = labels[type] || 'Preview';
   var body = document.getElementById('report-preview-body');
   body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);">Memuat preview...</div>';
   setTimeout(function() {
     body.innerHTML = '<div style="background:#fff;border-radius:8px;padding:24px;overflow-x:auto;">' + buildReportHTML(type) + '</div>';
+    previewCard.scrollIntoView({ behavior:'smooth', block:'start' });
   }, 100);
 }
 
