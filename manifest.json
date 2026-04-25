@@ -1,0 +1,21 @@
+{
+  "name": "Notula App",
+  "short_name": "Notula",
+  "description": "Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "pic_ (2).jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "pic_ (2).jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
