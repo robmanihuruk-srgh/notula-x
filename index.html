@@ -17,6 +17,40 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  /* Style Tombol Install PWA */
+#install-pwa-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: none; /* Sembunyi secara default */
+}
+
+.btn-install-pwa {
+  background-color: #f97316; /* Warna oranye Notula */
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 50px;
+  font-weight: bold;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: transform 0.3s ease;
+}
+
+.btn-install-pwa:hover {
+  transform: scale(1.05);
+  background-color: #ea580c;
+}
+
+/* Sembunyikan di iPhone karena iOS tidak mendukung tombol install via JS */
+@supports (-webkit-touch-callout: none) {
+  #install-pwa-container { display: none !important; }
+}
+  
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -2093,4 +2127,9 @@
   }
 </script>
 </body>
+<div id="install-pwa-container">
+  <button id="btnInstallPWA" class="btn-install-pwa">
+    <i class="fas fa-download"></i> Install Notula App
+  </button>
+</div>
 </html>
