@@ -230,7 +230,7 @@
     .btn-secondary { background: #ecf3fa; border: none; padding: 10px 22px; border-radius: 40px; font-weight: 500; cursor: pointer; }
     .btn-primary { background: var(--color-primary); border: none; padding: 10px 28px; border-radius: 40px; font-weight: 500; color: white; cursor: pointer; }
     .btn-primary:hover { background: var(--color-primary-dark); }
-    .btn-danger { background: #fce4e0; color: #ac3b2b; border: none; padding: 10px 22px; border-radius: 40px; font-weight: 500; }
+    .btn-danger { background: #fce4e0; color: #ac3b2b; border: none; padding: 10px 22px; border-radius: 40px; font-weight: 500; cursor: pointer; }
     .hidden { display: none; }
     
     /* Login Background Addition */
@@ -343,7 +343,9 @@
           <button class="btn-primary" id="addMemberBtn" style="padding: 12px 20px;">Tambah</button>
         </div>
       </div>
-      <div class="member-list" id="memberList"></div>
+      <div class="member-list" id="memberList">
+        <!-- Anggota dimuat disini -->
+      </div>
       <div class="modal-actions">
         <button class="btn-secondary" id="closeMembersModal">Tutup</button>
       </div>
@@ -713,7 +715,7 @@
               name: 'Rapat Pesparawi Distrik VII',
               description: 'Grup default untuk rapat Pesparawi',
               createdBy: currentUser.uid,
-              members: [currentUser.uid],
+              members: [currentUser.uid], // MENGGUNAKAN ARRAY MEMBERS SESUAI LANGKAH 4
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             const workspaceRef = await db.collection('workspaces').add(newWorkspace);
@@ -788,7 +790,11 @@
           }
 
           if (unsubscribeWorkspaces) unsubscribeWorkspaces();
-          unsubscribeWorkspaces = db.collection('workspaces').where('members', 'array-contains', user.uid).onSnapshot(snapshot => {
+          
+          // MENGGUNAKAN ARRAY-CONTAINS UNTUK MEMBACA GRUP (LANGKAH 4)
+          unsubscribeWorkspaces = db.collection('workspaces')
+            .where('members', 'array-contains', user.uid) 
+            .onSnapshot(snapshot => {
             workspaces = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderWorkspaceList();
             updateMeetingWorkspaceSelect();
@@ -801,7 +807,7 @@
 
             renderPrivateMeetings();
             
-            // PRIORITAS RENDER: Memastikan tidak terpental ke halaman Dashboard (2.jpg)
+            // PRIORITAS RENDER
             if (currentMeetingId) {
               const meeting = meetings.find(m => m.id === currentMeetingId);
               if (meeting) {
@@ -965,11 +971,13 @@
           badge.className = 'workspace-badge';
           badge.innerText = w.members.length;
 
+          // TOMBOL KELOLA ANGGOTA (LANGKAH 2)
           const actionsDiv = document.createElement('div');
           actionsDiv.className = 'workspace-actions';
           const manageBtn = document.createElement('button');
           manageBtn.innerHTML = '<i class="fas fa-cog"></i>';
           manageBtn.title = 'Kelola anggota';
+          
           if (w.createdBy === currentUser?.uid) {
             manageBtn.addEventListener('click', (e) => {
               e.stopPropagation();
@@ -980,6 +988,7 @@
             manageBtn.style.opacity = '0.5';
           }
           actionsDiv.appendChild(manageBtn);
+          
           let deleteBtn = null;
           if (w.createdBy === currentUser?.uid && userRole === 'admin') {
             deleteBtn = document.createElement('button');
@@ -1009,10 +1018,17 @@
         });
       }
 
+      // FUNGSI MEMBUKA MODAL KELOLA ANGGOTA (LANGKAH 3)
       window.openManageMembers = async (workspaceId) => {
         const workspace = workspaces.find(w => w.id === workspaceId);
         if (!workspace) return;
+        
         const memberListDiv = document.getElementById('memberList');
+        memberListDiv.innerHTML = '<div style="text-align:center; color:#8ba0bb;"><i class="fas fa-spinner fa-spin"></i> Memuat...</div>';
+        
+        document.getElementById('manageMembersModal').dataset.workspaceId = workspaceId;
+        document.getElementById('manageMembersModal').classList.add('active');
+
         memberListDiv.innerHTML = '';
         for (const uid of workspace.members) {
           try {
@@ -1020,58 +1036,70 @@
             const email = userDoc.exists ? userDoc.data().email || uid : uid;
             const item = document.createElement('div');
             item.className = 'member-item';
-            item.innerHTML = `<span>${escapeHtml(email)}</span>${workspace.createdBy === currentUser?.uid ? `<button class="btn-danger" onclick="removeMember('${workspaceId}', '${uid}')">Hapus</button>` : ''}`;
+            
+            // Render list - Cegah owner/pembuat menghapus dirinya sendiri
+            const isOwner = workspace.createdBy === currentUser?.uid;
+            const isSelf = uid === currentUser?.uid;
+            const btnHtml = (isOwner && !isSelf) ? `<button class="btn-danger" onclick="removeMember('${workspaceId}', '${uid}')">Hapus</button>` : '';
+            
+            item.innerHTML = `<span><i class="fas fa-user-circle" style="color:var(--color-primary); margin-right:6px;"></i> ${escapeHtml(email)}</span>${btnHtml}`;
             memberListDiv.appendChild(item);
           } catch (e) { console.error(e); }
         }
-        document.getElementById('manageMembersModal').dataset.workspaceId = workspaceId;
-        document.getElementById('manageMembersModal').classList.add('active');
       };
 
-      // FUNGSI BARU UNTUK HAPUS DAN TAMBAH ANGGOTA (OPTIMISTIC UPDATE)
+      // FUNGSI UNTUK HAPUS DAN TAMBAH ANGGOTA (LANGKAH 3)
       window.removeMember = async (workspaceId, uid) => {
-        if (!confirm('Hapus anggota ini?')) return;
+        if (!confirm('Hapus anggota ini dari grup?')) return;
         try {
           const workspaceRef = db.collection('workspaces').doc(workspaceId);
           await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayRemove(uid) });
           
-          alert('Anggota berhasil dihapus!'); // Menampilkan konfirmasi berhasil dihapus
+          alert('Anggota berhasil dihapus!');
           
-          // Memperbarui data lokal agar langsung hilang dari tampilan
+          // Optimistic UI Update
           const workspace = workspaces.find(w => w.id === workspaceId);
           if (workspace) workspace.members = workspace.members.filter(id => id !== uid);
           
-          // Render ulang daftar anggota secara real-time
-          openManageMembers(workspaceId);
+          openManageMembers(workspaceId); // Render ulang
         } catch (error) {
           alert('Gagal menghapus anggota: ' + error.message);
         }
       };
 
       document.getElementById('addMemberBtn').addEventListener('click', async () => {
-        const email = document.getElementById('memberEmailInput').value.trim();
+        const email = document.getElementById('memberEmailInput').value.trim().toLowerCase();
         if (!email) return;
+        
+        // Cek jika pembuat grup memasukkan emailnya sendiri
+        if (email === currentUser.email.toLowerCase()) {
+           alert('Anda sudah berada di dalam grup ini sebagai pembuat.');
+           return;
+        }
+
+        // Cari UID pengguna berdasarkan email di koleksi 'users'
         const usersRef = db.collection('users');
         const snapshot = await usersRef.where('email', '==', email).get();
         if (snapshot.empty) {
-          alert('Email tidak ditemukan di sistem. Pastikan pengguna telah login minimal sekali.');
+          alert('Email tidak ditemukan di sistem. Pastikan pengguna tersebut telah login minimal sekali di Notula.');
           return;
         }
+        
         const uid = snapshot.docs[0].id;
         const workspaceId = document.getElementById('manageMembersModal').dataset.workspaceId;
         const workspaceRef = db.collection('workspaces').doc(workspaceId);
         
         try {
+          // Menggunakan arrayUnion dengan UID (lebih aman daripada Email)
           await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayUnion(uid) });
           document.getElementById('memberEmailInput').value = '';
-          alert('Anggota berhasil ditambahkan!');
+          alert('Anggota berhasil ditambahkan ke grup!');
           
-          // Memperbarui data lokal agar langsung muncul di tampilan
+          // Optimistic UI Update
           const workspace = workspaces.find(w => w.id === workspaceId);
           if (workspace && !workspace.members.includes(uid)) workspace.members.push(uid);
           
-          // Render ulang daftar anggota secara real-time
-          openManageMembers(workspaceId);
+          openManageMembers(workspaceId); // Render ulang
         } catch (error) {
           alert('Gagal menambahkan anggota: ' + error.message);
         }
@@ -1087,6 +1115,8 @@
       document.getElementById('cancelWorkspaceModal').addEventListener('click', () => {
         document.getElementById('workspaceModal').classList.remove('active');
       });
+      
+      // MEMBUAT GRUP BARU DENGAN ARRAY MEMBERS (LANGKAH 4)
       document.getElementById('saveWorkspaceModal').addEventListener('click', async () => {
         const name = document.getElementById('workspaceNameInput').value.trim();
         const desc = document.getElementById('workspaceDescInput').value.trim();
@@ -1096,7 +1126,7 @@
             name,
             description: desc,
             createdBy: currentUser.uid,
-            members: [currentUser.uid],
+            members: [currentUser.uid], // Array members penting
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
           document.getElementById('workspaceModal').classList.remove('active');
