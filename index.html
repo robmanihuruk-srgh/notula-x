@@ -915,13 +915,15 @@
 
       // ========== WORKSPACE ==========
       async function deleteWorkspace(workspaceId) {
-        if (userRole !== 'admin') return;
         const workspace = workspaces.find(w => w.id === workspaceId);
         if (!workspace) return;
-        if (workspace.createdBy !== currentUser.uid) {
+        
+        // HANYA CREATOR GRUP ATAU ADMIN YANG BOLEH HAPUS
+        if (workspace.createdBy !== currentUser.uid && userRole !== 'admin') {
           alert('Anda tidak memiliki izin untuk menghapus grup ini.');
           return;
         }
+        
         if (!confirm(`Hapus grup "${workspace.name}" beserta semua rapat di dalamnya?`)) return;
         try {
           const groupMeetings = meetings.filter(m => m.workspaceId === workspaceId);
@@ -971,7 +973,7 @@
           badge.className = 'workspace-badge';
           badge.innerText = w.members.length;
 
-          // TOMBOL KELOLA ANGGOTA (LANGKAH 2)
+          // TOMBOL KELOLA ANGGOTA
           const actionsDiv = document.createElement('div');
           actionsDiv.className = 'workspace-actions';
           const manageBtn = document.createElement('button');
@@ -990,7 +992,8 @@
           actionsDiv.appendChild(manageBtn);
           
           let deleteBtn = null;
-          if (w.createdBy === currentUser?.uid && userRole === 'admin') {
+          // TAMPILKAN TOMBOL HAPUS JIKA USER ADALAH PEMBUAT GRUP ATAU ADMIN
+          if (w.createdBy === currentUser?.uid || userRole === 'admin') {
             deleteBtn = document.createElement('button');
             deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
             deleteBtn.className = 'delete-workspace';
@@ -1018,7 +1021,7 @@
         });
       }
 
-      // FUNGSI MEMBUKA MODAL KELOLA ANGGOTA (LANGKAH 3)
+      // FUNGSI MEMBUKA MODAL KELOLA ANGGOTA
       window.openManageMembers = async (workspaceId) => {
         const workspace = workspaces.find(w => w.id === workspaceId);
         if (!workspace) return;
@@ -1048,7 +1051,7 @@
         }
       };
 
-      // FUNGSI UNTUK HAPUS DAN TAMBAH ANGGOTA (LANGKAH 3)
+      // FUNGSI UNTUK HAPUS DAN TAMBAH ANGGOTA
       window.removeMember = async (workspaceId, uid) => {
         if (!confirm('Hapus anggota ini dari grup?')) return;
         try {
@@ -1116,7 +1119,7 @@
         document.getElementById('workspaceModal').classList.remove('active');
       });
       
-      // MEMBUAT GRUP BARU DENGAN ARRAY MEMBERS (LANGKAH 4)
+      // MEMBUAT GRUP BARU DENGAN ARRAY MEMBERS
       document.getElementById('saveWorkspaceModal').addEventListener('click', async () => {
         const name = document.getElementById('workspaceNameInput').value.trim();
         const desc = document.getElementById('workspaceDescInput').value.trim();
@@ -2053,10 +2056,9 @@
         const meeting = meetings.find(m => m.id === currentMeetingId);
         const isCreator = meeting && meeting.createdBy === currentUser?.uid;
 
-        // Admin only buttons
+        // Admin only buttons (TOMBOL BUAT GRUP DIHAPUS DARI DAFTAR INI)
         const adminBtns = [
           document.getElementById('deleteSelectedBtn'),
-          document.getElementById('newWorkspaceBtn'),
           document.getElementById('resetDefaultDataBtn')
         ].filter(Boolean);
 
@@ -2064,6 +2066,13 @@
           btn.disabled = !isAdmin;
           btn.classList.toggle('disabled', !isAdmin);
         });
+
+        // PASTIKAN TOMBOL "BUAT GRUP" AKTIF UNTUK SEMUA USER YANG LOGIN
+        const newWorkspaceBtn = document.getElementById('newWorkspaceBtn');
+        if (newWorkspaceBtn) {
+            newWorkspaceBtn.disabled = !currentUser;
+            newWorkspaceBtn.classList.toggle('disabled', !currentUser);
+        }
 
         // Meeting level edit buttons
         const canEditMeeting = isAdmin || isCreator;
