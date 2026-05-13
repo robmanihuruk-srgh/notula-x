@@ -1340,13 +1340,43 @@
         const desc = document.getElementById('workspaceDescInput').value.trim();
         if (!name) return alert('Nama grup harus diisi');
         try {
-          await db.collection('workspaces').add({
+          const workspaceRef = await db.collection('workspaces').add({
             name,
             description: desc,
             createdBy: currentUser.uid,
             members: [currentUser.uid], 
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
+
+          // --- TAMBAHAN BARU: OTOMATIS INJECT SEMUA TEMPLATE KE GRUP BARU ---
+          // Menggunakan looping (for) agar semua rapat di dalam defaultMeetings ikut dibuat
+          for (const templateMeeting of defaultMeetings) {
+            const meetingData = {
+              title: templateMeeting.title,
+              date: templateMeeting.date,
+              info: templateMeeting.info,
+              agenda: templateMeeting.agenda || '',
+              workspaceId: workspaceRef.id, // Masukkan ke ID grup yang baru dibuat
+              createdBy: currentUser.uid,
+              sections: templateMeeting.sections.map(section => ({
+                id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
+                name: section.name,
+                assignedEmails: section.assignedEmails || '',
+                tasks: section.tasks.map(task => ({
+                  id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
+                  desc: task.desc,
+                  status: task.status,
+                  progress: task.progress,
+                  pic: task.pic,
+                  notes: task.notes,
+                  deadline: task.deadline || ''
+                }))
+              }))
+            };
+            await db.collection('meetings').add(meetingData);
+          }
+          // ---------------------------------------------------------------------
+
           document.getElementById('workspaceModal').classList.remove('active');
           document.getElementById('workspaceNameInput').value = '';
           document.getElementById('workspaceDescInput').value = '';
