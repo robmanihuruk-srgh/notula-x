@@ -881,7 +881,11 @@
         if (!currentUser) return;
         try {
           let workspaceId = null;
-          const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
+          const workspaceQuery = await db.collection('workspaces')
+            .where('name', '==', 'Rapat Pesparawi Distrik VII')
+            .where('createdBy', '==', currentUser.uid)
+            .get();
+            
           if (!workspaceQuery.empty) {
             workspaceId = workspaceQuery.docs[0].id;
           } else {
@@ -936,7 +940,11 @@
         if (userRole !== 'admin') return;
         if (!confirm('Reset data default? Semua grup "Rapat Pesparawi Distrik VII" dan rapat di dalamnya akan dihapus, lalu ditambahkan ulang. Data lain tidak terpengaruh.')) return;
         try {
-          const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
+          const workspaceQuery = await db.collection('workspaces')
+            .where('name', '==', 'Rapat Pesparawi Distrik VII')
+            .where('createdBy', '==', currentUser.uid)
+            .get();
+            
           for (const doc of workspaceQuery.docs) {
             const meetingsInGroup = await db.collection('meetings').where('workspaceId', '==', doc.id).get();
             for (const m of meetingsInGroup.docs) {
@@ -2565,9 +2573,14 @@
 
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker berhasil didaftarkan!', reg.scope))
-            .catch(err => console.log('Service Worker gagal:', err));
+          // Pengecekan agar tidak error saat berjalan di lingkungan blob/lokal (Preview)
+          if (window.location.protocol === 'https:' || window.location.protocol === 'http:') {
+            navigator.serviceWorker.register('./sw.js')
+              .then(reg => console.log('Service Worker berhasil didaftarkan!', reg.scope))
+              .catch(err => console.log('Service Worker gagal:', err));
+          } else {
+            console.log('Service Worker dilewati karena aplikasi sedang berjalan di mode preview/lokal.');
+          }
         });
       }
 
