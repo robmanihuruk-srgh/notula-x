@@ -881,11 +881,7 @@
         if (!currentUser) return;
         try {
           let workspaceId = null;
-          const workspaceQuery = await db.collection('workspaces')
-            .where('name', '==', 'Rapat Pesparawi Distrik VII')
-            .where('createdBy', '==', currentUser.uid)
-            .get();
-            
+          const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
           if (!workspaceQuery.empty) {
             workspaceId = workspaceQuery.docs[0].id;
           } else {
@@ -940,11 +936,7 @@
         if (userRole !== 'admin') return;
         if (!confirm('Reset data default? Semua grup "Rapat Pesparawi Distrik VII" dan rapat di dalamnya akan dihapus, lalu ditambahkan ulang. Data lain tidak terpengaruh.')) return;
         try {
-          const workspaceQuery = await db.collection('workspaces')
-            .where('name', '==', 'Rapat Pesparawi Distrik VII')
-            .where('createdBy', '==', currentUser.uid)
-            .get();
-            
+          const workspaceQuery = await db.collection('workspaces').where('name', '==', 'Rapat Pesparawi Distrik VII').get();
           for (const doc of workspaceQuery.docs) {
             const meetingsInGroup = await db.collection('meetings').where('workspaceId', '==', doc.id).get();
             for (const m of meetingsInGroup.docs) {
@@ -1340,41 +1332,13 @@
         const desc = document.getElementById('workspaceDescInput').value.trim();
         if (!name) return alert('Nama grup harus diisi');
         try {
-          const workspaceRef = await db.collection('workspaces').add({
+          await db.collection('workspaces').add({
             name,
             description: desc,
             createdBy: currentUser.uid,
             members: [currentUser.uid], 
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
-
-          // --- TAMBAHAN BARU: OTOMATIS INJECT TEMPLATE JOB DESC KE GRUP BARU ---
-          const templateMeeting = defaultMeetings[0]; // Mengambil "Panduan Job Desc & RAB" dari data default
-          const meetingData = {
-            title: templateMeeting.title,
-            date: templateMeeting.date,
-            info: templateMeeting.info,
-            agenda: templateMeeting.agenda || '',
-            workspaceId: workspaceRef.id, // Masukkan ke ID grup yang baru dibuat
-            createdBy: currentUser.uid,
-            sections: templateMeeting.sections.map(section => ({
-              id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
-              name: section.name,
-              assignedEmails: section.assignedEmails || '',
-              tasks: section.tasks.map(task => ({
-                id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '_' + Math.random().toString(36).substring(2, 8),
-                desc: task.desc,
-                status: task.status,
-                progress: task.progress,
-                pic: task.pic,
-                notes: task.notes,
-                deadline: task.deadline || ''
-              }))
-            }))
-          };
-          await db.collection('meetings').add(meetingData);
-          // ---------------------------------------------------------------------
-
           document.getElementById('workspaceModal').classList.remove('active');
           document.getElementById('workspaceNameInput').value = '';
           document.getElementById('workspaceDescInput').value = '';
@@ -2601,14 +2565,9 @@
 
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // Pengecekan agar tidak error saat berjalan di lingkungan blob/lokal (Preview)
-          if (window.location.protocol === 'https:' || window.location.protocol === 'http:') {
-            navigator.serviceWorker.register('./sw.js')
-              .then(reg => console.log('Service Worker berhasil didaftarkan!', reg.scope))
-              .catch(err => console.log('Service Worker gagal:', err));
-          } else {
-            console.log('Service Worker dilewati karena aplikasi sedang berjalan di mode preview/lokal.');
-          }
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker berhasil didaftarkan!', reg.scope))
+            .catch(err => console.log('Service Worker gagal:', err));
         });
       }
 
