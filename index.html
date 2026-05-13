@@ -1338,8 +1338,15 @@
       document.getElementById('saveWorkspaceModal').addEventListener('click', async () => {
         const name = document.getElementById('workspaceNameInput').value.trim();
         const desc = document.getElementById('workspaceDescInput').value.trim();
+        const saveBtn = document.getElementById('saveWorkspaceModal'); // Mengambil elemen tombol simpan
+        
         if (!name) return alert('Nama grup harus diisi');
+        
         try {
+          // Mengubah teks tombol menjadi indikator loading
+          saveBtn.innerText = 'Menyiapkan Template...';
+          saveBtn.disabled = true;
+
           const workspaceRef = await db.collection('workspaces').add({
             name,
             description: desc,
@@ -1380,8 +1387,17 @@
           document.getElementById('workspaceModal').classList.remove('active');
           document.getElementById('workspaceNameInput').value = '';
           document.getElementById('workspaceDescInput').value = '';
+
+          // Otomatis membuka grup yang baru saja dibuat agar template langsung terlihat di layar
+          currentWorkspaceId = workspaceRef.id;
+          currentMeetingId = null;
+
         } catch (error) {
           alert('Gagal membuat grup: ' + error.message);
+        } finally {
+          // Mengembalikan teks tombol seperti semula
+          saveBtn.innerText = 'Buat Grup';
+          saveBtn.disabled = false;
         }
       });
 
