@@ -2205,5 +2205,315 @@
 
     })();
   </script>
+  <style>
+/* --- CSS MOM MODAL --- */
+#mom-modal {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+}
+.mom-content {
+    background: white; width: 95%; max-width: 800px; max-height: 90vh; overflow-y: auto;
+    border-radius: 16px; padding: 28px; font-family: 'Inter', sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.mom-header-top {
+    display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--color-primary); padding-bottom: 16px; margin-bottom: 24px;
+}
+.mom-header-top h2 { color: var(--color-secondary); margin: 0; font-size: 1.5rem;}
+.mom-section { margin-bottom: 24px; }
+.mom-section h3 { background: #fff4e6; padding: 10px 14px; border-left: 5px solid var(--color-primary); margin-bottom: 16px; font-size: 1.1rem; color: var(--color-secondary); border-radius: 4px; }
+.mom-input-group { margin-bottom: 16px; }
+.mom-input-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; color: var(--color-text); }
+.mom-input-group input, .mom-input-group textarea { 
+    width: 100%; padding: 10px 14px; border: 1px solid var(--color-border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 0.95rem; background: #fafbfc;
+}
+.mom-input-group input:focus, .mom-input-group textarea:focus { border-color: var(--color-primary); outline: none; background: white;}
+.mom-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.9rem; }
+.mom-table th, .mom-table td { border: 1px solid var(--color-border); padding: 10px 14px; text-align: left; }
+.mom-table th { background: var(--color-primary); color: white; font-weight: 600; }
+.mom-table tr:nth-child(even) { background: #f9fbfc; }
+.mom-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 30px; border-top: 1px solid var(--color-border); padding-top: 20px; }
+.btn-mom { padding: 12px 24px; border-radius: 30px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: all 0.2s; display: flex; align-items: center; gap: 8px;}
+.btn-save-mom { background: var(--color-secondary); color: white; }
+.btn-save-mom:hover { background: #15344e; }
+.btn-export-mom { background: var(--color-primary); color: white; }
+.btn-export-mom:hover { background: var(--color-primary-dark); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(249,115,22,0.3);}
+.btn-close-mom { background: #e2e8f0; color: var(--color-text); }
+.btn-close-mom:hover { background: #cbd5e1; }
+</style>
+
+<div id="mom-modal">
+    <div class="mom-content">
+        <div class="mom-header-top">
+            <h2><i class="fas fa-file-signature"></i> Minutes of Meeting (MoM)</h2>
+            <button class="btn-mom btn-close-mom" onclick="closeMOM()" style="padding: 8px 16px;"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div class="mom-section">
+            <h3>1. Informasi Rapat</h3>
+            <div class="mom-input-group">
+                <label>Judul Rapat</label>
+                <input type="text" id="mom-title" readonly style="background: #eef2f6; font-weight: bold;">
+            </div>
+            <div style="display:flex; gap: 16px; flex-wrap: wrap;">
+                <div class="mom-input-group" style="flex: 1; min-width: 200px;">
+                    <label>Tanggal Pelaksanaan</label>
+                    <input type="text" id="mom-date" readonly style="background: #eef2f6;">
+                </div>
+                <div class="mom-input-group" style="flex: 1; min-width: 200px;">
+                    <label>Waktu & Lokasi</label>
+                    <input type="text" id="mom-location" placeholder="Contoh: 10:00 - 12:00 WIB, Ruang Meeting Utama">
+                </div>
+            </div>
+            <div class="mom-input-group">
+                <label>Daftar Peserta (Hadir)</label>
+                <textarea id="mom-attendees" rows="2" placeholder="Nama peserta, pisahkan dengan koma..."></textarea>
+            </div>
+        </div>
+
+        <div class="mom-section">
+            <h3>2. Agenda & Poin Pembahasan</h3>
+            <div class="mom-input-group">
+                <textarea id="mom-discussion" rows="6" placeholder="Tuliskan detail pembahasan rapat, keputusan yang diambil, dsb..."></textarea>
+            </div>
+        </div>
+
+        <div class="mom-section">
+            <h3>3. Action Items (Otomatis)</h3>
+            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">Tabel di bawah ini ditarik otomatis dari daftar Tugas/Item di layar rapat ini.</p>
+            <table class="mom-table" id="mom-tasks-table">
+                <thead>
+                    <tr>
+                        <th>Tugas / Deskripsi</th>
+                        <th>PIC</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="mom-actions">
+            <button class="btn-mom btn-close-mom" onclick="closeMOM()">Batal</button>
+            <button class="btn-mom btn-save-mom" onclick="saveMOM()"><i class="fas fa-save"></i> Simpan Draft</button>
+            <button class="btn-mom btn-export-mom" onclick="exportMOMToPDF()"><i class="fas fa-file-pdf"></i> Cetak PDF</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 1. Menambahkan Tombol "Buat MoM" secara otomatis di sebelah kanan Judul Rapat
+function injectMOMButton() {
+    const headerActions = document.querySelector('.header-actions');
+    if (headerActions && !document.getElementById('btn-open-mom')) {
+        const momBtn = document.createElement('button');
+        momBtn.id = 'btn-open-mom';
+        momBtn.className = 'btn-header';
+        momBtn.style.borderColor = '#1e4a6d';
+        momBtn.style.color = '#1e4a6d';
+        momBtn.innerHTML = '<i class="fas fa-file-signature"></i> Buat MoM';
+        momBtn.onclick = openMOM;
+        
+        momBtn.onmouseover = () => { momBtn.style.backgroundColor = '#1e4a6d'; momBtn.style.color = 'white'; };
+        momBtn.onmouseout = () => { momBtn.style.backgroundColor = 'transparent'; momBtn.style.color = '#1e4a6d'; };
+
+        headerActions.insertBefore(momBtn, headerActions.firstChild);
+    }
+}
+
+// Pantau UI agar tombol MoM tidak hilang saat berganti rapat
+const observerMOM = new MutationObserver(injectMOMButton);
+window.addEventListener('load', () => {
+    const headerTitle = document.querySelector('.header-title');
+    if(headerTitle) observerMOM.observe(headerTitle, { childList: true, subtree: true });
+    injectMOMButton();
+});
+
+// 2. Fungsi Membuka MoM Modal
+function openMOM() {
+    const headerTitleEl = document.querySelector('.header-title h2');
+    const headerDateEl = document.querySelector('.header-title p');
+    
+    if (!headerTitleEl) {
+        alert("Silakan pilih rapat terlebih dahulu!");
+        return;
+    }
+
+    const meetingTitle = headerTitleEl.innerText.trim();
+    const meetingDate = headerDateEl ? headerDateEl.innerText.replace('Kalender', '').trim() : '';
+
+    document.getElementById('mom-title').value = meetingTitle;
+    document.getElementById('mom-date').value = meetingDate;
+    
+    // Load Draft MoM (Cek Firebase / Local Storage)
+    if (typeof db !== 'undefined' && typeof currentWorkspaceId !== 'undefined' && typeof currentMeetingId !== 'undefined' && currentMeetingId) {
+        db.collection('workspaces').doc(currentWorkspaceId).collection('meetings').doc(currentMeetingId).get()
+        .then(doc => {
+            if(doc.exists && doc.data().mom) {
+                const momData = doc.data().mom;
+                document.getElementById('mom-location').value = momData.location || '';
+                document.getElementById('mom-attendees').value = momData.attendees || '';
+                document.getElementById('mom-discussion').value = momData.discussion || '';
+            } else resetMOMInputs();
+        }).catch(() => resetMOMInputs());
+    } else {
+        const localMom = localStorage.getItem('mom_' + meetingTitle);
+        if (localMom) {
+            const momData = JSON.parse(localMom);
+            document.getElementById('mom-location').value = momData.location || '';
+            document.getElementById('mom-attendees').value = momData.attendees || '';
+            document.getElementById('mom-discussion').value = momData.discussion || '';
+        } else resetMOMInputs();
+    }
+
+    // Tarik Action Items otomatis dari layar (tanpa merusak array asli)
+    const tbody = document.querySelector('#mom-tasks-table tbody');
+    tbody.innerHTML = '';
+    
+    const taskItems = document.querySelectorAll('.task-item');
+    let hasTask = false;
+
+    taskItems.forEach(item => {
+        hasTask = true;
+        const desc = item.querySelector('.task-desc') ? item.querySelector('.task-desc').innerText.trim() : '-';
+        const pic = item.querySelector('.task-pic') ? item.querySelector('.task-pic').innerText.trim() : '-';
+        const status = item.querySelector('.status-badge') ? item.querySelector('.status-badge').innerText.trim() : '-';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${desc}</td><td>${pic}</td><td><span style="font-weight:bold;">${status}</span></td>`;
+        tbody.appendChild(tr);
+    });
+
+    if(!hasTask) {
+         tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#94a3b8; font-style:italic;">Belum ada tugas/action items.</td></tr>';
+    }
+
+    document.getElementById('mom-modal').style.display = 'flex';
+}
+
+function resetMOMInputs() {
+    document.getElementById('mom-location').value = '';
+    document.getElementById('mom-attendees').value = '';
+    document.getElementById('mom-discussion').value = '';
+}
+
+function closeMOM() {
+    document.getElementById('mom-modal').style.display = 'none';
+}
+
+// 3. Fungsi Simpan Draft
+function saveMOM() {
+    const momData = {
+        location: document.getElementById('mom-location').value,
+        attendees: document.getElementById('mom-attendees').value,
+        discussion: document.getElementById('mom-discussion').value
+    };
+
+    if (typeof db !== 'undefined' && typeof currentWorkspaceId !== 'undefined' && typeof currentMeetingId !== 'undefined' && currentMeetingId) {
+        db.collection('workspaces').doc(currentWorkspaceId).collection('meetings').doc(currentMeetingId)
+            .set({ mom: momData }, { merge: true })
+            .then(() => alert('Draft MoM berhasil disimpan!'))
+            .catch(err => alert('Gagal menyimpan MoM.'));
+    } else {
+        localStorage.setItem('mom_' + document.getElementById('mom-title').value, JSON.stringify(momData));
+        alert('Draft MoM disimpan di perangkat Anda!');
+    }
+}
+
+// 4. Fungsi Export ke PDF Profesional
+function exportMOMToPDF() {
+    if (!window.jspdf) {
+        alert("Sistem PDF belum siap, pastikan koneksi internet aktif.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    const title = document.getElementById('mom-title').value;
+    const date = document.getElementById('mom-date').value;
+    const location = document.getElementById('mom-location').value;
+    const attendees = document.getElementById('mom-attendees').value;
+    const discussion = document.getElementById('mom-discussion').value;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(249, 115, 22);
+    doc.text("MINUTES OF MEETING (MoM)", 105, 20, null, null, "center");
+    
+    doc.setDrawColor(220, 220, 220);
+    doc.line(14, 25, 196, 25);
+
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text("A. INFORMASI RAPAT", 14, 35);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Judul Rapat   : ${title}`, 14, 43);
+    doc.text(`Tanggal         : ${date}`, 14, 50);
+    doc.text(`Waktu/Lokasi  : ${location}`, 14, 57);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Daftar Hadir  :", 14, 64);
+    doc.setFont("helvetica", "normal");
+    const splitAttendees = doc.splitTextToSize(attendees || '-', 150);
+    doc.text(splitAttendees, 45, 64);
+    
+    let yPos = 64 + (splitAttendees.length * 5) + 5;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("B. AGENDA & POIN PEMBAHASAN", 14, yPos);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    yPos += 7;
+    const splitDiscussion = doc.splitTextToSize(discussion || '-', 180);
+    doc.text(splitDiscussion, 14, yPos);
+
+    yPos += (splitDiscussion.length * 5) + 10;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("C. ACTION ITEMS", 14, yPos);
+    yPos += 5;
+
+    const tableRows = [];
+    document.querySelectorAll('#mom-tasks-table tbody tr').forEach(tr => {
+        const rowData = [];
+        tr.querySelectorAll('td').forEach(td => rowData.push(td.innerText));
+        if(rowData.length === 3) tableRows.push(rowData);
+    });
+
+    if (tableRows.length > 0 && tableRows[0][0] !== "Belum ada tugas/action items.") {
+        doc.autoTable({
+            startY: yPos,
+            head: [['Tugas / Deskripsi', 'PIC', 'Status']],
+            body: tableRows,
+            theme: 'grid',
+            styles: { fontSize: 9, font: 'helvetica' },
+            headStyles: { fillColor: [30, 74, 109], textColor: [255, 255, 255] }, 
+            alternateRowStyles: { fillColor: [249, 251, 253] }
+        });
+        yPos = doc.lastAutoTable.finalY + 15;
+    } else {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.text("Tidak ada action items / tugas yang dicatat.", 14, yPos + 5);
+        yPos += 15;
+    }
+
+    if (yPos > 250) { doc.addPage(); yPos = 20; }
+    
+    doc.setFont("helvetica", "normal");
+    doc.text("Dibuat oleh,", 150, yPos);
+    doc.text("____________________", 145, yPos + 25);
+    doc.text("Notulis / Pencatat", 152, yPos + 30);
+
+    doc.save(`MoM_${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+}
+</script>
 </body>
+
 </html>
