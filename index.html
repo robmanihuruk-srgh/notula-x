@@ -53,10 +53,13 @@
     }
   </style>
   
+  <!-- SDK Firebase Diperbarui: Menambahkan Database (RTDB) untuk logika GSM Planner -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -595,7 +598,7 @@
         authDomain: "dologmasagaltangerang.firebaseapp.com",
         databaseURL: "https://dologmasagaltangerang-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "dologmasagaltangerang",
-        storageBucket: "dologmasagaltangerang.firebasestorage.app",
+        storageBucket: "dologmasagaltangerang.appspot.com",
         messagingSenderId: "800663657726",
         appId: "1:800663657726:web:182efd830d62c8637359af",
         measurementId: "G-FD0TTQ89WC"
@@ -604,6 +607,8 @@
       const auth = firebase.auth();
       const db = firebase.firestore();
       const storage = firebase.storage();
+      // Inisiasi Realtime Database sesuai GSM Planner
+      const rtdb = firebase.database();
 
       // ========== GLOBAL STATE ==========
       let meetings = [];
@@ -619,6 +624,30 @@
       let unsubscribeWorkspaces = null;
       let selectedMeetingIds = new Set();
       let selectedWorkspaceIds = new Set();
+
+      // FUNGSI MENGUNDUH BASE64 DARI REALTIME DATABASE
+      window.downloadRtdbAttachment = async function(rtdbId, fileName, btnElement) {
+        const originalText = btnElement.innerHTML;
+        btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunduh...';
+        try {
+            const snapshot = await firebase.database().ref('notula_attachments/' + rtdbId).once('value');
+            const val = snapshot.val();
+            if (val && val.data) {
+                const a = document.createElement('a');
+                a.href = val.data;
+                a.download = val.name || fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } else {
+                alert('File tidak ditemukan di database (mungkin sudah terhapus).');
+            }
+        } catch (e) {
+            alert('Gagal mengunduh file: ' + e.message);
+        } finally {
+            btnElement.innerHTML = originalText;
+        }
+      };
 
       // ========== DATA DEFAULT LENGKAP ==========
       const defaultMeetings = [
@@ -1871,12 +1900,17 @@
           const deadline = task.deadline ? new Date(task.deadline) : null;
           const deadlineStr = deadline ? deadline.toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
           
-          // --- RENDER LAMPIRAN FILE ---
+          // --- RENDER LAMPIRAN FILE (DUKUNGAN RTDB) ---
           let attachmentsHtml = '';
           if (task.attachments && task.attachments.length > 0) {
             attachmentsHtml = `<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; margin-left: 110px;">`;
             task.attachments.forEach(att => {
-              attachmentsHtml += `<a href="${att.url}" target="_blank" style="font-size: 0.75rem; background: #eaf0f6; padding: 4px 10px; border-radius: 20px; text-decoration: none; color: var(--color-secondary); border: 1px solid #d1dfea; transition: 0.2s;"><i class="fas fa-paperclip"></i> ${escapeHtml(att.name)}</a>`;
+              // Jika ini adalah file yang diupload dengan logika RTDB (seperti GSM Planner)
+              if (att.path === 'rtdb') {
+                 attachmentsHtml += `<a href="#" onclick="downloadRtdbAttachment('${att.rtdbId}', '${escapeHtml(att.name)}', this); return false;" style="font-size: 0.75rem; background: #eaf0f6; padding: 4px 10px; border-radius: 20px; text-decoration: none; color: var(--color-secondary); border: 1px solid #d1dfea; transition: 0.2s;"><i class="fas fa-paperclip"></i> ${escapeHtml(att.name)}</a>`;
+              } else {
+                 attachmentsHtml += `<a href="${att.url}" target="_blank" style="font-size: 0.75rem; background: #eaf0f6; padding: 4px 10px; border-radius: 20px; text-decoration: none; color: var(--color-secondary); border: 1px solid #d1dfea; transition: 0.2s;"><i class="fas fa-paperclip"></i> ${escapeHtml(att.name)}</a>`;
+              }
             });
             attachmentsHtml += `</div>`;
           }
@@ -2238,9 +2272,17 @@
         // Load lampiran jika ada
         if (task && task.attachments && task.attachments.length > 0) {
           task.attachments.forEach((att, index) => {
+            let linkHtml = '';
+            // Membedakan tombol antara file base64 RTDB vs file Storage lawas
+            if (att.path === 'rtdb') {
+               linkHtml = `<a href="#" onclick="downloadRtdbAttachment('${att.rtdbId}', '${escapeHtml(att.name)}', this); return false;" style="font-size:0.85rem; color:var(--color-primary); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;"><i class="fas fa-file-alt"></i> ${escapeHtml(att.name)}</a>`;
+            } else {
+               linkHtml = `<a href="${att.url}" target="_blank" style="font-size:0.85rem; color:var(--color-primary); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;"><i class="fas fa-file-alt"></i> ${escapeHtml(att.name)}</a>`;
+            }
+
             attachmentList.innerHTML += `
               <div style="display:flex; justify-content:space-between; align-items:center; background:#f4f7fb; padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0;">
-                <a href="${att.url}" target="_blank" style="font-size:0.85rem; color:var(--color-primary); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;"><i class="fas fa-file-alt"></i> ${escapeHtml(att.name)}</a>
+                ${linkHtml}
                 <button type="button" onclick="deleteAttachment('${taskId}', ${index})" style="background:none; border:none; color:#dc3545; cursor:pointer;" title="Hapus File"><i class="fas fa-trash-alt"></i></button>
               </div>
             `;
@@ -2259,9 +2301,15 @@
         if (task && task.attachments) {
           const att = task.attachments[attachmentIndex];
           try {
-            if (att.path) await storage.ref(att.path).delete();
+            if (att.path === 'rtdb' && att.rtdbId) {
+                // Menghapus data base64 dari Realtime Database
+                await firebase.database().ref('notula_attachments/' + att.rtdbId).remove();
+            } else if (att.path && att.path !== 'rtdb') {
+                // Backward compatibility untuk file lama yang ada di Storage
+                await storage.ref(att.path).delete();
+            }
           } catch (e) {
-            console.log("File tidak ditemukan di storage", e);
+            console.log("File tidak ditemukan atau sudah terhapus di database", e);
           }
           task.attachments.splice(attachmentIndex, 1);
           try {
@@ -2276,6 +2324,7 @@
 
       document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
       
+      // ===== LOGIKA UPLOAD (DIPERBARUI MENGIKUTI GSM PLANNER) =====
       document.getElementById('saveTaskModal').addEventListener('click', async () => {
         if (!currentMeetingId || !currentSectionId) return;
         const meeting = meetings.find(m => m.id === currentMeetingId);
@@ -2295,62 +2344,85 @@
         const existingTask = currentTaskId ? section?.tasks.find(t => t.id === currentTaskId) : null;
         let attachments = existingTask && existingTask.attachments ? [...existingTask.attachments] : [];
 
-        try {
-          // Jika ada file yang dimasukkan
-          if (fileInput.files.length > 0) {
+        // JIKA ADA FILE YANG DIUNGGAH
+        if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            const maxSize = 2 * 1024 * 1024; // Limit 2MB sesuai referensi GSM Planner
+            const maxSize = 2 * 1024 * 1024; // Limit maksimal 2MB
 
             if (file.size > maxSize) {
               alert('Ukuran file terlalu besar! Maksimal 2MB.');
-              return; // Menghentikan proses (tombol otomatis normal kembali karena blok 'finally')
+              return; 
             }
 
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunggah 0%...';
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses file...';
             saveBtn.disabled = true;
+
+            const reader = new FileReader();
             
-            const storageRef = storage.ref('attachments/' + Date.now() + '_' + file.name);
-            const uploadTask = storageRef.put(file);
-
-            await new Promise((resolve, reject) => {
-              uploadTask.on('state_changed',
-                (snapshot) => {
-                  const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-                  saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Mengunggah ${progress}%...`;
-                },
-                (error) => {
-                  reject(error);
-                },
-                async () => {
-                  try {
-                    const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                    attachments.push({
-                      name: file.name,
-                      url: downloadURL,
-                      path: uploadTask.snapshot.ref.fullPath
+            // Saat FileReader berhasil membaca file menjadi format Base64 Text
+            reader.onload = async function(e) {
+                try {
+                    const base64Data = e.target.result;
+                    // Buat ID unik untuk di Realtime Database
+                    const attachmentId = 'att_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                    
+                    // LAKUKAN BYPASS (SEPERTI GSM PLANNER)
+                    // Kita simpan string Base64 langsung ke Realtime Database, bukan Storage
+                    await firebase.database().ref('notula_attachments/' + attachmentId).set({
+                        data: base64Data,
+                        name: file.name
                     });
-                    resolve();
-                  } catch (err) {
-                    reject(err);
-                  }
-                }
-              );
-            });
-          }
 
-          const taskData = { desc, status, progress, pic, notes, deadline, attachments };
-          if (currentTaskId) taskData.id = currentTaskId;
-          
-          saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
-          await saveTask(taskData, currentSectionId);
-          
-          fileInput.value = ''; 
-          closeAllModals();
-        } catch (error) {
-          alert('Gagal menyimpan tugas atau mengunggah file: ' + error.message);
-        } finally {
-          saveBtn.innerText = 'Simpan';
-          saveBtn.disabled = false;
+                    // Hanya mereferensikan ID-nya ke Firestore agar dokumen Firestore tidak over-limit 1MB
+                    attachments.push({
+                        name: file.name,
+                        url: '#', 
+                        rtdbId: attachmentId,
+                        path: 'rtdb'
+                    });
+                    
+                    const taskData = { desc, status, progress, pic, notes, deadline, attachments };
+                    if (currentTaskId) taskData.id = currentTaskId;
+                    
+                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+                    await saveTask(taskData, currentSectionId);
+                    
+                    fileInput.value = ''; 
+                    closeAllModals();
+                } catch (err) {
+                    alert('Gagal menyimpan lampiran: ' + err.message);
+                } finally {
+                    saveBtn.innerText = 'Simpan';
+                    saveBtn.disabled = false;
+                }
+            };
+            
+            // Jika ada masalah saat membaca file
+            reader.onerror = function() {
+                alert('Gagal membaca file.');
+                saveBtn.innerText = 'Simpan';
+                saveBtn.disabled = false;
+            };
+            
+            // Trigger eksekusi FileReader
+            reader.readAsDataURL(file);
+
+        } else {
+            // JIKA TANPA FILE (Save Normal)
+            try {
+                const taskData = { desc, status, progress, pic, notes, deadline, attachments };
+                if (currentTaskId) taskData.id = currentTaskId;
+                
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+                saveBtn.disabled = true;
+                await saveTask(taskData, currentSectionId);
+                closeAllModals();
+            } catch (error) {
+                alert('Gagal menyimpan tugas: ' + error.message);
+            } finally {
+                saveBtn.innerText = 'Simpan';
+                saveBtn.disabled = false;
+            }
         }
       });
 
