@@ -13,10 +13,10 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/jpeg" href="pic_ (2).jpg">
   
-  <!-- MENGGUNAKAN TEKNIK FONT GSM PLANNER -->
+  <!-- MENGGUNAKAN MULTIPLE GOOGLE FONTS UNTUK FITUR GANTI FONT -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Lora:wght@400;500&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   
   <!-- SDK Firebase -->
@@ -30,12 +30,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   
-  <!-- THEME STYLE DEFAULT GSM PLANNER (Navy & Gold) -->
+  <!-- THEME STYLE DEFAULT -->
   <style id="theme-style">
     :root {
-      --color-primary: #b8860b;      /* Dark Goldenrod */
+      --color-primary: #b8860b;      
       --color-primary-dark: #9b7208;
-      --color-secondary: #1a2b4c;    /* Elegant Navy */
+      --color-secondary: #1a2b4c;    
       --color-secondary-light: #2a3c65;
       --color-bg-light: #f4f7fb;
       --color-card-bg: #ffffff;
@@ -47,11 +47,16 @@
     }
   </style>
   <style>
-    /* ===== CSS MENGGUNAKAN TEKNIK GSM PLANNER ===== */
+    /* DEKLARASI FONT VARIABEL */
+    :root {
+        --font-heading: 'Playfair Display', serif;
+        --font-body: 'Poppins', sans-serif;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body { 
-      font-family: 'Poppins', sans-serif; 
+      font-family: var(--font-body); 
       background: url('pic_ (2).jpg') center/cover fixed; 
       color: var(--color-text); 
       height: 100vh; 
@@ -59,8 +64,8 @@
       overflow: hidden; 
     }
 
-    h1, h2, h3, h4, .meeting-title, .dashboard-title, .section-title h4, .modal-content h3 {
-      font-family: 'Playfair Display', serif;
+    h1, h2, h3, h4, .meeting-title, .dashboard-title, .section-title h4, .modal-content h3, .global-dashboard h3, .stat-value, .global-stat-value {
+      font-family: var(--font-heading);
     }
     
     .sidebar { width: 280px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-right: 1px solid var(--color-border); display: flex; flex-direction: column; box-shadow: 2px 0 15px rgba(0,0,0,0.05); z-index: 10; }
@@ -70,7 +75,7 @@
     .sidebar-header { padding: 24px 20px; border-bottom: 1px solid var(--color-border); }
     .sidebar-header h1 { font-size: 1.5rem; font-weight: 700; color: var(--color-secondary); display: flex; align-items: center; gap: 10px; }
     
-    .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default { width: 100%; margin-top: 12px; background: var(--color-primary); color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 500; font-family: 'Poppins', sans-serif; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default { width: 100%; margin-top: 12px; background: var(--color-primary); color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 500; font-family: var(--font-body); font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     .btn-new:hover, .btn-delete-selected:hover, .btn-new-workspace:hover, .btn-reset-default:hover { background: var(--color-primary-dark); transform: translateY(-1px); box-shadow: 0 6px 8px rgba(0,0,0,0.1); }
     .btn-delete-selected { background: #dc3545; }
     .btn-delete-selected:hover { background: #b52b3a; }
@@ -81,7 +86,7 @@
     .btn-reset-default:hover { background: #475569; }
     
     .workspace-section { padding: 16px; border-bottom: 1px solid var(--color-border); }
-    .workspace-section h3 { font-size: 0.85rem; font-family: 'Poppins', sans-serif; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-light); margin-bottom: 12px; font-weight: 600; }
+    .workspace-section h3 { font-size: 0.85rem; font-family: var(--font-body); text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-light); margin-bottom: 12px; font-weight: 600; }
     .workspace-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; transition: background 0.2s; border: 1px solid transparent; }
     .workspace-item.active { background: rgba(184, 134, 11, 0.1); border-color: rgba(184, 134, 11, 0.2); border-left: 4px solid var(--color-primary); }
     .workspace-item:hover { background: #f8fafc; border-color: var(--color-border); }
@@ -101,19 +106,22 @@
     .meeting-checkbox { flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary); }
     .meeting-content { flex: 1; overflow: hidden; }
     .meeting-title { font-weight: 600; font-size: 1.05rem; color: var(--color-secondary); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .meeting-date { font-size: 0.8rem; font-family: 'Poppins', sans-serif; color: var(--color-text-light); display: flex; align-items: center; gap: 6px; }
+    .meeting-date { font-size: 0.8rem; font-family: var(--font-body); color: var(--color-text-light); display: flex; align-items: center; gap: 6px; }
     
     .header-title h2 { font-weight: 700; font-size: 1.75rem; color: var(--color-secondary); letter-spacing: -0.5px; }
-    .header-title p { font-size: 0.9rem; font-family: 'Poppins', sans-serif; color: var(--color-text-light); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+    .header-title p { font-size: 0.9rem; font-family: var(--font-body); color: var(--color-text-light); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
     .header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     
-    .btn-header { background: #ffffff; border: 1px solid var(--color-border); padding: 8px 16px; border-radius: 8px; color: var(--color-text); font-weight: 500; font-family: 'Poppins', sans-serif; font-size: 0.9rem; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .btn-header { background: #ffffff; border: 1px solid var(--color-border); padding: 8px 16px; border-radius: 8px; color: var(--color-text); font-weight: 500; font-family: var(--font-body); font-size: 0.9rem; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
     .btn-header:hover { background: var(--color-bg-light); border-color: #cbd5e1; color: var(--color-secondary); }
     .btn-header:disabled { opacity: 0.4; pointer-events: none; }
-    .btn-edit-meeting { background: #ffffff; border: 1px solid var(--color-secondary); padding: 8px 16px; border-radius: 8px; color: var(--color-secondary); font-weight: 500; font-family: 'Poppins', sans-serif; font-size: 0.9rem; cursor: pointer; transition: 0.2s; }
+    .btn-edit-meeting { background: #ffffff; border: 1px solid var(--color-secondary); padding: 8px 16px; border-radius: 8px; color: var(--color-secondary); font-weight: 500; font-family: var(--font-body); font-size: 0.9rem; cursor: pointer; transition: 0.2s; }
     .btn-edit-meeting:hover { background: var(--color-secondary); color: white; }
-    .btn-delete-meeting { background: #ffffff; border: 1px solid #dc3545; padding: 8px 16px; border-radius: 8px; color: #dc3545; font-weight: 500; font-family: 'Poppins', sans-serif; font-size: 0.9rem; cursor: pointer; transition: 0.2s; }
+    .btn-delete-meeting { background: #ffffff; border: 1px solid #dc3545; padding: 8px 16px; border-radius: 8px; color: #dc3545; font-weight: 500; font-family: var(--font-body); font-size: 0.9rem; cursor: pointer; transition: 0.2s; }
     .btn-delete-meeting:hover { background: #dc3545; color: white; }
+    
+    /* CUSTOM FONT SELECTOR */
+    .font-switcher-select { appearance: none; background: #f8fafc url('data:image/svg+xml;utf8,<svg fill="%23334155" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>') no-repeat right 8px center; padding-right: 30px; }
     
     .theme-switcher { display: flex; gap: 6px; margin-left: 10px; padding: 4px; background: var(--color-bg-light); border-radius: 20px; border: 1px solid var(--color-border); }
     .theme-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
@@ -121,8 +129,11 @@
     .theme-btn.gsm { background: linear-gradient(145deg, #b8860b, #1a2b4c); }
     .theme-btn.orange { background: linear-gradient(145deg, #f97316, #1e4a6d); }
     .theme-btn.green { background: linear-gradient(145deg, #16a34a, #1e3a5f); }
-    .theme-btn.purple { background: linear-gradient(145deg, #9333ea, #0f3b5e); }
-    .theme-btn.red { background: linear-gradient(145deg, #e63946, #2c3e50); }
+    .theme-btn.blue { background: linear-gradient(145deg, #3498db, #2c3e50); }
+    /* NEW THEMES */
+    .theme-btn.maroon { background: linear-gradient(145deg, #9f1239, #4c0519); }
+    .theme-btn.teal { background: linear-gradient(145deg, #0d9488, #134e4a); }
+    .theme-btn.dark { background: linear-gradient(145deg, #475569, #0f172a); }
     
     .user-info { display: flex; align-items: center; gap: 12px; background: #ffffff; border: 1px solid var(--color-border); padding: 6px 16px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
     .user-info span { font-size: 0.85rem; font-weight: 500; color: var(--color-secondary); }
@@ -148,12 +159,12 @@
     .dashboard-title { font-size: 1.25rem; font-weight: 700; color: var(--color-secondary); display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
     .stats-grid { display: flex; flex-wrap: wrap; gap: 20px 40px; margin-bottom: 28px; background: var(--color-bg-light); padding: 20px; border-radius: 8px; border: 1px solid var(--color-border); }
     .stat-item { min-width: 100px; position: relative; cursor: pointer; }
-    .stat-label { font-size: 0.8rem; font-family: 'Poppins', sans-serif; color: var(--color-text-light); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
-    .stat-value { font-size: 2rem; font-weight: 700; color: var(--color-secondary); font-family: 'Playfair Display', serif; margin-top: 4px; }
+    .stat-label { font-size: 0.8rem; font-family: var(--font-body); color: var(--color-text-light); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+    .stat-value { font-size: 2rem; font-weight: 700; color: var(--color-secondary); margin-top: 4px; }
     
-    .stat-tooltip { position: fixed; background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); padding: 16px 20px; z-index: 1100; max-width: 300px; border: 1px solid var(--color-border); pointer-events: none; opacity: 0; transition: opacity 0.2s; font-size: 0.9rem; font-family: 'Poppins', sans-serif; }
+    .stat-tooltip { position: fixed; background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); padding: 16px 20px; z-index: 1100; max-width: 300px; border: 1px solid var(--color-border); pointer-events: none; opacity: 0; transition: opacity 0.2s; font-size: 0.9rem; font-family: var(--font-body); }
     .stat-tooltip.active { opacity: 1; pointer-events: auto; }
-    .stat-tooltip h4 { margin-bottom: 12px; color: var(--color-secondary); border-bottom: 1px solid var(--color-border); padding-bottom: 8px; font-family: 'Playfair Display', serif; }
+    .stat-tooltip h4 { margin-bottom: 12px; color: var(--color-secondary); border-bottom: 1px solid var(--color-border); padding-bottom: 8px; font-family: var(--font-heading); }
     .stat-tooltip ul { list-style: none; padding-left: 0; }
     .stat-tooltip li { padding: 6px 0; border-bottom: 1px dashed #e2e8f0; display: flex; justify-content: space-between; gap: 16px; color: var(--color-text); }
     .stat-tooltip .close-tooltip { margin-top: 12px; text-align: right; font-size: 0.8rem; color: var(--color-primary); cursor: pointer; pointer-events: auto; font-weight: 500; }
@@ -167,13 +178,13 @@
     
     .filter-row { display: flex; align-items: center; gap: 16px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--color-border); }
     .filter-label { font-weight: 600; color: var(--color-secondary); font-size: 0.95rem; }
-    .section-filter-select { padding: 8px 16px; border-radius: 6px; border: 1px solid var(--color-border); background: #ffffff; font-family: 'Poppins', sans-serif; font-size: 0.9rem; color: var(--color-text); cursor: pointer; min-width: 200px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .section-filter-select { padding: 8px 16px; border-radius: 6px; border: 1px solid var(--color-border); background: #ffffff; font-family: var(--font-body); font-size: 0.9rem; color: var(--color-text); cursor: pointer; min-width: 200px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
     .section-filter-select:focus { outline: none; border-color: var(--color-primary); }
     .reset-filter { background: none; border: none; color: var(--color-primary); font-weight: 500; cursor: pointer; text-decoration: underline; font-size: 0.9rem; }
     
     .section-header { display: flex; justify-content: space-between; align-items: center; margin: 40px 0 24px 0; padding-bottom: 12px; border-bottom: 2px solid var(--color-border); }
     .section-header h3 { font-size: 1.4rem; font-weight: 700; color: var(--color-secondary); }
-    .btn-add-section { background: var(--color-primary); border: none; padding: 10px 20px; border-radius: 8px; color: white; font-weight: 500; font-family: 'Poppins', sans-serif; font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn-add-section { background: var(--color-primary); border: none; padding: 10px 20px; border-radius: 8px; color: white; font-weight: 500; font-family: var(--font-body); font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .btn-add-section:hover { background: var(--color-primary-dark); transform: translateY(-1px); box-shadow: 0 6px 8px rgba(0,0,0,0.15); }
     .btn-add-section.disabled, .btn-edit-meeting.disabled, .btn-new.disabled, .btn-delete-meeting.disabled { opacity: 0.5; pointer-events: none; }
     
@@ -212,7 +223,7 @@
     .task-actions button:hover { background: var(--color-bg-light); color: var(--color-primary); border-color: var(--color-primary); }
     .task-actions button.disabled { opacity: 0.3; pointer-events: none; }
     
-    .add-task-btn { margin-top: 20px; background: #ffffff; border: 1px dashed var(--color-primary); border-radius: 8px; padding: 12px 20px; color: var(--color-primary); font-weight: 500; font-family: 'Poppins', sans-serif; font-size: 0.95rem; display: block; width: 100%; cursor: pointer; transition: 0.2s; }
+    .add-task-btn { margin-top: 20px; background: #ffffff; border: 1px dashed var(--color-primary); border-radius: 8px; padding: 12px 20px; color: var(--color-primary); font-weight: 500; font-family: var(--font-body); font-size: 0.95rem; display: block; width: 100%; cursor: pointer; transition: 0.2s; }
     .add-task-btn i { margin-right: 8px; }
     .add-task-btn:hover { background: rgba(184, 134, 11, 0.05); }
     .add-task-btn.disabled { opacity: 0.4; pointer-events: none; }
@@ -225,29 +236,29 @@
     .modal-content h3 { margin-bottom: 24px; color: var(--color-secondary); font-size: 1.5rem; border-bottom: 2px solid var(--color-border); padding-bottom: 12px; }
     
     .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: var(--color-secondary); font-family: 'Poppins', sans-serif; }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.95rem; background: #f8fafc; transition: 0.2s; color: var(--color-text); }
+    .form-group label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: var(--color-secondary); font-family: var(--font-body); }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: 8px; font-family: var(--font-body); font-size: 0.95rem; background: #f8fafc; transition: 0.2s; color: var(--color-text); }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--color-primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.1); }
     
     .form-row { display: flex; gap: 16px; }
     .form-row .form-group { flex: 1; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; border-top: 1px solid var(--color-border); padding-top: 20px; }
     
-    .btn-secondary { background: #ffffff; border: 1px solid var(--color-border); padding: 10px 24px; border-radius: 8px; font-weight: 500; font-family: 'Poppins', sans-serif; color: var(--color-text); cursor: pointer; transition: 0.2s; }
+    .btn-secondary { background: #ffffff; border: 1px solid var(--color-border); padding: 10px 24px; border-radius: 8px; font-weight: 500; font-family: var(--font-body); color: var(--color-text); cursor: pointer; transition: 0.2s; }
     .btn-secondary:hover { background: #f1f5f9; }
-    .btn-primary { background: var(--color-primary); border: none; padding: 10px 24px; border-radius: 8px; font-weight: 500; font-family: 'Poppins', sans-serif; color: white; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .btn-primary { background: var(--color-primary); border: none; padding: 10px 24px; border-radius: 8px; font-weight: 500; font-family: var(--font-body); color: white; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .btn-primary:hover { background: var(--color-primary-dark); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
-    .btn-danger { background: #ffffff; color: #dc3545; border: 1px solid #dc3545; padding: 10px 24px; border-radius: 8px; font-weight: 500; font-family: 'Poppins', sans-serif; cursor: pointer; transition: 0.2s; }
+    .btn-danger { background: #ffffff; color: #dc3545; border: 1px solid #dc3545; padding: 10px 24px; border-radius: 8px; font-weight: 500; font-family: var(--font-body); cursor: pointer; transition: 0.2s; }
     .btn-danger:hover { background: #dc3545; color: white; }
     .hidden { display: none; }
     
     /* LOGIN CARD GSM STYLE */
     #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.8)), url('pic_ (2).jpg') no-repeat center center fixed; background-size: cover; backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 2000; }
     .login-card { background: #ffffff; padding: 40px; border-radius: 16px; width: 400px; max-width: 90%; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); }
-    .login-card h2 { color: var(--color-secondary); margin-bottom: 24px; display: flex; align-items: center; justify-content: center; gap: 12px; font-family: 'Playfair Display', serif; font-size: 2rem; }
-    .login-card input { width: 100%; padding: 14px 16px; margin: 10px 0; border: 1px solid var(--color-border); border-radius: 8px; font-family: 'Poppins', sans-serif; background: #f8fafc; }
+    .login-card h2 { color: var(--color-secondary); margin-bottom: 24px; display: flex; align-items: center; justify-content: center; gap: 12px; font-family: var(--font-heading); font-size: 2rem; }
+    .login-card input { width: 100%; padding: 14px 16px; margin: 10px 0; border: 1px solid var(--color-border); border-radius: 8px; font-family: var(--font-body); background: #f8fafc; }
     .login-card input:focus { outline: none; border-color: var(--color-primary); background: #ffffff; }
-    .login-card button { background: var(--color-primary); color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-weight: 600; font-family: 'Poppins', sans-serif; font-size: 1rem; margin-top: 16px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .login-card button { background: var(--color-primary); color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-weight: 600; font-family: var(--font-body); font-size: 1rem; margin-top: 16px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .login-card button:hover { background: var(--color-primary-dark); transform: translateY(-1px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
     .login-card .error { color: #dc3545; margin-top: 12px; font-size: 0.9rem; }
     .login-card .forgot-password { margin-top: 20px; font-size: 0.9rem; }
@@ -259,18 +270,17 @@
     .member-item:last-child { border-bottom: none; }
     
     .global-dashboard { background: #ffffff; border-radius: 12px; padding: 32px; margin-bottom: 32px; border: 1px solid var(--color-border); box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
-    .global-dashboard h3 { font-size: 1.4rem; font-weight: 700; color: var(--color-secondary); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-family: 'Playfair Display', serif; }
+    .global-dashboard h3 { font-size: 1.4rem; font-weight: 700; color: var(--color-secondary); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-family: var(--font-heading); }
     .global-stats { display: flex; flex-wrap: wrap; gap: 20px 40px; margin-bottom: 24px; background: var(--color-bg-light); padding: 24px; border-radius: 8px; border: 1px solid var(--color-border); }
     .global-stat-item { min-width: 100px; position: relative; cursor: pointer; }
     .global-stat-label { font-size: 0.8rem; color: var(--color-text-light); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
-    .global-stat-value { font-size: 2.2rem; font-weight: 700; color: var(--color-secondary); font-family: 'Playfair Display', serif; margin-top: 4px; }
+    .global-stat-value { font-size: 2.2rem; font-weight: 700; color: var(--color-secondary); margin-top: 4px; }
     
     .kendala-list { margin-top: 24px; border-top: 1px solid var(--color-border); padding-top: 24px; }
     .kendala-item { background: #fdf2f2; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; font-size: 0.95rem; border-left: 4px solid #dc3545; border-right: 1px solid var(--color-border); border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
     .kendala-task { font-weight: 600; color: var(--color-secondary); }
     .kendala-meeting { font-size: 0.85rem; color: var(--color-text-light); margin-top: 6px; }
     
-    /* CSS Tabel Khusus MoM GSM Style */
     .mom-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.95rem; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
     .mom-table th { background: var(--color-secondary); color: white; padding: 12px 16px; text-align: left; font-weight: 500; letter-spacing: 0.5px; }
     .mom-table td { border-bottom: 1px solid var(--color-border); padding: 12px 16px; color: var(--color-text); }
@@ -278,7 +288,7 @@
     .mom-table tr:nth-child(even) { background: #f8fafc; }
 
     @media print {
-      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .btn-delete-meeting, .theme-switcher, .user-info, .log-card { display: none !important; }
+      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .btn-delete-meeting, .theme-switcher, #fontSwitcher, .user-info, .log-card { display: none !important; }
       body, .main-panel, .content { background: white; overflow: visible; height: auto; }
       .content { padding: 0.5in; }
       .section-card { break-inside: avoid; border: 1px solid #ccc; box-shadow: none; }
@@ -304,9 +314,8 @@
       .progress-container { min-width: 100%; }
     }
     
-    /* PWA Install Container */
     #install-pwa-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: none; }
-    .btn-install-pwa { background-color: var(--color-primary); color: white; border: none; padding: 12px 24px; border-radius: 50px; font-weight: 600; font-family: 'Poppins', sans-serif; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: transform 0.3s ease, background-color 0.3s; }
+    .btn-install-pwa { background-color: var(--color-primary); color: white; border: none; padding: 12px 24px; border-radius: 50px; font-weight: 600; font-family: var(--font-body); box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: transform 0.3s ease, background-color 0.3s; }
     .btn-install-pwa:hover { transform: translateY(-2px); background-color: var(--color-primary-dark); box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
     @supports (-webkit-touch-callout: none) { #install-pwa-container { display: none !important; } }
   </style>
@@ -364,7 +373,6 @@
     </div>
   </div>
 
-  <!-- MODAL EDIT WORKSPACE -->
   <div class="modal" id="editWorkspaceModal">
     <div class="modal-content">
       <h3><i class="fas fa-edit"></i> Edit Grup</h3>
@@ -394,9 +402,7 @@
           <button class="btn-primary" id="addMemberBtn">Tambah</button>
         </div>
       </div>
-      <div class="member-list" id="memberList">
-        <!-- Anggota dimuat disini -->
-      </div>
+      <div class="member-list" id="memberList"></div>
       <div class="modal-actions">
         <button class="btn-secondary" id="closeMembersModal">Tutup</button>
       </div>
@@ -504,7 +510,6 @@
     </div>
   </div>
 
-  <!-- MODAL MOM (MINUTES OF MEETING) -->
   <div class="modal" id="momModal" style="z-index: 2200;">
     <div class="modal-content" style="width: 800px; max-width: 95%; max-height: 90vh; overflow-y: auto;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px; border-bottom: 2px solid var(--color-secondary); padding-bottom: 16px;">
@@ -512,7 +517,7 @@
           <button class="btn-secondary" id="closeMomTopBtn" style="padding: 8px 12px;"><i class="fas fa-times"></i></button>
       </div>
       
-      <div style="background: rgba(184, 134, 11, 0.05); padding: 12px 16px; border-left: 4px solid var(--color-primary); margin-bottom: 20px; font-weight: 600; color: var(--color-secondary); border-radius: 0 8px 8px 0; font-family: 'Poppins', sans-serif;">1. Informasi Rapat</div>
+      <div style="background: rgba(184, 134, 11, 0.05); padding: 12px 16px; border-left: 4px solid var(--color-primary); margin-bottom: 20px; font-weight: 600; color: var(--color-secondary); border-radius: 0 8px 8px 0; font-family: var(--font-body);">1. Informasi Rapat</div>
       <div class="form-group">
           <label>Judul Rapat</label>
           <input type="text" id="mom-title" readonly style="background: var(--color-bg-light); font-weight: 600;">
@@ -532,12 +537,12 @@
           <textarea id="mom-attendees" rows="2" placeholder="Nama peserta, pisahkan dengan koma..."></textarea>
       </div>
 
-      <div style="background: rgba(184, 134, 11, 0.05); padding: 12px 16px; border-left: 4px solid var(--color-primary); margin-bottom: 20px; margin-top:32px; font-weight: 600; color: var(--color-secondary); border-radius: 0 8px 8px 0; font-family: 'Poppins', sans-serif;">2. Agenda & Poin Pembahasan</div>
+      <div style="background: rgba(184, 134, 11, 0.05); padding: 12px 16px; border-left: 4px solid var(--color-primary); margin-bottom: 20px; margin-top:32px; font-weight: 600; color: var(--color-secondary); border-radius: 0 8px 8px 0; font-family: var(--font-body);">2. Agenda & Poin Pembahasan</div>
       <div class="form-group">
           <textarea id="mom-discussion" rows="6" placeholder="Tuliskan detail pembahasan rapat, keputusan yang diambil, dsb..."></textarea>
       </div>
 
-      <div style="background: rgba(184, 134, 11, 0.05); padding: 12px 16px; border-left: 4px solid var(--color-primary); margin-bottom: 16px; margin-top:32px; font-weight: 600; color: var(--color-secondary); border-radius: 0 8px 8px 0; font-family: 'Poppins', sans-serif;">3. Action Items (Otomatis)</div>
+      <div style="background: rgba(184, 134, 11, 0.05); padding: 12px 16px; border-left: 4px solid var(--color-primary); margin-bottom: 16px; margin-top:32px; font-weight: 600; color: var(--color-secondary); border-radius: 0 8px 8px 0; font-family: var(--font-body);">3. Action Items (Otomatis)</div>
       <p style="font-size: 0.9rem; color: var(--color-text-light); margin-bottom: 12px;"><i class="fas fa-info-circle"></i> Ditarik otomatis dari daftar Tugas di rapat ini.</p>
       <table class="mom-table" id="mom-tasks-table">
           <thead>
@@ -585,12 +590,25 @@
       <div class="header-actions">
         <button class="btn-header" id="btn-open-mom" disabled style="background: rgba(184, 134, 11, 0.05); border-color: var(--color-primary); color: var(--color-primary); font-weight: 600;"><i class="fas fa-file-signature"></i> Buat MoM</button>
         
+        <!-- FONT SWITCHER BARU -->
+        <select id="fontSwitcher" class="btn-header font-switcher-select" style="padding-top: 6px; padding-bottom: 6px; border-radius: 20px;">
+          <option value="gsm">A Gaya Klasik</option>
+          <option value="modern">A Gaya Modern</option>
+          <option value="serif">A Gaya Akademik</option>
+          <option value="rounded">A Gaya Santai</option>
+        </select>
+
         <div class="theme-switcher">
           <div class="theme-btn gsm active" data-theme="gsm" title="GSM Elegant"></div>
           <div class="theme-btn orange" data-theme="orange" title="Vibrant Orange"></div>
           <div class="theme-btn green" data-theme="green" title="Nature Green"></div>
           <div class="theme-btn blue" data-theme="blue" title="Corporate Blue"></div>
+          <!-- 3 TEMA WARNA BARU -->
+          <div class="theme-btn maroon" data-theme="maroon" title="Elegant Maroon"></div>
+          <div class="theme-btn teal" data-theme="teal" title="Modern Teal"></div>
+          <div class="theme-btn dark" data-theme="dark" title="Monochrome Dark"></div>
         </div>
+
         <button class="btn-header" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Excel</button>
         <button class="btn-header" id="exportPdfBtn" disabled><i class="fas fa-file-pdf"></i> PDF</button>
         <button class="btn-header" id="printBtn" disabled><i class="fas fa-print"></i> Cetak</button>
@@ -648,7 +666,7 @@
             const val = snapshot.val();
             if (val && val.data) {
                 const a = document.createElement('a');
-                a.href = val.data; // Ini adalah Base64 String
+                a.href = val.data; 
                 a.download = val.name || fileName;
                 document.body.appendChild(a);
                 a.click();
@@ -663,7 +681,6 @@
         }
       };
 
-      // ========== DATA DEFAULT LENGKAP ==========
       const defaultMeetings = [
         {
           title: 'Panduan Job Desc & RAB Kepanitiaan',
@@ -678,13 +695,39 @@
         }
       ];
 
-      // ========== THEME MANAGEMENT (GSM STYLE) ==========
+      // ========== FONT MANAGEMENT (BARU) ==========
+      const fontList = {
+        gsm: { heading: "'Playfair Display', serif", body: "'Poppins', sans-serif" },
+        modern: { heading: "'Inter', sans-serif", body: "'Inter', sans-serif" },
+        serif: { heading: "'Merriweather', serif", body: "'Lora', serif" },
+        rounded: { heading: "'Nunito', sans-serif", body: "'Nunito', sans-serif" }
+      };
+      
+      const fontSwitcher = document.getElementById('fontSwitcher');
+      function setFontTheme(fontKey) {
+        const selectedFont = fontList[fontKey] || fontList['gsm'];
+        document.documentElement.style.setProperty('--font-heading', selectedFont.heading);
+        document.documentElement.style.setProperty('--font-body', selectedFont.body);
+        localStorage.setItem('notula_font', fontKey);
+        if(fontSwitcher) fontSwitcher.value = fontKey;
+      }
+      
+      if(fontSwitcher) {
+        fontSwitcher.addEventListener('change', (e) => setFontTheme(e.target.value));
+      }
+      const savedFont = localStorage.getItem('notula_font') || 'gsm';
+      setFontTheme(savedFont);
+
+      // ========== THEME MANAGEMENT (+ 3 TEMA BARU) ==========
       const themeStyles = document.getElementById('theme-style');
       const themes = {
         gsm: `:root { --color-primary: #b8860b; --color-primary-dark: #9b7208; --color-secondary: #1a2b4c; --color-secondary-light: #2a3c65; --color-bg-light: #f4f7fb; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #334155; --color-text-light: #64748b; --color-accent: #b8860b; }`,
         orange: `:root { --color-primary: #f97316; --color-primary-dark: #e05e0f; --color-secondary: #1e4a6d; --color-secondary-light: #2b6f9e; --color-bg-light: #f4f7fb; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #54708f; --color-accent: #f97316; }`,
         green: `:root { --color-primary: #16a34a; --color-primary-dark: #12833a; --color-secondary: #1e3a5f; --color-secondary-light: #2b4f7a; --color-bg-light: #f0f9f0; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d0e0d0; --color-text: #1e293b; --color-text-light: #4a6f5e; --color-accent: #16a34a; }`,
-        blue: `:root { --color-primary: #3498db; --color-primary-dark: #2980b9; --color-secondary: #2c3e50; --color-secondary-light: #3e5a6f; --color-bg-light: #eef6fc; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d5e6f2; --color-text: #1e293b; --color-text-light: #4a6f8a; --color-accent: #3498db; }`
+        blue: `:root { --color-primary: #3498db; --color-primary-dark: #2980b9; --color-secondary: #2c3e50; --color-secondary-light: #3e5a6f; --color-bg-light: #eef6fc; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #d5e6f2; --color-text: #1e293b; --color-text-light: #4a6f8a; --color-accent: #3498db; }`,
+        maroon: `:root { --color-primary: #9f1239; --color-primary-dark: #881337; --color-secondary: #4c0519; --color-secondary-light: #881337; --color-bg-light: #fff1f2; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #fecdd3; --color-text: #3f3f46; --color-text-light: #71717a; --color-accent: #9f1239; }`,
+        teal: `:root { --color-primary: #0d9488; --color-primary-dark: #0f766e; --color-secondary: #134e4a; --color-secondary-light: #115e59; --color-bg-light: #f0fdfa; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #ccfbf1; --color-text: #334155; --color-text-light: #64748b; --color-accent: #0d9488; }`,
+        dark: `:root { --color-primary: #475569; --color-primary-dark: #334155; --color-secondary: #0f172a; --color-secondary-light: #1e293b; --color-bg-light: #f8fafc; --color-card-bg: #ffffff; --color-sidebar-bg: #ffffff; --color-border: #e2e8f0; --color-text: #1e293b; --color-text-light: #64748b; --color-accent: #475569; }`
       };
       function setTheme(theme) {
         themeStyles.innerHTML = themes[theme] || themes['gsm'];
@@ -1429,7 +1472,7 @@
         let html = `
           <div class="global-dashboard">
             <h3><i class="fas fa-chart-line"></i> Dashboard Progres Keseluruhan</h3>
-            <p style="font-family:'Poppins', sans-serif; font-size:0.9rem; color:var(--color-text-light); margin-top:-16px; margin-bottom:20px;">Menampilkan ringkasan data dari rapat terakhir.</p>
+            <p style="font-family:var(--font-body); font-size:0.9rem; color:var(--color-text-light); margin-top:-16px; margin-bottom:20px;">Menampilkan ringkasan data dari rapat terakhir.</p>
             <div class="global-stats">
               <div class="global-stat-item" data-stat="total">
                 <span class="global-stat-label">Total Tugas</span>
@@ -1459,7 +1502,7 @@
         `;
 
         if (kendalaTasks.length > 0) {
-          html += `<div class="kendala-list"><strong style="font-family:'Poppins', sans-serif; color:#dc3545;"><i class="fas fa-exclamation-triangle"></i> Tugas dengan Kendala:</strong><div style="margin-top: 12px;">`;
+          html += `<div class="kendala-list"><strong style="font-family:var(--font-body); color:#dc3545;"><i class="fas fa-exclamation-triangle"></i> Tugas dengan Kendala:</strong><div style="margin-top: 12px;">`;
           kendalaTasks.forEach(kt => {
             html += `
               <div class="kendala-item">
@@ -1471,7 +1514,7 @@
           });
           html += `</div></div>`;
         } else {
-          html += `<div style="margin-top:16px; color: var(--color-text-light); font-family:'Poppins', sans-serif;"><i class="fas fa-check-circle"></i> Tidak ada kendala saat ini.</div>`;
+          html += `<div style="margin-top:16px; color: var(--color-text-light); font-family:var(--font-body);"><i class="fas fa-check-circle"></i> Tidak ada kendala saat ini.</div>`;
         }
         html += `</div>`;
 
@@ -1497,12 +1540,12 @@
         const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
         const content = document.getElementById('contentArea');
         if (workspaceMeetings.length === 0) {
-          content.innerHTML = '<div style="text-align:center; color:var(--color-text-light); margin-top:60px; font-family:\'Poppins\', sans-serif;"><i class="fas fa-users" style="font-size:2rem; margin-bottom:12px; color:var(--color-border);"></i><br>Belum ada rapat di grup ini.<br>Klik tombol "Rapat baru" untuk membuat rapat.</div>';
+          content.innerHTML = '<div style="text-align:center; color:var(--color-text-light); margin-top:60px; font-family:var(--font-body);"><i class="fas fa-users" style="font-size:2rem; margin-bottom:12px; color:var(--color-border);"></i><br>Belum ada rapat di grup ini.<br>Klik tombol "Rapat baru" untuk membuat rapat.</div>';
           return;
         }
 
         let html = renderGlobalDashboard(workspaceId);
-        html += '<div class="meeting-list" style="padding:0; margin-top:32px;"><h3 style="margin-bottom:20px; font-size:1.25rem; font-family:\'Playfair Display\', serif; border-bottom:1px solid var(--color-border); padding-bottom:8px;">Daftar Rapat dalam Grup</h3>';
+        html += '<div class="meeting-list" style="padding:0; margin-top:32px;"><h3 style="margin-bottom:20px; font-size:1.25rem; font-family:var(--font-heading); border-bottom:1px solid var(--color-border); padding-bottom:8px;">Daftar Rapat dalam Grup</h3>';
         workspaceMeetings.forEach(m => {
           html += `
             <div class="meeting-item ${m.id === currentMeetingId ? 'active' : ''}" data-id="${m.id}">
@@ -1566,7 +1609,7 @@
             ? `<div class="info-item" style="width:100%; align-items:flex-start; padding-top: 16px; border-top: 1px dashed var(--color-border);">
                  <i class="fas fa-list-ol" style="margin-top:4px;"></i> 
                  <div>
-                   <strong style="color:var(--color-secondary); font-family:'Poppins', sans-serif;">Agenda Rapat:</strong><br>
+                   <strong style="color:var(--color-secondary); font-family:var(--font-body);">Agenda Rapat:</strong><br>
                    <span style="white-space: pre-wrap; font-size:0.95rem; line-height: 1.6; color:var(--color-text);">${escapeHtml(meeting.agenda)}</span>
                  </div>
                </div>` 
@@ -1574,12 +1617,12 @@
 
         let html = `
           <div class="info-card">
-            <div style="font-weight:700; margin-bottom:16px; color:var(--color-secondary); font-family:'Playfair Display', serif; font-size:1.25rem;"><i class="fas fa-info-circle"></i> Informasi Rapat ${showGlobalReadOnly ? '<span style="color:#dc3545; font-size:0.8rem; font-weight:normal; margin-left:8px; font-family:\'Poppins\', sans-serif;">(Read-Only: Rapat Lama)</span>' : ''}</div>
+            <div style="font-weight:700; margin-bottom:16px; color:var(--color-secondary); font-family:var(--font-heading); font-size:1.25rem;"><i class="fas fa-info-circle"></i> Informasi Rapat ${showGlobalReadOnly ? '<span style="color:#dc3545; font-size:0.8rem; font-weight:normal; margin-left:8px; font-family:var(--font-body);">(Read-Only: Rapat Lama)</span>' : ''}</div>
             <div class="info-grid" style="flex-direction: column; gap: 16px;">
               <div class="info-item" style="align-items:flex-start;">
                 <i class="fas fa-tag" style="margin-top:4px;"></i> 
                 <div>
-                  <strong style="color:var(--color-secondary); font-family:'Poppins', sans-serif;">Catatan Tambahan:</strong><br>
+                  <strong style="color:var(--color-secondary); font-family:var(--font-body);">Catatan Tambahan:</strong><br>
                   <span style="white-space: pre-wrap; font-size:0.95rem; color:var(--color-text);">${escapeHtml(meeting.info) || '-'}</span>
                 </div>
               </div>
@@ -1695,7 +1738,7 @@
         if (selectedSectionFilter !== 'ALL') {
           sectionsToRender = meeting.sections.filter(s => s.id === selectedSectionFilter);
         }
-        if (sectionsToRender.length === 0) return '<p style="color:var(--color-text-light); font-family:\'Poppins\', sans-serif;">Tidak ada seksi.</p>';
+        if (sectionsToRender.length === 0) return '<p style="color:var(--color-text-light); font-family:var(--font-body);">Tidak ada seksi.</p>';
 
         let html = '';
         sectionsToRender.forEach(section => {
@@ -1721,7 +1764,6 @@
           if (task.attachments && task.attachments.length > 0) {
             attachmentsHtml = `<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; margin-left: 126px;">`;
             task.attachments.forEach(att => {
-               // Render Base64 / RTDB attachment 
                attachmentsHtml += `<a href="#" onclick="downloadRtdbAttachment('${att.rtdbId}', '${escapeHtml(att.name)}', this); return false;" style="font-size: 0.8rem; background: var(--color-bg-light); padding: 4px 12px; border-radius: 4px; text-decoration: none; color: var(--color-secondary); border: 1px solid var(--color-border); transition: 0.2s;"><i class="fas fa-paperclip"></i> ${escapeHtml(att.name)}</a>`;
             });
             attachmentsHtml += `</div>`;
@@ -1755,8 +1797,8 @@
               <div>
                  <h4>${escapeHtml(section.name)}</h4>
                  ${section.assignedEmails 
-                    ? `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:'Poppins', sans-serif;"><i class="fas fa-lock"></i> Akses: ${escapeHtml(section.assignedEmails)}</div>` 
-                    : `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:'Poppins', sans-serif;"><i class="fas fa-globe"></i> Akses Terbuka</div>`}
+                    ? `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-lock"></i> Akses: ${escapeHtml(section.assignedEmails)}</div>` 
+                    : `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-globe"></i> Akses Terbuka</div>`}
               </div>
               <div class="section-actions">
                 <button id="edit-section-${section.id}" title="Edit seksi" ${!canEditSec ? 'disabled class="disabled"' : ''}><i class="fas fa-edit"></i> Edit Seksi</button>
@@ -1764,7 +1806,7 @@
               </div>
             </div>
             <div class="task-list">
-              ${tasksHtml || '<div style="color:var(--color-text-light); padding:12px; font-family:\'Poppins\', sans-serif; background:var(--color-bg-light); border-radius:8px; text-align:center;">Belum ada tugas di seksi ini.</div>'}
+              ${tasksHtml || '<div style="color:var(--color-text-light); padding:12px; font-family:var(--font-body); background:var(--color-bg-light); border-radius:8px; text-align:center;">Belum ada tugas di seksi ini.</div>'}
             </div>
             <button class="add-task-btn ${!canEditSec ? 'disabled' : ''}" id="add-task-${section.id}" ${!canEditSec ? 'disabled' : ''}><i class="fas fa-plus-circle"></i> Tambah Tugas</button>
           </div>
@@ -2109,7 +2151,6 @@
           const att = task.attachments[attachmentIndex];
           try {
             if (att.path === 'rtdb' && att.rtdbId) {
-                // Hapus file Base64 dari Firebase Realtime Database
                 await firebase.database().ref('notula_attachments/' + att.rtdbId).remove();
             } 
           } catch (e) {
@@ -2129,10 +2170,6 @@
 
       document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
       
-      // =========================================================================================
-      // SOLUSI UPLOAD BASE64 FIREBASE REALTIME DATABASE (LOGIKA GSM PLANNER)
-      // Bebas CORS 100%. File diubah menjadi teks sandi dan disimpan ke dalam Realtime Database.
-      // =========================================================================================
       document.getElementById('saveTaskModal').addEventListener('click', async () => {
         if (!currentMeetingId || !currentSectionId) return;
         const meeting = meetings.find(m => m.id === currentMeetingId);
@@ -2153,11 +2190,8 @@
         const existingTask = currentTaskId ? section?.tasks.find(t => t.id === currentTaskId) : null;
         let attachments = existingTask && existingTask.attachments ? [...existingTask.attachments] : [];
 
-        // JIKA ADA FILE YANG DIUNGGAH
         if (fileInput && fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            
-            // Batas ukuran 5MB untuk Base64 agar database tidak terlalu berat
             const maxSize = 5 * 1024 * 1024; 
 
             if (file.size > maxSize) {
@@ -2168,7 +2202,6 @@
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Membaca file...';
 
-            // Baca file sebagai Base64
             const reader = new FileReader();
             
             reader.onload = async function(e) {
@@ -2176,16 +2209,15 @@
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunggah...';
                 
                 try {
-                    // Upload ke Realtime Database (Bebas CORS)
                     const attachmentRef = await rtdb.ref('notula_attachments').push({
                         name: file.name,
-                        data: base64Data, // Menyimpan file dalam bentuk teks
+                        data: base64Data,
                         uploadedAt: firebase.database.ServerValue.TIMESTAMP
                     });
                     
                     attachments.push({
                         name: file.name,
-                        rtdbId: attachmentRef.key, // Simpan ID koneksinya saja di Firestore
+                        rtdbId: attachmentRef.key, 
                         path: 'rtdb'
                     });
                     
@@ -2212,10 +2244,9 @@
                 saveBtn.disabled = false;
             };
             
-            reader.readAsDataURL(file); // Memicu pembacaan file
+            reader.readAsDataURL(file); 
 
         } else {
-            // JIKA TANPA FILE (Save Data Secara Normal)
             try {
                 const taskData = { desc, status, progress, pic, notes, deadline, attachments };
                 if (currentTaskId) taskData.id = currentTaskId;
@@ -2424,7 +2455,6 @@
 
           doc.setFont("helvetica", "bold");
           doc.setFontSize(16);
-          // Menggunakan warna navy blue GSM planner sebagai standar PDF
           doc.setTextColor(26, 43, 76); 
           doc.text("MINUTES OF MEETING (MoM)", 105, 20, null, null, "center");
           
@@ -2545,7 +2575,7 @@
           body: tableData,
           startY: meeting.agenda ? 60 : 45,
           styles: { fontSize: 8 },
-          headStyles: { fillColor: [26, 43, 76] } /* GSM Planner Blue */
+          headStyles: { fillColor: [26, 43, 76] } /* Default Navy Header */
         });
         doc.save(`notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.pdf`);
       }
