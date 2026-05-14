@@ -430,7 +430,7 @@
         <textarea id="taskNotesInput" rows="2"></textarea>
       </div>
       <div class="form-group" style="border-top: 1px dashed #dbe2ec; padding-top: 15px; margin-top: 5px;">
-        <label><i class="fas fa-paperclip"></i> Lampiran File Dokumen (Maks. 2 MB)</label>
+        <label><i class="fas fa-paperclip"></i> Lampiran File (Gambar maks 5MB, PDF maks 700KB)</label>
         <input type="file" id="taskAttachmentInput" style="padding: 8px; font-size: 0.85rem; width: 100%;">
         <div id="taskAttachmentList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
       </div>
@@ -2104,7 +2104,8 @@
       document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
       
       // =========================================================================
-      // LOGIKA UPLOAD DIPERBARUI: MENGGUNAKAN REALTIME DATABASE (MURNI & AMAN)
+      // LOGIKA UPLOAD DIPERBARUI: MENGGUNAKAN REALTIME DATABASE DENGAN KOMPRESI
+      // (Untuk menghindari error CORS / Payload Too Large saat Request HTTP XHR)
       // =========================================================================
       document.getElementById('saveTaskModal').addEventListener('click', async () => {
         if (!currentMeetingId || !currentSectionId) return;
@@ -2129,65 +2130,102 @@
         // JIKA ADA FILE YANG DIUNGGAH
         if (fileInput && fileInput.files.length > 0) {
             const file = fileInput.files[0];
+            const isImage = file.type.startsWith('image/');
             
-            // Limit maksimal diturunkan menjadi 2 MB karena Realtime DB kesulitan memproses payload yang sangat besar
-            const maxSize = 2 * 1024 * 1024; 
+            // Limit terpisah karena Firebase RTDB akan menolak request HTTP biasa jika string Base64 terlalu besar (menyebabkan "CORS error")
+            const maxPdfSize = 700 * 1024; // 700 KB max untuk dokumen utuh
+            const maxImageSize = 5 * 1024 * 1024; // 5 MB max untuk gambar sebelum dikompresi
 
-            if (file.size > maxSize) {
-              alert('Ukuran file terlalu besar! Maksimal 2 MB untuk versi gratis (Realtime Database).');
+            if (!isImage && file.size > maxPdfSize) {
+              alert('Untuk file PDF/Word/Excel, ukuran maksimal adalah 700 KB agar server tidak menolak permintaan (CORS Error).');
               return; 
+            }
+            if (isImage && file.size > maxImageSize) {
+              alert('Untuk file Gambar, ukuran maksimal sebelum dikompresi adalah 5 MB.');
+              return;
             }
 
             saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Membaca file...';
 
-            const reader = new FileReader();
-            
-            reader.onload = async function(e) {
-                try {
-                    saveBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Mengunggah ke server...';
-                    const base64Data = e.target.result;
-                    const attachmentId = 'att_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-                    
-                    // Upload langsung ke Realtime Database tanpa timeout buatan
-                    await firebase.database().ref('notula_attachments/' + attachmentId).set({
-                        data: base64Data,
-                        name: file.name,
-                        uploadedBy: currentUser?.email || 'unknown',
-                        timestamp: firebase.database.ServerValue.TIMESTAMP
-                    });
+            try {
+                let base64Data = '';
 
-                    attachments.push({
-                        name: file.name,
-                        url: '#', 
-                        rtdbId: attachmentId,
-                        path: 'rtdb' // Flag bahwa file ada di RTDB
+                if (isImage) {
+                    // --- LOGIKA KOMPRESI GAMBAR ---
+                    saveBtn.innerHTML = '<i class="fas fa-compress"></i> Mengkompresi...';
+                    base64Data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = (e) => {
+                            const img = new Image();
+                            img.src = e.target.result;
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                let width = img.width;
+                                let height = img.height;
+                                // Batasi dimensi maksimal ke 1024px agar ukuran jauh menurun
+                                const max_size = 1024;
+                                if (width > height && width > max_size) {
+                                    height *= max_size / width;
+                                    width = max_size;
+                                } else if (height > max_size) {
+                                    width *= max_size / height;
+                                    height = max_size;
+                                }
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0, width, height);
+                                
+                                // Kompres ke format JPEG dengan kualitas 60% untuk memastikan ukurannya ringan
+                                resolve(canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.6));
+                            };
+                        };
                     });
-                    
-                    const taskData = { desc, status, progress, pic, notes, deadline, attachments };
-                    if (currentTaskId) taskData.id = currentTaskId;
-                    
-                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan data...';
-                    await saveTask(taskData, currentSectionId);
-                    
-                    if (fileInput) fileInput.value = ''; 
-                    closeAllModals();
-                } catch (err) {
-                    alert('Gagal mengunggah dokumen. Pastikan Rules Realtime Database diatur ke true. Error: ' + err.message);
-                } finally {
-                    saveBtn.innerText = 'Simpan';
-                    saveBtn.disabled = false;
+                } else {
+                    // --- BACA DOKUMEN BIASA ---
+                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Membaca dokumen...';
+                    base64Data = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = () => reject(new Error('Gagal membaca file'));
+                    });
                 }
-            };
-            
-            reader.onerror = function() {
-                alert('Gagal membaca file dari perangkat Anda.');
+                
+                saveBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Mengunggah...';
+                const attachmentId = 'att_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                
+                // Upload langsung ke Realtime Database menggunakan WebSockets
+                await firebase.database().ref('notula_attachments/' + attachmentId).set({
+                    data: base64Data,
+                    name: file.name,
+                    uploadedBy: currentUser?.email || 'unknown',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                attachments.push({
+                    name: file.name,
+                    url: '#', 
+                    rtdbId: attachmentId,
+                    path: 'rtdb' // Flag bahwa file ada di RTDB
+                });
+                
+                const taskData = { desc, status, progress, pic, notes, deadline, attachments };
+                if (currentTaskId) taskData.id = currentTaskId;
+                
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+                await saveTask(taskData, currentSectionId);
+                
+                if (fileInput) fileInput.value = ''; 
+                closeAllModals();
+            } catch (err) {
+                console.error(err);
+                alert('Gagal mengunggah dokumen: ' + err.message);
+            } finally {
                 saveBtn.innerText = 'Simpan';
                 saveBtn.disabled = false;
-            };
-            
-            // Trigger pembacaan
-            reader.readAsDataURL(file);
+            }
 
         } else {
             // JIKA TANPA FILE (Save Data Secara Normal)
