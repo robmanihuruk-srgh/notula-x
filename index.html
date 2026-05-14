@@ -6,7 +6,7 @@
   <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
   
   <meta name="theme-color" content="#f97316">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Notula">
   <link rel="apple-touch-icon" href="pic_ (2).jpg">
@@ -17,41 +17,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  
-  <style>
-    /* Style Tombol Install PWA */
-    #install-pwa-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-      display: none;
-    }
-
-    .btn-install-pwa {
-      background-color: #f97316;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 50px;
-      font-weight: bold;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transition: transform 0.3s ease;
-    }
-
-    .btn-install-pwa:hover {
-      transform: scale(1.05);
-      background-color: #ea580c;
-    }
-
-    @supports (-webkit-touch-callout: none) {
-      #install-pwa-container { display: none !important; }
-    }
-  </style>
   
   <!-- SDK Firebase Diperbarui: Menambahkan Database (RTDB) untuk logika GSM Planner -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -466,7 +431,7 @@
         <textarea id="taskNotesInput" rows="2"></textarea>
       </div>
       <div class="form-group" style="border-top: 1px dashed #dbe2ec; padding-top: 15px; margin-top: 5px;">
-        <label><i class="fas fa-paperclip"></i> Lampiran File Dokumen (Maks. 2 MB)</label>
+        <label><i class="fas fa-paperclip"></i> Lampiran File Dokumen (Maks. 5 MB)</label>
         <input type="file" id="taskAttachmentInput" style="padding: 8px; font-size: 0.85rem; width: 100%;">
         <div id="taskAttachmentList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
       </div>
@@ -584,12 +549,6 @@
     <div class="content" id="contentArea"></div>
   </div>
 
-  <div id="install-pwa-container">
-    <button id="btnInstallPWA" class="btn-install-pwa">
-      <i class="fas fa-download"></i> Install Notula App
-    </button>
-  </div>
-
   <script>
     (function() {
       // ========== FIREBASE CONFIG ==========
@@ -607,7 +566,7 @@
       const auth = firebase.auth();
       const db = firebase.firestore();
       const storage = firebase.storage();
-      // Inisiasi Realtime Database sesuai GSM Planner
+      // Inisiasi Realtime Database
       const rtdb = firebase.database();
 
       // ========== GLOBAL STATE ==========
@@ -640,7 +599,7 @@
                 a.click();
                 document.body.removeChild(a);
             } else {
-                alert('File tidak ditemukan di database (mungkin sudah terhapus).');
+                alert('File tidak ditemukan di server. (Mungkin sudah dihapus/terpotong).');
             }
         } catch (e) {
             alert('Gagal mengunduh file: ' + e.message);
@@ -658,175 +617,7 @@
           agenda: '1. Pemaparan Job Description tiap seksi\n2. Pemaparan Rencana Anggaran Biaya (RAB)',
           sections: [
             { name: 'Sekretariat', assignedEmails: '', tasks: [
-              { desc: '[JobDesc] Membuat surat menyurat panitia', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: '', deadline: '' },
-              { desc: '[JobDesc] Menyusun proposal kegiatan', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: '', deadline: '' },
-              { desc: '[JobDesc] Membuat notulen rapat', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: '', deadline: '' },
-              { desc: '[JobDesc] Mengatur administrasi peserta dan panitia', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: '', deadline: '' },
-              { desc: '[JobDesc] Menyusun jadwal kegiatan', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: '', deadline: '' },
-              { desc: '[JobDesc] Menyiapkan absensi dan dokumentasi administrasi', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: '', deadline: '' },
-              { desc: '[RAB] Biaya ATK (kertas, map, tinta printer, pulpen)', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Fotocopy dan print dokumen', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Pembuatan proposal dan surat undangan', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Konsumsi rapat sekretariat bila diperlukan', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: 'Komponen Anggaran', deadline: '' }
-            ]},
-            { name: 'Seksi Acara', assignedEmails: '', tasks: [
-              { desc: '[JobDesc] Menyusun susunan acara', status: 'rencana', progress: 0, pic: 'Seksi Acara', notes: '', deadline: '' },
-              { desc: '[JobDesc] Mengatur jalannya kegiatan', status: 'rencana', progress: 0, pic: 'Seksi Acara', notes: '', deadline: '' },
-              { desc: '[JobDesc] Menentukan MC, doa, pengisi acara, dan penampilan', status: 'rencana', progress: 0, pic: 'Seksi Acara', notes: '', deadline: '' },
-              { desc: '[JobDesc] Mengatur gladi resik', status: 'rencana', progress: 0, pic: 'Seksi Acara', notes: '', deadline: '' },
-              { desc: '[JobDesc] Berkoordinasi dengan seluruh seksi agar acara lancar', status: 'rencana', progress: 0, pic: 'Seksi Acara', notes: '', deadline: '' },
-              { desc: '[RAB] Honor/ucapan terima kasih pengisi acara', status: 'rencana', progress: 0, pic: 'Seksi Acara', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Dekorasi pendukung acara', status: 'rencana', progress: 0, pic: 'Seksi Acara', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Biaya latihan dan gladi resik', status: 'rencana', progress: 0, pic: 'Seksi Acara', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Cetak rundown/susunan acara', status: 'rencana', progress: 0, pic: 'Seksi Acara', notes: 'Komponen Anggaran', deadline: '' }
-            ]},
-            { name: 'Seksi Dana', assignedEmails: '', tasks: [
-              { desc: '[JobDesc] Mengupayakan pemasukan dana kegiatan', status: 'rencana', progress: 0, pic: 'Seksi Dana', notes: '', deadline: '' },
-              { desc: '[JobDesc] Membuat program penggalangan dana', status: 'rencana', progress: 0, pic: 'Seksi Dana', notes: '', deadline: '' },
-              { desc: '[JobDesc] Mencari sponsor/donatur', status: 'rencana', progress: 0, pic: 'Seksi Dana', notes: '', deadline: '' },
-              { desc: '[JobDesc] Menjual produk atau kupon dana', status: 'rencana', progress: 0, pic: 'Seksi Dana', notes: '', deadline: '' },
-              { desc: '[JobDesc] Membuat laporan pemasukan dana', status: 'rencana', progress: 0, pic: 'Seksi Dana', notes: '', deadline: '' },
-              { desc: '[RAB] Modal usaha dana', status: 'rencana', progress: 0, pic: 'Seksi Dana', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Pembuatan kupon/brosur penggalangan dana', status: 'rencana', progress: 0, pic: 'Seksi Dana', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Transportasi mencari sponsor', status: 'rencana', progress: 0, pic: 'Seksi Dana', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Biaya promosi kegiatan dana', status: 'rencana', progress: 0, pic: 'Seksi Dana', notes: 'Komponen Anggaran', deadline: '' }
-            ]},
-            { name: 'Seksi Konsumsi', assignedEmails: '', tasks: [
-              { desc: '[JobDesc] Menyediakan makanan dan minuman', status: 'rencana', progress: 0, pic: 'Seksi Konsumsi', notes: '', deadline: '' },
-              { desc: '[JobDesc] Mengatur jadwal konsumsi panitia dan peserta', status: 'rencana', progress: 0, pic: 'Seksi Konsumsi', notes: '', deadline: '' },
-              { desc: '[JobDesc] Memastikan kebersihan dan distribusi konsumsi', status: 'rencana', progress: 0, pic: 'Seksi Konsumsi', notes: '', deadline: '' },
-              { desc: '[JobDesc] Menghitung kebutuhan konsumsi sesuai jumlah peserta', status: 'rencana', progress: 0, pic: 'Seksi Konsumsi', notes: '', deadline: '' },
-              { desc: '[RAB] Snack dan makan panitia', status: 'rencana', progress: 0, pic: 'Seksi Konsumsi', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Konsumsi peserta dan tamu', status: 'rencana', progress: 0, pic: 'Seksi Konsumsi', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Air mineral, kopi, teh', status: 'rencana', progress: 0, pic: 'Seksi Konsumsi', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Peralatan makan tambahan', status: 'rencana', progress: 0, pic: 'Seksi Konsumsi', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Biaya distribusi konsumsi', status: 'rencana', progress: 0, pic: 'Seksi Konsumsi', notes: 'Komponen Anggaran', deadline: '' }
-            ]},
-            { name: 'Seksi Perlengkapan dan Multimedia', assignedEmails: '', tasks: [
-              { desc: '[JobDesc] Menyiapkan perlengkapan kegiatan', status: 'rencana', progress: 0, pic: 'Seksi Perkap', notes: '', deadline: '' },
-              { desc: '[JobDesc] Mengatur meja, kursi, panggung, dan dekorasi', status: 'rencana', progress: 0, pic: 'Seksi Perkap', notes: '', deadline: '' },
-              { desc: '[JobDesc] Menyiapkan sound system, LCD, proyektor, dan lighting', status: 'rencana', progress: 0, pic: 'Seksi Perkap', notes: '', deadline: '' },
-              { desc: '[JobDesc] Memastikan multimedia berjalan baik selama acara', status: 'rencana', progress: 0, pic: 'Seksi Perkap', notes: '', deadline: '' },
-              { desc: '[RAB] Sewa sound system/LCD/proyektor', status: 'rencana', progress: 0, pic: 'Seksi Perkap', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Kabel, terminal listrik, baterai', status: 'rencana', progress: 0, pic: 'Seksi Perkap', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Dekorasi dan perlengkapan panggung', status: 'rencana', progress: 0, pic: 'Seksi Perkap', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Banner, backdrop, dan perlengkapan teknis', status: 'rencana', progress: 0, pic: 'Seksi Perkap', notes: 'Komponen Anggaran', deadline: '' }
-            ]},
-            { name: 'Seksi Humas, Publikasi dan Dokumentasi', assignedEmails: '', tasks: [
-              { desc: '[JobDesc] Menyampaikan informasi kegiatan kepada jemaat/publik', status: 'rencana', progress: 0, pic: 'Seksi Humas', notes: '', deadline: '' },
-              { desc: '[JobDesc] Membuat desain publikasi', status: 'rencana', progress: 0, pic: 'Seksi Humas', notes: '', deadline: '' },
-              { desc: '[JobDesc] Mengelola media sosial dan komunikasi panitia', status: 'rencana', progress: 0, pic: 'Seksi Humas', notes: '', deadline: '' },
-              { desc: '[JobDesc] Mengambil foto dan video kegiatan', status: 'rencana', progress: 0, pic: 'Seksi Humas', notes: '', deadline: '' },
-              { desc: '[JobDesc] Membuat laporan dokumentasi acara', status: 'rencana', progress: 0, pic: 'Seksi Humas', notes: '', deadline: '' },
-              { desc: '[RAB] Cetak banner, spanduk, pamflet', status: 'rencana', progress: 0, pic: 'Seksi Humas', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Kuota/internet publikasi online', status: 'rencana', progress: 0, pic: 'Seksi Humas', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Sewa kamera atau perlengkapan dokumentasi', status: 'rencana', progress: 0, pic: 'Seksi Humas', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Konsumsi/transport tim dokumentasi', status: 'rencana', progress: 0, pic: 'Seksi Humas', notes: 'Komponen Anggaran', deadline: '' }
-            ]},
-            { name: 'Bendahara', assignedEmails: '', tasks: [
-              { desc: '[JobDesc] Mengatur keluar masuk keuangan', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '', deadline: '' },
-              { desc: '[JobDesc] Mencatat seluruh transaksi', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '', deadline: '' },
-              { desc: '[JobDesc] Membuat laporan keuangan', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '', deadline: '' },
-              { desc: '[JobDesc] Menyimpan bukti pembayaran', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '', deadline: '' },
-              { desc: '[JobDesc] Mengontrol penggunaan dana agar sesuai RAB', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '', deadline: '' },
-              { desc: '[RAB] Buku kas dan administrasi keuangan', status: 'rencana', progress: 0, pic: 'Bendahara', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Map dan arsip kuitansi', status: 'rencana', progress: 0, pic: 'Bendahara', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Biaya transfer/administrasi bank', status: 'rencana', progress: 0, pic: 'Bendahara', notes: 'Komponen Anggaran', deadline: '' },
-              { desc: '[RAB] Dana cadangan operasional', status: 'rencana', progress: 0, pic: 'Bendahara', notes: 'Komponen Anggaran', deadline: '' }
-            ]}
-          ]
-        },
-        {
-          title: 'Rapat Koordinasi Panitia Pesparawi – 1 Maret 2026',
-          date: '2026-03-01',
-          info: 'Pembahasan RAB & persiapan awal',
-          agenda: '1. Evaluasi program sebelumnya\n2. Pemaparan RAB oleh Bendahara\n3. Diskusi masing-masing seksi',
-          sections: [
-            { name: 'RAB setiap seksi', assignedEmails: '', tasks: [
-              { desc: 'Seksi Acara mengirim RAB', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '', deadline: '' },
-              { desc: 'Seksi Humpubdok mengirim RAB', status: 'selesai', progress: 100, pic: 'Humas', notes: '', deadline: '' },
-              { desc: 'Seksi Konsumsi mengirim RAB', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '', deadline: '' },
-              { desc: 'Seksi Perlengkapan survey tempat & vendor', status: 'berlangsung', progress: 30, pic: 'Perkap', notes: '', deadline: '' },
-              { desc: 'Seksi Keamanan menunggu tempat', status: 'rencana', progress: 0, pic: 'Keamanan', notes: '', deadline: '' },
-              { desc: 'Seksi kesehatan ditindaklanjuti', status: 'rencana', progress: 0, pic: 'Kesehatan', notes: '', deadline: '' },
-              { desc: 'DD penyerahan RAB ke bendahara (6 Maret)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '', deadline: '' },
-              { desc: 'Bendahara cross-cek RAB dan rapat 9 Maret', status: 'rencana', progress: 0, pic: 'Bendahara', notes: '', deadline: '' }
-            ]},
-            { name: 'Seksi Perkap', assignedEmails: '', tasks: [
-              { desc: 'Survey tempat & vendor', status: 'berlangsung', progress: 40, pic: 'Perkap', notes: '', deadline: '' }
-            ]},
-            { name: 'Seksi Lomba', assignedEmails: '', tasks: [
-              { desc: 'Tanggal pelaksanaan 20 Juni 2026', status: 'selesai', progress: 100, pic: 'Acara', notes: '', deadline: '' },
-              { desc: 'Story Telling max 2 orang per-resort', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
-              { desc: 'Story Telling tidak merangkap Koor/Vocal', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
-              { desc: 'Nada dasar lagu koor tidak diganti', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
-              { desc: 'Mencari juri kompeten', status: 'berlangsung', progress: 60, pic: 'Acara', notes: '', deadline: '' },
-              { desc: 'Terjemahkan aturan lomba ke Indonesia (deadline 3 Maret)', status: 'rencana', progress: 0, pic: 'Acara', notes: '', deadline: '' }
-            ]},
-            { name: 'Seksi Humpubdok', assignedEmails: '', tasks: [
-              { desc: 'Koordinasi video teaser tiap resort', status: 'rencana', progress: 0, pic: 'Humas', notes: '', deadline: '' },
-              { desc: 'Upload video teaser di medsos', status: 'rencana', progress: 0, pic: 'Humas', notes: '', deadline: '' },
-              { desc: 'Aktifasi medsos IG & FB', status: 'rencana', progress: 10, pic: 'Humas', notes: '', deadline: '' }
-            ]},
-            { name: 'Seksi Dana', assignedEmails: '', tasks: [
-              { desc: 'Galangan jemaat & hari H', status: 'rencana', progress: 0, pic: 'Dana', notes: '', deadline: '' },
-              { desc: 'Proposal', status: 'rencana', progress: 5, pic: 'Dana', notes: '', deadline: '' },
-              { desc: 'Bazar', status: 'rencana', progress: 0, pic: 'Dana', notes: '', deadline: '' }
-            ]},
-            { name: 'Bendahara', assignedEmails: '', tasks: [
-              { desc: 'Rekening Panitia (OTP)', status: 'berlangsung', progress: 70, pic: 'Bendahara', notes: '', deadline: '' }
-            ]},
-            { name: 'Sekretariat', assignedEmails: '', tasks: [
-              { desc: 'Surat pemberitahuan ke resort', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba', deadline: '' },
-              { desc: 'Flyer Pesparawi', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'menunggu ketentuan lomba', deadline: '' },
-              { desc: 'Proposal (RAB, Norek, ketentuan)', status: 'rencana', progress: 20, pic: 'Sekretariat', notes: '', deadline: '' },
-              { desc: 'Surat permohonan galangan', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: 'koordinasi praeses', deadline: '' }
-            ]}
-          ]
-        },
-        {
-          title: 'Rapat Koordinasi Panitia – 9 Maret 2026',
-          date: '2026-03-09',
-          info: 'Total anggaran ±330jt | SMESCO sewa 61jt | 20 Juni 2026',
-          agenda: '1. Finalisasi RAB\n2. Persiapan teknis lokasi\n3. Pengesahan Proposal',
-          sections: [
-            { name: 'Seksi Acara', assignedEmails: '', tasks: [
-              { desc: 'RAB acara Rp105,5 jt', status: 'selesai', progress: 100, pic: 'Acara', notes: '', deadline: '' },
-              { desc: 'Menentukan juri & hadiah', status: 'selesai', progress: 100, pic: 'Acara', notes: '', deadline: '' },
-              { desc: 'Koordinasi panggung dgn perkap', status: 'berlangsung', progress: 50, pic: 'Acara', notes: '', deadline: '' },
-              { desc: 'Koordinasi dengan GKPS TV', status: 'rencana', progress: 10, pic: 'Acara', notes: '', deadline: '' },
-              { desc: 'Artis tamu (Ziva/Bastian/Grace) budget 5jt', status: 'kendala', progress: 20, pic: 'Acara', notes: 'belum final', deadline: '' }
-            ]},
-            { name: 'Koordinator Lomba', assignedEmails: '', tasks: [
-              { desc: 'Aturan teknis lomba', status: 'selesai', progress: 100, pic: 'Lomba', notes: '', deadline: '' },
-              { desc: 'Formulir pendaftaran detail', status: 'berlangsung', progress: 70, pic: 'Lomba', notes: '', deadline: '' },
-              { desc: 'Follow up Sinode durasi & aturan', status: 'rencana', progress: 0, pic: 'Lomba', notes: 'menunggu info', deadline: '' }
-            ]},
-            { name: 'Seksi Perlengkapan', assignedEmails: '', tasks: [
-              { desc: 'Penawaran SMESCO', status: 'selesai', progress: 100, pic: 'Perkap', notes: '', deadline: '' },
-              { desc: 'Negosiasi harga sewa', status: 'berlangsung', progress: 60, pic: 'Perkap', notes: '', deadline: '' },
-              { desc: 'Survey lokasi 16 April 2026', status: 'rencana', progress: 0, pic: 'Perkap', notes: '', deadline: '' },
-              { desc: 'DP gedung (fu korpel)', status: 'kendala', progress: 10, pic: 'Perkap', notes: '', deadline: '' }
-            ]},
-            { name: 'Seksi Konsumsi', assignedEmails: '', tasks: [
-              { desc: 'RAB Rp56,38 jt', status: 'selesai', progress: 100, pic: 'Konsumsi', notes: '', deadline: '' },
-              { desc: 'Revisi jumlah peserta', status: 'berlangsung', progress: 50, pic: 'Konsumsi', notes: '', deadline: '' },
-              { desc: 'Katering & sistem box', status: 'rencana', progress: 20, pic: 'Konsumsi', notes: '', deadline: '' }
-            ]},
-            { name: 'Seksi Humas', assignedEmails: '', tasks: [
-              { desc: 'Konsep banner/backdrop', status: 'selesai', progress: 100, pic: 'Humas', notes: '', deadline: '' },
-              { desc: 'Koordinasi desain (Bang Robert)', status: 'berlangsung', progress: 80, pic: 'Humas', notes: '', deadline: '' },
-              { desc: 'Finalisasi jumlah banner', status: 'rencana', progress: 0, pic: 'Humas', notes: 'budget 37jt', deadline: '' }
-            ]},
-            { name: 'Bendahara', assignedEmails: '', tasks: [
-              { desc: 'Mengumpulkan RAB semua seksi', status: 'selesai', progress: 100, pic: 'Bendahara', notes: '', deadline: '' },
-              { desc: 'Menyusun proposal lengkap', status: 'berlangsung', progress: 65, pic: 'Bendahara', notes: '', deadline: '' },
-              { desc: 'Finalisasi total anggaran', status: 'rencana', progress: 30, pic: 'Bendahara', notes: 'masih ada pos belum final', deadline: '' }
-            ]},
-            { name: 'Sekretariat', assignedEmails: '', tasks: [
-              { desc: 'Surat ke resort', status: 'selesai', progress: 100, pic: 'Sekretariat', notes: '', deadline: '' },
-              { desc: 'Proposal bersama bendahara', status: 'berlangsung', progress: 65, pic: 'Sekretariat', notes: '', deadline: '' },
-              { desc: 'Flyer (no.telp?)', status: 'rencana', progress: 0, pic: 'Sekretariat', notes: '', deadline: '' }
+              { desc: '[JobDesc] Membuat surat menyurat panitia', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: '', deadline: '' }
             ]}
           ]
         }
@@ -1201,7 +992,6 @@
           let deleteBtn = null;
           let editBtn = null;
 
-          // Tombol Edit dan Hapus Grup
           if (w.createdBy === currentUser?.uid || userRole === 'admin') {
             editBtn = document.createElement('button');
             editBtn.innerHTML = '<i class="fas fa-edit"></i>';
@@ -1240,7 +1030,6 @@
         });
       }
 
-      // FUNGSI EDIT WORKSPACE/GRUP
       window.openEditWorkspace = (id) => {
           const w = workspaces.find(ws => ws.id === id);
           if(!w) return;
@@ -1272,7 +1061,6 @@
           }
       });
 
-      // FUNGSI MEMBUKA MODAL KELOLA ANGGOTA
       window.openManageMembers = async (workspaceId) => {
         const workspace = workspaces.find(w => w.id === workspaceId);
         if (!workspace) return;
@@ -1905,7 +1693,6 @@
           if (task.attachments && task.attachments.length > 0) {
             attachmentsHtml = `<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; margin-left: 110px;">`;
             task.attachments.forEach(att => {
-              // Jika ini adalah file yang diupload dengan logika RTDB (seperti GSM Planner)
               if (att.path === 'rtdb') {
                  attachmentsHtml += `<a href="#" onclick="downloadRtdbAttachment('${att.rtdbId}', '${escapeHtml(att.name)}', this); return false;" style="font-size: 0.75rem; background: #eaf0f6; padding: 4px 10px; border-radius: 20px; text-decoration: none; color: var(--color-secondary); border: 1px solid #d1dfea; transition: 0.2s;"><i class="fas fa-paperclip"></i> ${escapeHtml(att.name)}</a>`;
               } else {
@@ -2269,11 +2056,9 @@
         const attachmentList = document.getElementById('taskAttachmentList');
         attachmentList.innerHTML = '';
         
-        // Load lampiran jika ada
         if (task && task.attachments && task.attachments.length > 0) {
           task.attachments.forEach((att, index) => {
             let linkHtml = '';
-            // Membedakan tombol antara file base64 RTDB vs file Storage lawas
             if (att.path === 'rtdb') {
                linkHtml = `<a href="#" onclick="downloadRtdbAttachment('${att.rtdbId}', '${escapeHtml(att.name)}', this); return false;" style="font-size:0.85rem; color:var(--color-primary); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;"><i class="fas fa-file-alt"></i> ${escapeHtml(att.name)}</a>`;
             } else {
@@ -2291,7 +2076,6 @@
         taskModal.classList.add('active');
       }
 
-      // Menambahkan fungsi untuk menghapus file lampiran
       window.deleteAttachment = async function(taskId, attachmentIndex) {
         if (!confirm('Apakah Anda yakin ingin menghapus dokumen lampiran ini?')) return;
         const meeting = meetings.find(m => m.id === currentMeetingId);
@@ -2302,10 +2086,8 @@
           const att = task.attachments[attachmentIndex];
           try {
             if (att.path === 'rtdb' && att.rtdbId) {
-                // Menghapus data base64 dari Realtime Database
                 await firebase.database().ref('notula_attachments/' + att.rtdbId).remove();
             } else if (att.path && att.path !== 'rtdb') {
-                // Backward compatibility untuk file lama yang ada di Storage
                 await storage.ref(att.path).delete();
             }
           } catch (e) {
@@ -2314,8 +2096,8 @@
           task.attachments.splice(attachmentIndex, 1);
           try {
              await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
-             openTaskModal(currentSectionId, taskId); // Segarkan popup
-             renderDetail(meeting); // Segarkan layar di belakang
+             openTaskModal(currentSectionId, taskId); 
+             renderDetail(meeting); 
           } catch (error) {
              alert("Gagal menghapus data: " + error.message);
           }
@@ -2324,7 +2106,7 @@
 
       document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
       
-      // ===== LOGIKA UPLOAD (DIPERBARUI MENGIKUTI GSM PLANNER) =====
+      // ===== LOGIKA UPLOAD DIPERBARUI: ADA LOADING PROGRESS DAN TIMEOUT =====
       document.getElementById('saveTaskModal').addEventListener('click', async () => {
         if (!currentMeetingId || !currentSectionId) return;
         const meeting = meetings.find(m => m.id === currentMeetingId);
@@ -2347,33 +2129,47 @@
         // JIKA ADA FILE YANG DIUNGGAH
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            const maxSize = 2 * 1024 * 1024; // Limit maksimal 2MB
+            const maxSize = 5 * 1024 * 1024; // Limit maksimal dinaikkan ke 5 MB
 
             if (file.size > maxSize) {
-              alert('Ukuran file terlalu besar! Maksimal 2MB.');
+              alert('Ukuran file terlalu besar! Maksimal 5 MB.');
               return; 
             }
 
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses file...';
             saveBtn.disabled = true;
 
             const reader = new FileReader();
             
-            // Saat FileReader berhasil membaca file menjadi format Base64 Text
+            // Progress Bar saat Browser Membaca File
+            reader.onprogress = function(data) {
+                if (data.lengthComputable) {
+                    const pct = Math.round((data.loaded / data.total) * 100);
+                    saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses ${pct}%`;
+                }
+            };
+
             reader.onload = async function(e) {
                 try {
+                    saveBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Mengunggah ke Server...';
                     const base64Data = e.target.result;
-                    // Buat ID unik untuk di Realtime Database
                     const attachmentId = 'att_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
                     
-                    // LAKUKAN BYPASS (SEPERTI GSM PLANNER)
-                    // Kita simpan string Base64 langsung ke Realtime Database, bukan Storage
-                    await firebase.database().ref('notula_attachments/' + attachmentId).set({
+                    // PROSES UPLOAD KE REALTIME DATABASE DENGAN TIMEOUT 30 DETIK
+                    const uploadPromise = firebase.database().ref('notula_attachments/' + attachmentId).set({
                         data: base64Data,
-                        name: file.name
+                        name: file.name,
+                        uploadedBy: currentUser?.email || 'unknown',
+                        timestamp: firebase.database.ServerValue.TIMESTAMP
                     });
 
-                    // Hanya mereferensikan ID-nya ke Firestore agar dokumen Firestore tidak over-limit 1MB
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Koneksi timeout. Silakan periksa jaringan internet Anda.')), 30000);
+                    });
+
+                    // Menunggu siapa yang lebih cepat: Upload selesai, atau 30 detik kehabisan waktu
+                    await Promise.race([uploadPromise, timeoutPromise]);
+
+                    // Hanya mereferensikan ID-nya ke Firestore agar tidak over-limit
                     attachments.push({
                         name: file.name,
                         url: '#', 
@@ -2384,27 +2180,27 @@
                     const taskData = { desc, status, progress, pic, notes, deadline, attachments };
                     if (currentTaskId) taskData.id = currentTaskId;
                     
-                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan data...';
                     await saveTask(taskData, currentSectionId);
                     
                     fileInput.value = ''; 
                     closeAllModals();
                 } catch (err) {
-                    alert('Gagal menyimpan lampiran: ' + err.message);
+                    // Jika terjadi error, tampilkan pop-up yang sangat jelas
+                    alert('Gagal mengunggah dokumen: ' + err.message);
                 } finally {
                     saveBtn.innerText = 'Simpan';
                     saveBtn.disabled = false;
                 }
             };
             
-            // Jika ada masalah saat membaca file
             reader.onerror = function() {
-                alert('Gagal membaca file.');
+                alert('Gagal membaca file dari perangkat Anda.');
                 saveBtn.innerText = 'Simpan';
                 saveBtn.disabled = false;
             };
             
-            // Trigger eksekusi FileReader
+            // Trigger eksekusi
             reader.readAsDataURL(file);
 
         } else {
@@ -2746,41 +2542,6 @@
       document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
       document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
       document.getElementById('printBtn').addEventListener('click', printMeeting);
-
-      // ========== PWA INSTALL LOGIC & SERVICE WORKER ==========
-      let deferredPrompt;
-      const installContainer = document.getElementById('install-pwa-container');
-      const btnInstallPWA = document.getElementById('btnInstallPWA');
-
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker berhasil didaftarkan!', reg.scope))
-            .catch(err => console.log('Service Worker gagal:', err));
-        });
-      }
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        installContainer.style.display = 'block'; 
-      });
-
-      btnInstallPWA.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`User response: ${outcome}`);
-          deferredPrompt = null;
-          installContainer.style.display = 'none'; 
-        }
-      });
-
-      window.addEventListener('appinstalled', () => {
-        installContainer.style.display = 'none';
-        deferredPrompt = null;
-        alert('Terima kasih! Notula kini tersedia di layar utama Anda.');
-      });
 
     })();
   </script>
