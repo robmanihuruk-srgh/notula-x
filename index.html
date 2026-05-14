@@ -463,7 +463,7 @@
         <textarea id="taskNotesInput" rows="2"></textarea>
       </div>
       <div class="form-group" style="border-top: 1px dashed #dbe2ec; padding-top: 15px; margin-top: 5px;">
-        <label><i class="fas fa-paperclip"></i> Lampiran File Dokumen</label>
+        <label><i class="fas fa-paperclip"></i> Lampiran File Dokumen (Maks. 2 MB)</label>
         <input type="file" id="taskAttachmentInput" style="padding: 8px; font-size: 0.85rem; width: 100%;">
         <div id="taskAttachmentList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
       </div>
@@ -2298,18 +2298,43 @@
         try {
           // Jika ada file yang dimasukkan
           if (fileInput.files.length > 0) {
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunggah File...';
+            const file = fileInput.files[0];
+            const maxSize = 2 * 1024 * 1024; // Limit 2MB sesuai referensi GSM Planner
+
+            if (file.size > maxSize) {
+              alert('Ukuran file terlalu besar! Maksimal 2MB.');
+              return; // Menghentikan proses (tombol otomatis normal kembali karena blok 'finally')
+            }
+
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunggah 0%...';
             saveBtn.disabled = true;
             
-            const file = fileInput.files[0];
             const storageRef = storage.ref('attachments/' + Date.now() + '_' + file.name);
-            const snapshot = await storageRef.put(file);
-            const downloadURL = await snapshot.ref.getDownloadURL();
-            
-            attachments.push({
-              name: file.name,
-              url: downloadURL,
-              path: snapshot.ref.fullPath
+            const uploadTask = storageRef.put(file);
+
+            await new Promise((resolve, reject) => {
+              uploadTask.on('state_changed',
+                (snapshot) => {
+                  const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                  saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Mengunggah ${progress}%...`;
+                },
+                (error) => {
+                  reject(error);
+                },
+                async () => {
+                  try {
+                    const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                    attachments.push({
+                      name: file.name,
+                      url: downloadURL,
+                      path: uploadTask.snapshot.ref.fullPath
+                    });
+                    resolve();
+                  } catch (err) {
+                    reject(err);
+                  }
+                }
+              );
             });
           }
 
