@@ -18,11 +18,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   
-  <!-- SDK Firebase Diperbarui -->
+  <!-- SDK Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -431,7 +430,7 @@
         <textarea id="taskNotesInput" rows="2"></textarea>
       </div>
       <div class="form-group" style="border-top: 1px dashed #dbe2ec; padding-top: 15px; margin-top: 5px;">
-        <label><i class="fas fa-paperclip"></i> Lampiran File Dokumen (Maks. 5 MB)</label>
+        <label><i class="fas fa-paperclip"></i> Lampiran File Dokumen (Maks. 2 MB)</label>
         <input type="file" id="taskAttachmentInput" style="padding: 8px; font-size: 0.85rem; width: 100%;">
         <div id="taskAttachmentList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
       </div>
@@ -523,7 +522,7 @@
         <p id="meetingDate"><i class="far fa-calendar-alt"></i> </p>
       </div>
       <div class="header-actions">
-        <!-- TOMBOL MOM DITAMBAHKAN SECARA NATIVE DISINI -->
+        <!-- TOMBOL MOM -->
         <button class="btn-header" id="btn-open-mom" disabled style="background: #fff4e6; border-color: var(--color-primary); color: var(--color-primary); font-weight: 600;"><i class="fas fa-file-signature"></i> Buat MoM</button>
         
         <div class="theme-switcher">
@@ -566,9 +565,7 @@
       const auth = firebase.auth();
       const db = firebase.firestore();
       
-      // Inisialisasi Storage untuk file yang stabil
-      const storage = firebase.storage();
-      // Inisialisasi Realtime Database (hanya dipertahankan untuk backward compatibility file lama)
+      // KEMBALI MENGGUNAKAN RTDB MURNI (SESUAI GSM PLANNER)
       const rtdb = firebase.database();
 
       // ========== GLOBAL STATE ==========
@@ -586,7 +583,7 @@
       let selectedMeetingIds = new Set();
       let selectedWorkspaceIds = new Set();
 
-      // FUNGSI MENGUNDUH BASE64 DARI REALTIME DATABASE (FILE LAMA)
+      // FUNGSI MENGUNDUH BASE64 DARI REALTIME DATABASE
       window.downloadRtdbAttachment = async function(rtdbId, fileName, btnElement) {
         const originalText = btnElement.innerHTML;
         btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunduh...';
@@ -1696,11 +1693,8 @@
             attachmentsHtml = `<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; margin-left: 110px;">`;
             task.attachments.forEach(att => {
               if (att.path === 'rtdb') {
-                 // Untuk File Lama (RTDB Base64)
+                 // Format Unduh File dari RTDB 
                  attachmentsHtml += `<a href="#" onclick="downloadRtdbAttachment('${att.rtdbId}', '${escapeHtml(att.name)}', this); return false;" style="font-size: 0.75rem; background: #eaf0f6; padding: 4px 10px; border-radius: 20px; text-decoration: none; color: var(--color-secondary); border: 1px solid #d1dfea; transition: 0.2s;"><i class="fas fa-paperclip"></i> ${escapeHtml(att.name)}</a>`;
-              } else {
-                 // Untuk File Baru (Firebase Storage URL Asli)
-                 attachmentsHtml += `<a href="${att.url}" target="_blank" style="font-size: 0.75rem; background: #eaf0f6; padding: 4px 10px; border-radius: 20px; text-decoration: none; color: var(--color-secondary); border: 1px solid #d1dfea; transition: 0.2s;"><i class="fas fa-external-link-alt"></i> Buka Lampiran: ${escapeHtml(att.name)}</a>`;
               }
             });
             attachmentsHtml += `</div>`;
@@ -2065,8 +2059,6 @@
             let linkHtml = '';
             if (att.path === 'rtdb') {
                linkHtml = `<a href="#" onclick="downloadRtdbAttachment('${att.rtdbId}', '${escapeHtml(att.name)}', this); return false;" style="font-size:0.85rem; color:var(--color-primary); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;"><i class="fas fa-file-alt"></i> ${escapeHtml(att.name)}</a>`;
-            } else {
-               linkHtml = `<a href="${att.url}" target="_blank" style="font-size:0.85rem; color:var(--color-primary); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;"><i class="fas fa-external-link-alt"></i> Buka File</a>`;
             }
 
             attachmentList.innerHTML += `
@@ -2089,22 +2081,18 @@
         if (task && task.attachments) {
           const att = task.attachments[attachmentIndex];
           try {
-            // Jika file direkam di sistem lama (RTDB)
+            // Hapus dari Realtime Database Murni
             if (att.path === 'rtdb' && att.rtdbId) {
                 await firebase.database().ref('notula_attachments/' + att.rtdbId).remove();
             } 
-            // Jika file di Storage Baru
-            else if (att.path && att.path !== 'rtdb') {
-                await firebase.storage().ref(att.path).delete();
-            }
           } catch (e) {
             console.log("File tidak ditemukan atau sudah terhapus di database", e);
           }
           
-          task.attachments.splice(attachmentIndex, 1); // Hapus elemen dari array
+          task.attachments.splice(attachmentIndex, 1); 
           try {
              await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
-             openTaskModal(currentSectionId, taskId); // Refresh tampilan
+             openTaskModal(currentSectionId, taskId); 
              renderDetail(meeting); 
           } catch (error) {
              alert("Gagal menghapus data dari Firestore: " + error.message);
@@ -2115,7 +2103,7 @@
       document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
       
       // =========================================================================
-      // LOGIKA UPLOAD DIPERBARUI: MENGGUNAKAN FIREBASE STORAGE (RESMI & STABIL)
+      // LOGIKA UPLOAD DIPERBARUI: MENGGUNAKAN REALTIME DATABASE (MURNI & AMAN)
       // =========================================================================
       document.getElementById('saveTaskModal').addEventListener('click', async () => {
         if (!currentMeetingId || !currentSectionId) return;
@@ -2139,71 +2127,65 @@
         // JIKA ADA FILE YANG DIUNGGAH
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            const maxSize = 5 * 1024 * 1024; // Limit maksimal dinaikkan ke 5 MB
+            
+            // Limit maksimal diturunkan menjadi 2 MB karena Realtime DB kesulitan memproses payload yang sangat besar
+            const maxSize = 2 * 1024 * 1024; 
 
             if (file.size > maxSize) {
-              alert('Ukuran file terlalu besar! Maksimal 5 MB.');
+              alert('Ukuran file terlalu besar! Maksimal 2 MB untuk versi gratis (Realtime Database).');
               return; 
             }
 
             saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Bersiap...';
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Membaca file...';
 
-            // Menggunakan Firebase Storage (Standar Terbaik & Paling Stabil untuk File)
-            const fileId = Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-            // Membersihkan nama file dari spasi dan karakter aneh agar aman di URL
-            const cleanFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_'); 
-            const storagePath = 'notula_attachments/' + fileId + '_' + cleanFileName;
-            const storageRef = firebase.storage().ref(storagePath);
+            const reader = new FileReader();
             
-            const uploadTask = storageRef.put(file);
+            reader.onload = async function(e) {
+                try {
+                    saveBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Mengunggah ke server...';
+                    const base64Data = e.target.result;
+                    const attachmentId = 'att_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                    
+                    // Upload langsung ke Realtime Database tanpa timeout buatan
+                    await firebase.database().ref('notula_attachments/' + attachmentId).set({
+                        data: base64Data,
+                        name: file.name,
+                        uploadedBy: currentUser?.email || 'unknown',
+                        timestamp: firebase.database.ServerValue.TIMESTAMP
+                    });
 
-            // MENDETEKSI PERUBAHAN & ERROR SECARA LIVE
-            uploadTask.on('state_changed', 
-                (snapshot) => {
-                    const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-                    saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Mengunggah ${pct}%`;
-                }, 
-                (error) => {
-                    // PENANGANAN ERROR SANGAT JELAS JIKA DIBLOKIR FIREBASE
+                    attachments.push({
+                        name: file.name,
+                        url: '#', 
+                        rtdbId: attachmentId,
+                        path: 'rtdb' // Flag bahwa file ada di RTDB
+                    });
+                    
+                    const taskData = { desc, status, progress, pic, notes, deadline, attachments };
+                    if (currentTaskId) taskData.id = currentTaskId;
+                    
+                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan data...';
+                    await saveTask(taskData, currentSectionId);
+                    
+                    fileInput.value = ''; 
+                    closeAllModals();
+                } catch (err) {
+                    alert('Gagal mengunggah dokumen. Pastikan Rules Realtime Database diatur ke true. Error: ' + err.message);
+                } finally {
                     saveBtn.innerText = 'Simpan';
                     saveBtn.disabled = false;
-                    
-                    if (error.code === 'storage/unauthorized') {
-                        alert("GAGAL UPLOAD: Izin ditolak oleh Firebase!\n\nSOLUSI: \n1. Masuk ke Firebase Console Anda\n2. Buka menu 'Storage' (Penyimpanan)\n3. Masuk ke tab 'Rules' (Aturan)\n4. Ubah aturan menjadi:\n   allow read, write: if true;\n5. Klik Publish (Publikasikan).");
-                    } else if (error.code === 'storage/canceled') {
-                        alert("Upload dibatalkan.");
-                    } else {
-                        alert("Terjadi kesalahan koneksi saat mengunggah: " + error.message);
-                    }
-                }, 
-                async () => {
-                    // UPLOAD BERHASIL
-                    try {
-                        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan tautan...';
-                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                        
-                        attachments.push({
-                            name: file.name,
-                            url: downloadURL,
-                            path: storagePath // Path ini diperlukan Firebase untuk proses Hapus (Delete)
-                        });
-                        
-                        const taskData = { desc, status, progress, pic, notes, deadline, attachments };
-                        if (currentTaskId) taskData.id = currentTaskId;
-                        
-                        await saveTask(taskData, currentSectionId);
-                        
-                        fileInput.value = ''; 
-                        closeAllModals();
-                    } catch (err) {
-                        alert('Gagal merekam data ke sistem: ' + err.message);
-                    } finally {
-                        saveBtn.innerText = 'Simpan';
-                        saveBtn.disabled = false;
-                    }
                 }
-            );
+            };
+            
+            reader.onerror = function() {
+                alert('Gagal membaca file dari perangkat Anda.');
+                saveBtn.innerText = 'Simpan';
+                saveBtn.disabled = false;
+            };
+            
+            // Trigger pembacaan
+            reader.readAsDataURL(file);
 
         } else {
             // JIKA TANPA FILE (Save Data Secara Normal)
