@@ -56,6 +56,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -461,6 +462,11 @@
         <label>Catatan (opsional)</label>
         <textarea id="taskNotesInput" rows="2"></textarea>
       </div>
+      <div class="form-group" style="border-top: 1px dashed #dbe2ec; padding-top: 15px; margin-top: 5px;">
+        <label><i class="fas fa-paperclip"></i> Lampiran File Dokumen</label>
+        <input type="file" id="taskAttachmentInput" style="padding: 8px; font-size: 0.85rem; width: 100%;">
+        <div id="taskAttachmentList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
+      </div>
       <div class="modal-actions">
         <button class="btn-secondary" id="cancelTaskModal">Batal</button>
         <button class="btn-primary" id="saveTaskModal">Simpan</button>
@@ -597,6 +603,7 @@
       firebase.initializeApp(firebaseConfig);
       const auth = firebase.auth();
       const db = firebase.firestore();
+      const storage = firebase.storage();
 
       // ========== GLOBAL STATE ==========
       let meetings = [];
@@ -1854,7 +1861,6 @@
       function renderSectionCard(meetingId, section) {
         const meeting = meetings.find(m => m.id === meetingId);
         const canEditSec = canUserEditSection(meeting, section);
-        
         const canDeleteSec = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
 
         let tasksHtml = '';
@@ -1864,6 +1870,17 @@
           const pic = task.pic || '—';
           const deadline = task.deadline ? new Date(task.deadline) : null;
           const deadlineStr = deadline ? deadline.toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+          
+          // --- RENDER LAMPIRAN FILE ---
+          let attachmentsHtml = '';
+          if (task.attachments && task.attachments.length > 0) {
+            attachmentsHtml = `<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; margin-left: 110px;">`;
+            task.attachments.forEach(att => {
+              attachmentsHtml += `<a href="${att.url}" target="_blank" style="font-size: 0.75rem; background: #eaf0f6; padding: 4px 10px; border-radius: 20px; text-decoration: none; color: var(--color-secondary); border: 1px solid #d1dfea; transition: 0.2s;"><i class="fas fa-paperclip"></i> ${escapeHtml(att.name)}</a>`;
+            });
+            attachmentsHtml += `</div>`;
+          }
+
           tasksHtml += `
             <div class="task-item">
               <div class="task-row">
@@ -1881,6 +1898,7 @@
                 </div>
               </div>
               ${task.notes ? `<div style="font-size:0.8rem; color:#6a7f9b; margin-top:6px; margin-left:110px;"><i class="fas fa-comment"></i> ${escapeHtml(task.notes)}</div>` : ''}
+              ${attachmentsHtml}
             </div>
           `;
         });
@@ -2211,8 +2229,50 @@
         document.getElementById('taskNotesInput').value = task ? (task.notes || '') : '';
         document.getElementById('modalTaskTitle').innerText = task ? 'Edit tugas' : 'Tugas baru';
         document.getElementById('deleteTaskBtn').classList.toggle('hidden', !task);
+        
+        // Reset Input File
+        document.getElementById('taskAttachmentInput').value = '';
+        const attachmentList = document.getElementById('taskAttachmentList');
+        attachmentList.innerHTML = '';
+        
+        // Load lampiran jika ada
+        if (task && task.attachments && task.attachments.length > 0) {
+          task.attachments.forEach((att, index) => {
+            attachmentList.innerHTML += `
+              <div style="display:flex; justify-content:space-between; align-items:center; background:#f4f7fb; padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0;">
+                <a href="${att.url}" target="_blank" style="font-size:0.85rem; color:var(--color-primary); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;"><i class="fas fa-file-alt"></i> ${escapeHtml(att.name)}</a>
+                <button type="button" onclick="deleteAttachment('${taskId}', ${index})" style="background:none; border:none; color:#dc3545; cursor:pointer;" title="Hapus File"><i class="fas fa-trash-alt"></i></button>
+              </div>
+            `;
+          });
+        }
         taskModal.classList.add('active');
       }
+
+      // Menambahkan fungsi untuk menghapus file lampiran
+      window.deleteAttachment = async function(taskId, attachmentIndex) {
+        if (!confirm('Apakah Anda yakin ingin menghapus dokumen lampiran ini?')) return;
+        const meeting = meetings.find(m => m.id === currentMeetingId);
+        const section = meeting?.sections.find(s => s.id === currentSectionId);
+        const task = section?.tasks.find(t => t.id === taskId);
+        
+        if (task && task.attachments) {
+          const att = task.attachments[attachmentIndex];
+          try {
+            if (att.path) await storage.ref(att.path).delete();
+          } catch (e) {
+            console.log("File tidak ditemukan di storage", e);
+          }
+          task.attachments.splice(attachmentIndex, 1);
+          try {
+             await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+             openTaskModal(currentSectionId, taskId); // Segarkan popup
+             renderDetail(meeting); // Segarkan layar di belakang
+          } catch (error) {
+             alert("Gagal menghapus data: " + error.message);
+          }
+        }
+      };
 
       document.getElementById('cancelTaskModal').addEventListener('click', closeAllModals);
       
@@ -2229,12 +2289,44 @@
         const pic = document.getElementById('taskPicInput').value.trim();
         const deadline = document.getElementById('taskDeadlineInput').value;
         const notes = document.getElementById('taskNotesInput').value.trim();
-
-        const taskData = { desc, status, progress, pic, notes, deadline };
-        if (currentTaskId) taskData.id = currentTaskId;
+        const fileInput = document.getElementById('taskAttachmentInput');
+        const saveBtn = document.getElementById('saveTaskModal');
         
-        await saveTask(taskData, currentSectionId);
-        closeAllModals();
+        const existingTask = currentTaskId ? section?.tasks.find(t => t.id === currentTaskId) : null;
+        let attachments = existingTask && existingTask.attachments ? [...existingTask.attachments] : [];
+
+        try {
+          // Jika ada file yang dimasukkan
+          if (fileInput.files.length > 0) {
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunggah File...';
+            saveBtn.disabled = true;
+            
+            const file = fileInput.files[0];
+            const storageRef = storage.ref('attachments/' + Date.now() + '_' + file.name);
+            const snapshot = await storageRef.put(file);
+            const downloadURL = await snapshot.ref.getDownloadURL();
+            
+            attachments.push({
+              name: file.name,
+              url: downloadURL,
+              path: snapshot.ref.fullPath
+            });
+          }
+
+          const taskData = { desc, status, progress, pic, notes, deadline, attachments };
+          if (currentTaskId) taskData.id = currentTaskId;
+          
+          saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+          await saveTask(taskData, currentSectionId);
+          
+          fileInput.value = ''; 
+          closeAllModals();
+        } catch (error) {
+          alert('Gagal menyimpan tugas atau mengunggah file: ' + error.message);
+        } finally {
+          saveBtn.innerText = 'Simpan';
+          saveBtn.disabled = false;
+        }
       });
 
       document.getElementById('deleteTaskBtn').addEventListener('click', async () => {
