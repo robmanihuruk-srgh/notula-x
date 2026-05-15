@@ -16,7 +16,7 @@
   <!-- MENGGUNAKAN MULTIPLE GOOGLE FONTS UNTUK FITUR GANTI FONT -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Lora:wght@400;500&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Lora:wght@400;500&family=Nunito:wght@400;600;700&family=Oswald:wght@400;500;600&family=Open+Sans:wght@400;500;600&family=Roboto:wght@400;500;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   
   <!-- SDK Firebase -->
@@ -596,6 +596,9 @@
           <option value="modern">A Gaya Modern</option>
           <option value="serif">A Gaya Akademik</option>
           <option value="rounded">A Gaya Santai</option>
+          <option value="jurnal">A Gaya Jurnal</option>
+          <option value="minimalis">A Gaya Minimalis</option>
+          <option value="kreatif">A Gaya Kreatif</option>
         </select>
 
         <div class="theme-switcher">
@@ -700,7 +703,10 @@
         gsm: { heading: "'Playfair Display', serif", body: "'Poppins', sans-serif" },
         modern: { heading: "'Inter', sans-serif", body: "'Inter', sans-serif" },
         serif: { heading: "'Merriweather', serif", body: "'Lora', serif" },
-        rounded: { heading: "'Nunito', sans-serif", body: "'Nunito', sans-serif" }
+        rounded: { heading: "'Nunito', sans-serif", body: "'Nunito', sans-serif" },
+        jurnal: { heading: "'Oswald', sans-serif", body: "'Open Sans', sans-serif" },
+        minimalis: { heading: "'Roboto', sans-serif", body: "'Roboto', sans-serif" },
+        kreatif: { heading: "'Quicksand', sans-serif", body: "'Quicksand', sans-serif" }
       };
       
       const fontSwitcher = document.getElementById('fontSwitcher');
