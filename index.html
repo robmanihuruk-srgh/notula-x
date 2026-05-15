@@ -571,6 +571,9 @@
                   <th>Tugas / Deskripsi</th>
                   <th>PIC</th>
                   <th>Status</th>
+                  <th>Prog (%)</th>
+                  <th>Deadline</th>
+                  <th>Catatan</th>
               </tr>
           </thead>
           <tbody></tbody>
@@ -2714,17 +2717,22 @@
                   if (sec.tasks) {
                       sec.tasks.forEach(task => {
                           hasTask = true;
+                          const deadlineStr = task.deadline ? new Date(task.deadline).toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '-';
+                          const progressStr = (task.progress !== undefined && task.progress !== null) ? `${task.progress}%` : '0%';
                           tbodyTasks.innerHTML += `<tr>
                               <td>${escapeHtml(task.desc)}</td>
                               <td>${escapeHtml(task.pic || '-')}</td>
                               <td><strong>${translateStatus(task.status)}</strong></td>
+                              <td>${progressStr}</td>
+                              <td>${deadlineStr}</td>
+                              <td>${escapeHtml(task.notes || '-')}</td>
                           </tr>`;
                       });
                   }
               });
           }
           if (!hasTask) {
-              tbodyTasks.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--color-text-light); font-style:italic;">Belum ada tugas/action items.</td></tr>';
+              tbodyTasks.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--color-text-light); font-style:italic;">Belum ada tugas/action items.</td></tr>';
           }
 
           const tbodyRab = document.querySelector('#mom-rab-table tbody');
@@ -2855,13 +2863,13 @@
           document.querySelectorAll('#mom-tasks-table tbody tr').forEach(tr => {
               const rowData = [];
               tr.querySelectorAll('td').forEach(td => rowData.push(td.innerText));
-              if (rowData.length === 3) tableTasks.push(rowData);
+              if (rowData.length === 6) tableTasks.push(rowData);
           });
 
           if (tableTasks.length > 0 && tableTasks[0][0] !== "Belum ada tugas/action items.") {
               doc.autoTable({
                   startY: yPos,
-                  head: [['Tugas / Deskripsi', 'PIC', 'Status']],
+                  head: [['Tugas / Deskripsi', 'PIC', 'Status', 'Prog (%)', 'Deadline', 'Catatan']],
                   body: tableTasks,
                   theme: 'grid',
                   styles: { fontSize: 9, font: 'helvetica' },
