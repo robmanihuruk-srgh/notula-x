@@ -571,9 +571,6 @@
                   <th>Tugas / Deskripsi</th>
                   <th>PIC</th>
                   <th>Status</th>
-                  <th>Prog (%)</th>
-                  <th>Deadline</th>
-                  <th>Catatan</th>
               </tr>
           </thead>
           <tbody></tbody>
@@ -626,8 +623,7 @@
         <p id="meetingDate"><i class="far fa-calendar-alt"></i> </p>
       </div>
       <div class="header-actions">
-        <!-- TOMBOL MOM DIPERBARUI -->
-        <button class="btn-header" id="btn-open-mom" disabled style="background: rgba(184, 134, 11, 0.05); border-color: var(--color-primary); color: var(--color-primary); font-weight: 600;"><i class="fas fa-file-signature"></i> Dokumen MoM</button>
+        <button class="btn-header" id="btn-open-mom" disabled style="background: rgba(184, 134, 11, 0.05); border-color: var(--color-primary); color: var(--color-primary); font-weight: 600;"><i class="fas fa-file-signature"></i> Buat MoM</button>
         
         <select id="fontSwitcher" class="btn-header font-switcher-select" style="padding-top: 6px; padding-bottom: 6px; border-radius: 20px;">
           <option value="gsm">A Gaya Klasik</option>
@@ -650,7 +646,7 @@
         </div>
 
         <button class="btn-header" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Excel</button>
-        <!-- TOMBOL PDF GLOBAL DIHAPUS SESUAI PERMINTAAN -->
+        <button class="btn-header" id="exportPdfBtn" disabled><i class="fas fa-file-pdf"></i> PDF</button>
         <button class="btn-header" id="printBtn" disabled><i class="fas fa-print"></i> Cetak</button>
         <button class="btn-edit-meeting" id="editMeetingBtn" disabled><i class="fas fa-pen"></i> Edit</button>
         <button class="btn-delete-meeting" id="deleteMeetingBtn" disabled><i class="fas fa-trash"></i> Hapus</button>
@@ -1130,11 +1126,15 @@
       function canUserEditSection(meeting, section) {
         if (!meeting) return false;
         if (userRole === 'admin') return true;
-        if (meeting.createdBy === currentUser?.uid) return true; 
-        if (!isMeetingLatest(meeting)) return false; 
-        if (!section) return true; 
-        if (!section.assignedEmails) return true; 
+        if (meeting.createdBy === currentUser?.uid) return true;
+        if (!isMeetingLatest(meeting)) return false;
         
+        // Mencegah member biasa membuat seksi baru (saat memanggil aksi tambah, nilai section adalah null)
+        if (!section) return false;
+        
+        // Jika akses terbuka (kosong), berarti semua member bisa edit seksi ini
+        if (!section.assignedEmails) return true; 
+
         const emails = section.assignedEmails.split(',').map(e => e.trim().toLowerCase());
         return emails.includes(currentUser?.email?.toLowerCase());
       }
@@ -2663,7 +2663,8 @@
 
         const addSectionBtn = document.getElementById('addSectionBtn');
         if (addSectionBtn) {
-            const canAdd = isAdmin || isCreator || isMeetingLatest(meeting);
+            // Hanya Admin atau Pembuat Rapat (Pemilik Grup) yang bisa menambah seksi baru
+            const canAdd = isAdmin || isCreator;
             addSectionBtn.disabled = !canAdd;
             addSectionBtn.classList.toggle('disabled', !canAdd);
         }
@@ -2678,6 +2679,7 @@
       function updateExportButtons() {
         const disabled = !currentMeetingId;
         document.getElementById('exportExcelBtn').disabled = disabled;
+        document.getElementById('exportPdfBtn').disabled = disabled;
         document.getElementById('printBtn').disabled = disabled;
         document.getElementById('btn-open-mom').disabled = disabled;
       }
@@ -2695,9 +2697,6 @@
           const meeting = meetings.find(m => m.id === currentMeetingId);
           if (!meeting) return;
 
-          // CEK IZIN: Admin atau Pembuat Rapat (Sekretaris)
-          const canEditMom = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
-
           document.getElementById('mom-title').value = meeting.title;
           document.getElementById('mom-date').value = formatDate(meeting.date);
 
@@ -2711,19 +2710,6 @@
               document.getElementById('mom-discussion').value = '';
           }
 
-          // APLIKASIKAN ATURAN READ-ONLY BAGI PESERTA
-          document.getElementById('mom-location').readOnly = !canEditMom;
-          document.getElementById('mom-attendees').readOnly = !canEditMom;
-          document.getElementById('mom-discussion').readOnly = !canEditMom;
-
-          if (canEditMom) {
-              document.getElementById('saveMomBtn').style.display = 'inline-block';
-              document.getElementById('cancelMomBtn').innerText = 'Batal';
-          } else {
-              document.getElementById('saveMomBtn').style.display = 'none'; // Sembunyikan tombol simpan untuk peserta
-              document.getElementById('cancelMomBtn').innerText = 'Tutup';
-          }
-
           const tbodyTasks = document.querySelector('#mom-tasks-table tbody');
           tbodyTasks.innerHTML = '';
           let hasTask = false;
@@ -2733,22 +2719,17 @@
                   if (sec.tasks) {
                       sec.tasks.forEach(task => {
                           hasTask = true;
-                          const deadlineStr = task.deadline ? new Date(task.deadline).toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '-';
-                          const progressStr = (task.progress !== undefined && task.progress !== null) ? `${task.progress}%` : '0%';
                           tbodyTasks.innerHTML += `<tr>
                               <td>${escapeHtml(task.desc)}</td>
                               <td>${escapeHtml(task.pic || '-')}</td>
                               <td><strong>${translateStatus(task.status)}</strong></td>
-                              <td>${progressStr}</td>
-                              <td>${deadlineStr}</td>
-                              <td>${escapeHtml(task.notes || '-')}</td>
                           </tr>`;
                       });
                   }
               });
           }
           if (!hasTask) {
-              tbodyTasks.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--color-text-light); font-style:italic;">Belum ada tugas/action items.</td></tr>';
+              tbodyTasks.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--color-text-light); font-style:italic;">Belum ada tugas/action items.</td></tr>';
           }
 
           const tbodyRab = document.querySelector('#mom-rab-table tbody');
@@ -2879,13 +2860,13 @@
           document.querySelectorAll('#mom-tasks-table tbody tr').forEach(tr => {
               const rowData = [];
               tr.querySelectorAll('td').forEach(td => rowData.push(td.innerText));
-              if (rowData.length === 6) tableTasks.push(rowData);
+              if (rowData.length === 3) tableTasks.push(rowData);
           });
 
           if (tableTasks.length > 0 && tableTasks[0][0] !== "Belum ada tugas/action items.") {
               doc.autoTable({
                   startY: yPos,
-                  head: [['Tugas / Deskripsi', 'PIC', 'Status', 'Prog (%)', 'Deadline', 'Catatan']],
+                  head: [['Tugas / Deskripsi', 'PIC', 'Status']],
                   body: tableTasks,
                   theme: 'grid',
                   styles: { fontSize: 9, font: 'helvetica' },
@@ -3025,9 +3006,92 @@
         XLSX.writeFile(wb, `notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
       }
 
+      function exportToPDF() {
+        const meeting = getCurrentMeeting();
+        if (!meeting) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text(meeting.title, 14, 20);
+        doc.setFontSize(11);
+        doc.text(`Tanggal: ${formatDate(meeting.date)}`, 14, 28);
+        doc.text(`Informasi: ${meeting.info || '-'}`, 14, 35);
+        if (meeting.agenda) {
+           doc.text(`Agenda:\n${meeting.agenda}`, 14, 42);
+        }
+        
+        const tableData = [];
+        meeting.sections.forEach(section => {
+          section.tasks.forEach(task => {
+            const deadline = task.deadline ? new Date(task.deadline).toLocaleString('id-ID') : '';
+            tableData.push([section.name, task.desc, translateStatus(task.status), (task.progress ?? 0).toString(), task.pic || '-', deadline, task.notes || '']);
+          });
+        });
+
+        doc.autoTable({
+          head: [['Seksi', 'Tugas', 'Status', 'Prog(%)', 'PIC', 'Deadline', 'Catatan']],
+          body: tableData,
+          startY: meeting.agenda ? 60 : 45,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [26, 43, 76] } 
+        });
+
+        let yPos = doc.lastAutoTable.finalY + 15;
+
+        // Tambah Tabel RAB dengan rincian Realisasi
+        const rabData = [];
+        let totalPdfEst = 0;
+        let totalPdfReal = 0;
+        meeting.sections.forEach(sec => {
+            let b = Number(sec.sectionBudget)||0;
+            let r = Number(sec.sectionRealisasi)||0;
+            if(b > 0 || r > 0) {
+                let secNameStr = sec.name;
+                if (sec.rabItems && sec.rabItems.length > 0) {
+                    sec.rabItems.forEach(item => {
+                        secNameStr += `\n   • ${item.name} (Est: ${formatRupiah(item.amount)} | Real: ${formatRupiah(item.realisasi)})`;
+                    });
+                }
+                rabData.push([secNameStr, formatRupiah(b), formatRupiah(r), formatRupiah(b - r)]);
+                totalPdfEst += b;
+                totalPdfReal += r;
+            }
+        });
+        
+        if (rabData.length > 0) {
+            if (yPos > 240) { doc.addPage(); yPos = 20; }
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "bold");
+            doc.text("Laporan Anggaran (Estimasi vs Realisasi)", 14, yPos);
+            
+            rabData.push(['TOTAL KESELURUHAN', formatRupiah(totalPdfEst), formatRupiah(totalPdfReal), formatRupiah(totalPdfEst - totalPdfReal)]);
+            doc.autoTable({
+                head: [['Seksi & Rincian', 'Estimasi', 'Realisasi', 'Sisa']],
+                body: rabData,
+                startY: yPos + 5,
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [22, 163, 74] }, 
+                didParseCell: function (data) {
+                    if (data.row.index === rabData.length - 1) {
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                    if (data.column.index === 3 && data.row.index > 0) {
+                        const sisaStr = data.cell.text[0];
+                        if(sisaStr && sisaStr.includes('-')) {
+                            data.cell.styles.textColor = [220, 38, 38]; 
+                        }
+                    }
+                }
+            });
+        }
+
+        doc.save(`notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+      }
+
       function printMeeting() { window.print(); }
 
       document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+      document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
       document.getElementById('printBtn').addEventListener('click', printMeeting);
 
       // ========== PWA INSTALL LOGIC & SERVICE WORKER ==========
