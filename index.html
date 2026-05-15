@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/jpeg" href="pic_ (2).jpg">
   
-  <!-- MENGGUNAKAN MULTIPLE GOOGLE FONTS UNTUK FITUR GANTI FONT -->
+  <!-- MENGGUNAKAN MULTIPLE GOOGLE FONTS -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Lora:wght@400;500&family=Nunito:wght@400;600;700&family=Oswald:wght@400;500;600&family=Open+Sans:wght@400;500;600&family=Roboto:wght@400;500;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -161,7 +161,7 @@
     .stat-label { font-size: 0.8rem; font-family: var(--font-body); color: var(--color-text-light); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
     .stat-value { font-size: 2rem; font-weight: 700; color: var(--color-secondary); margin-top: 4px; }
     
-    .stat-tooltip { position: fixed; background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); padding: 16px 20px; z-index: 1100; max-width: 300px; border: 1px solid var(--color-border); pointer-events: none; opacity: 0; transition: opacity 0.2s; font-size: 0.9rem; font-family: var(--font-body); }
+    .stat-tooltip { position: fixed; background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); padding: 16px 20px; z-index: 1100; max-width: 320px; border: 1px solid var(--color-border); pointer-events: none; opacity: 0; transition: opacity 0.2s; font-size: 0.9rem; font-family: var(--font-body); }
     .stat-tooltip.active { opacity: 1; pointer-events: auto; }
     .stat-tooltip h4 { margin-bottom: 12px; color: var(--color-secondary); border-bottom: 1px solid var(--color-border); padding-bottom: 8px; font-family: var(--font-heading); }
     .stat-tooltip ul { list-style: none; padding-left: 0; }
@@ -442,9 +442,9 @@
     </div>
   </div>
 
-  <!-- MODAL SEKSI DENGAN FITUR RINCIAN RAB DINAMIS -->
+  <!-- MODAL SEKSI DENGAN FITUR RINCIAN RAB DINAMIS + REALISASI -->
   <div class="modal" id="sectionModal">
-    <div class="modal-content">
+    <div class="modal-content" style="width: 700px;"> <!-- Diperlebar agar input realisasi muat -->
       <h3 id="modalSectionTitle">Tambah seksi</h3>
       <div class="form-group">
         <label>Nama seksi / topik</label>
@@ -454,7 +454,7 @@
       <!-- KOLOM INPUT RAB DINAMIS -->
       <div class="form-group" style="background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0;">
         <label style="color: #166534; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span><i class="fas fa-wallet"></i> Rincian Anggaran (RAB) <span style="background: #16a34a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 6px;">Update</span></span>
+            <span><i class="fas fa-wallet"></i> Rincian Anggaran & Realisasi</span>
             <button type="button" id="addRabItemBtn" style="background: #16a34a; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: 500;"><i class="fas fa-plus"></i> Item</button>
         </label>
         
@@ -463,10 +463,13 @@
         </div>
         
         <div style="margin-top: 12px; border-top: 1px dashed #86efac; padding-top: 12px; display: flex; justify-content: space-between; font-weight: bold; color: #166534; font-size: 0.95rem;">
-            <span>Total Anggaran:</span>
-            <span id="sectionBudgetTotalDisplay">Rp 0</span>
+            <span>Total:</span>
+            <div style="text-align: right;">
+                <div style="font-size: 0.85rem; color: #15803d;">Estimasi: <span id="sectionBudgetTotalDisplay">Rp 0</span></div>
+                <div style="font-size: 0.85rem; color: #b45309; margin-top: 4px;">Realisasi: <span id="sectionRealisasiTotalDisplay">Rp 0</span></div>
+            </div>
         </div>
-        <p style="font-size: 0.8rem; color: #16a34a; margin-top: 8px; margin-bottom: 0;">Rincikan pengeluaran (misal: ATK, Konsumsi). Total akan direkap otomatis ke MoM & Excel.</p>
+        <p style="font-size: 0.8rem; color: #16a34a; margin-top: 8px; margin-bottom: 0;">Isi Estimasi saat merencanakan RAB. Isi Realisasi setelah dana dipakai untuk memantau sisa anggaran.</p>
       </div>
 
       <div class="form-group" style="margin-top: 16px;">
@@ -574,12 +577,14 @@
       </table>
 
       <!-- TABEL RAB MOM -->
-      <div style="background: #f0fdf4; padding: 12px 16px; border-left: 4px solid #16a34a; margin-bottom: 16px; margin-top:32px; font-weight: 600; color: #166534; border-radius: 0 8px 8px 0; font-family: var(--font-body);">4. Rencana Anggaran Biaya (RAB) per Seksi</div>
+      <div style="background: #f0fdf4; padding: 12px 16px; border-left: 4px solid #16a34a; margin-bottom: 16px; margin-top:32px; font-weight: 600; color: #166534; border-radius: 0 8px 8px 0; font-family: var(--font-body);">4. Laporan Anggaran (Estimasi vs Realisasi)</div>
       <table class="mom-table" id="mom-rab-table">
           <thead>
               <tr>
-                  <th>Seksi / Divisi (Beserta Rincian)</th>
-                  <th>Anggaran Total (Rp)</th>
+                  <th>Seksi & Rincian</th>
+                  <th>Estimasi</th>
+                  <th>Realisasi</th>
+                  <th>Sisa (Selisih)</th>
               </tr>
           </thead>
           <tbody></tbody>
@@ -689,17 +694,20 @@
       let selectedWorkspaceIds = new Set();
       let currentRabItems = []; // STATE UNTUK RINCIAN RAB DINAMIS
 
-      // ========== FUNGSI RINCIAN RAB DINAMIS ==========
+      // ========== FUNGSI RINCIAN RAB DINAMIS (DENGAN REALISASI) ==========
       function renderRabItems() {
           const container = document.getElementById('rabItemsContainer');
           container.innerHTML = '';
-          let total = 0;
+          let totalEstimasi = 0;
+          let totalRealisasi = 0;
           
           if (currentRabItems.length === 0) {
               container.innerHTML = '<div style="text-align:center; font-size:0.85rem; color:#15803d; padding:10px; border: 1px dashed #86efac; border-radius: 4px; background: rgba(255,255,255,0.5);">Belum ada rincian anggaran. Klik tombol "+ Item".</div>';
           } else {
               currentRabItems.forEach((item, index) => {
-                  total += Number(item.amount) || 0;
+                  totalEstimasi += Number(item.amount) || 0;
+                  totalRealisasi += Number(item.realisasi) || 0;
+                  
                   const div = document.createElement('div');
                   div.style.display = 'flex';
                   div.style.gap = '8px';
@@ -707,7 +715,7 @@
                   
                   const inputName = document.createElement('input');
                   inputName.type = 'text';
-                  inputName.placeholder = 'Nama Pengeluaran (Cth: ATK)';
+                  inputName.placeholder = 'Nama Pengeluaran';
                   inputName.value = item.name;
                   inputName.style.flex = '2';
                   inputName.style.padding = '8px';
@@ -719,7 +727,8 @@
                   
                   const inputAmt = document.createElement('input');
                   inputAmt.type = 'number';
-                  inputAmt.placeholder = 'Nominal (Rp)';
+                  inputAmt.placeholder = 'Estimasi (Rp)';
+                  inputAmt.title = 'Estimasi RAB awal';
                   inputAmt.value = item.amount || '';
                   inputAmt.style.flex = '1';
                   inputAmt.style.padding = '8px';
@@ -730,6 +739,24 @@
                   inputAmt.min = '0';
                   inputAmt.oninput = (e) => { 
                       currentRabItems[index].amount = Number(e.target.value); 
+                      updateRabTotal(); 
+                  };
+
+                  const inputReal = document.createElement('input');
+                  inputReal.type = 'number';
+                  inputReal.placeholder = 'Realisasi (Rp)';
+                  inputReal.title = 'Pengeluaran Asli (Realisasi)';
+                  inputReal.value = item.realisasi !== undefined && item.realisasi !== 0 ? item.realisasi : '';
+                  inputReal.style.flex = '1';
+                  inputReal.style.padding = '8px';
+                  inputReal.style.border = '1px solid #fca5a5';
+                  inputReal.style.background = '#fff1f2';
+                  inputReal.style.borderRadius = '4px';
+                  inputReal.style.fontFamily = 'var(--font-body)';
+                  inputReal.style.fontSize = '0.9rem';
+                  inputReal.min = '0';
+                  inputReal.oninput = (e) => { 
+                      currentRabItems[index].realisasi = Number(e.target.value); 
                       updateRabTotal(); 
                   };
                   
@@ -751,21 +778,28 @@
                   
                   div.appendChild(inputName);
                   div.appendChild(inputAmt);
+                  div.appendChild(inputReal);
                   div.appendChild(btnDel);
                   container.appendChild(div);
               });
           }
-          document.getElementById('sectionBudgetTotalDisplay').innerText = formatRupiah(total);
+          document.getElementById('sectionBudgetTotalDisplay').innerText = formatRupiah(totalEstimasi);
+          document.getElementById('sectionRealisasiTotalDisplay').innerText = formatRupiah(totalRealisasi);
       }
 
       function updateRabTotal() {
-          let total = 0;
-          currentRabItems.forEach(item => total += Number(item.amount) || 0);
-          document.getElementById('sectionBudgetTotalDisplay').innerText = formatRupiah(total);
+          let totalEstimasi = 0;
+          let totalRealisasi = 0;
+          currentRabItems.forEach(item => {
+              totalEstimasi += Number(item.amount) || 0;
+              totalRealisasi += Number(item.realisasi) || 0;
+          });
+          document.getElementById('sectionBudgetTotalDisplay').innerText = formatRupiah(totalEstimasi);
+          document.getElementById('sectionRealisasiTotalDisplay').innerText = formatRupiah(totalRealisasi);
       }
 
       document.getElementById('addRabItemBtn').addEventListener('click', () => {
-          currentRabItems.push({ name: '', amount: '' });
+          currentRabItems.push({ name: '', amount: '', realisasi: '' });
           renderRabItems();
       });
 
@@ -804,7 +838,11 @@
               name: 'Sekretariat', 
               assignedEmails: '', 
               sectionBudget: 500000,
-              rabItems: [{ name: 'Pembuatan Surat Menyurat', amount: 300000 }, { name: 'Print & Fotocopy', amount: 200000 }],
+              sectionRealisasi: 150000,
+              rabItems: [
+                  { name: 'Pembuatan Surat Menyurat', amount: 300000, realisasi: 50000 }, 
+                  { name: 'Print & Fotocopy', amount: 200000, realisasi: 100000 }
+              ],
               tasks: [
                 { desc: '[JobDesc] Membuat surat menyurat panitia', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: '', deadline: '' }
               ]
@@ -957,6 +995,7 @@
                   name: section.name,
                   assignedEmails: section.assignedEmails || '',
                   sectionBudget: section.sectionBudget || 0,
+                  sectionRealisasi: section.sectionRealisasi || 0,
                   rabItems: section.rabItems || [],
                   tasks: section.tasks.map(task => ({
                     id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
@@ -1457,7 +1496,7 @@
 
       const workspaceSelect = document.getElementById('meetingWorkspaceSelect');
 
-      // ========== DASHBOARD GLOBAL ==========
+      // ========== DASHBOARD GLOBAL & TOOLTIP RAB ==========
       let activeTooltip = null;
 
       function showStatTooltip(statType, event, statsData) {
@@ -1476,15 +1515,47 @@
           case 'rencana': title = 'Tugas Rencana per Seksi'; items = statsData.rencanaBySection; break;
           case 'kendala': title = 'Tugas Kendala per Seksi'; items = statsData.kendalaBySection; break;
           case 'avg-progress': title = 'Rata-rata Progress per Seksi'; items = statsData.avgProgressBySection; break;
+          case 'rab': title = 'Estimasi vs Realisasi RAB'; items = statsData.rabDetails; break;
           default: return;
         }
         if (!items || items.length === 0) {
           div.innerHTML = `<h4>${title}</h4><p style="color:var(--color-text-light);">Belum ada data.</p><div class="close-tooltip">Tutup</div>`;
         } else {
-          let listHtml = '<ul>';
-          items.forEach(item => {
-            listHtml += `<li><strong>${escapeHtml(item.name)}</strong> <span>${item.count} ${statType === 'avg-progress' ? '' : 'tugas'}</span></li>`;
-          });
+          let listHtml = '<ul style="max-height: 250px; overflow-y: auto; padding-right: 5px;">';
+          if (statType === 'rab') {
+              items.forEach(sec => {
+                  let sisa = sec.budgetVal - sec.realVal;
+                  let sisaColor = sisa < 0 ? '#dc2626' : '#15803d'; // Merah jika minus
+                  
+                  listHtml += `<li style="flex-direction: column; align-items: flex-start; gap: 4px; background: #f8fafc; border: 1px solid var(--color-border); margin-bottom: 8px; border-radius: 6px; padding: 10px; border-bottom: none;">`;
+                  listHtml += `<div style="width: 100%; display: flex; justify-content: space-between; font-weight: bold; color: var(--color-secondary); border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; margin-bottom: 6px;"><span>${escapeHtml(sec.name)}</span></div>`;
+                  
+                  // Rincian per item
+                  if (sec.details && sec.details.length > 0) {
+                      sec.details.forEach(detail => {
+                          let dSisa = (Number(detail.amount) || 0) - (Number(detail.realisasi) || 0);
+                          let dSisaColor = dSisa < 0 ? '#ef4444' : '#16a34a';
+                          listHtml += `<div style="width: 100%; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px; margin-bottom: 4px;">`;
+                          listHtml += `<div style="font-size: 0.85rem; font-weight:600; color: #334155;">• ${escapeHtml(detail.name)}</div>`;
+                          listHtml += `<div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748b; margin-left: 10px;"><span>Est: ${formatRupiah(detail.amount)}</span> <span>Real: ${formatRupiah(detail.realisasi)}</span></div>`;
+                          listHtml += `</div>`;
+                      });
+                  } else if (sec.budgetVal > 0) {
+                      listHtml += `<div style="width: 100%; display: flex; justify-content: space-between; font-size: 0.85rem; color: #64748b; margin-bottom:4px;"><span>Anggaran Keseluruhan</span></div>`;
+                  }
+
+                  // Total per seksi
+                  listHtml += `<div style="width: 100%; display: flex; justify-content: space-between; font-size: 0.85rem; margin-top:4px;"><span>Total Estimasi:</span> <span style="font-weight:600;">${sec.totalBudget}</span></div>`;
+                  listHtml += `<div style="width: 100%; display: flex; justify-content: space-between; font-size: 0.85rem;"><span>Total Realisasi:</span> <span style="font-weight:600;">${sec.totalRealisasi}</span></div>`;
+                  listHtml += `<div style="width: 100%; display: flex; justify-content: space-between; font-size: 0.9rem; margin-top:4px; padding-top:4px; border-top: 1px solid #cbd5e1;"><span>Sisa Anggaran:</span> <span style="font-weight:700; color:${sisaColor};">${formatRupiah(sisa)}</span></div>`;
+                  listHtml += `</li>`;
+              });
+          } else {
+              items.forEach(item => {
+                let suffix = statType === 'avg-progress' ? '' : 'tugas';
+                listHtml += `<li><strong>${escapeHtml(item.name)}</strong> <span>${item.count} ${suffix}</span></li>`;
+              });
+          }
           listHtml += '</ul>';
           div.innerHTML = `<h4>${title}</h4>${listHtml}<div class="close-tooltip">Tutup</div>`;
         }
@@ -1523,6 +1594,7 @@
         let totalTasks = 0;
         let totalProgress = 0;
         let totalBudget = 0;
+        let totalRealisasiGlobal = 0;
         let taskCount = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
         let kendalaTasks = [];
         let sectionTotals = {};
@@ -1531,6 +1603,7 @@
         let rencanaBySection = {};
         let kendalaBySection = {};
         let progressSumBySection = {};
+        let rabDetails = [];
 
         const seenKendalaKeys = new Set();
 
@@ -1543,7 +1616,21 @@
             if (!kendalaBySection[section.name]) kendalaBySection[section.name] = 0;
             if (!progressSumBySection[section.name]) progressSumBySection[section.name] = 0;
             
-            totalBudget += Number(section.sectionBudget) || 0;
+            let secBudget = Number(section.sectionBudget) || 0;
+            let secRealisasi = Number(section.sectionRealisasi) || 0;
+            totalBudget += secBudget;
+            totalRealisasiGlobal += secRealisasi;
+
+            if (secBudget > 0 || secRealisasi > 0) {
+                rabDetails.push({
+                    name: section.name,
+                    budgetVal: secBudget,
+                    realVal: secRealisasi,
+                    totalBudget: formatRupiah(secBudget),
+                    totalRealisasi: formatRupiah(secRealisasi),
+                    details: section.rabItems || []
+                });
+            }
 
             section.tasks?.forEach(task => {
               totalTasks++;
@@ -1592,7 +1679,8 @@
           berlangsungBySection: berlangsungList,
           rencanaBySection: rencanaList,
           kendalaBySection: kendalaList,
-          avgProgressBySection: avgProgressList
+          avgProgressBySection: avgProgressList,
+          rabDetails: rabDetails
         };
 
         let html = `
@@ -1604,9 +1692,13 @@
                 <span class="global-stat-label">Total Tugas</span>
                 <div class="global-stat-value">${totalTasks}</div>
               </div>
-              <div class="global-stat-item">
-                <span class="global-stat-label">Total RAB</span>
+              <div class="global-stat-item" data-stat="rab">
+                <span class="global-stat-label">Total Estimasi RAB</span>
                 <div class="global-stat-value" style="color:#16a34a;">${formatRupiah(totalBudget)}</div>
+              </div>
+              <div class="global-stat-item" data-stat="rab">
+                <span class="global-stat-label">Total Realisasi RAB</span>
+                <div class="global-stat-value" style="color:#b45309;">${formatRupiah(totalRealisasiGlobal)}</div>
               </div>
               <div class="global-stat-item" data-stat="selesai">
                 <span class="global-stat-label">Selesai</span>
@@ -1623,10 +1715,6 @@
               <div class="global-stat-item" data-stat="kendala">
                 <span class="global-stat-label">Kendala</span>
                 <div class="global-stat-value" style="color:#dc3545;">${taskCount.kendala || 0}</div>
-              </div>
-              <div class="global-stat-item" data-stat="avg-progress">
-                <span class="global-stat-label">Rata-rata Progress</span>
-                <div class="global-stat-value">${Math.round(avgProgress)}%</div>
               </div>
             </div>
         `;
@@ -1805,11 +1893,12 @@
       function renderDashboard(meeting) {
         if (!meeting.sections) return '';
         const sections = meeting.sections;
-        let totalTasks = 0, totalProgress = 0, totalBudget = 0, taskCountByStatus = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
+        let totalTasks = 0, totalProgress = 0, totalBudget = 0, totalRealisasi = 0, taskCountByStatus = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
         const sectionProgress = [];
 
         sections.forEach(sec => {
           totalBudget += Number(sec.sectionBudget) || 0;
+          totalRealisasi += Number(sec.sectionRealisasi) || 0;
           let secSum = 0;
           sec.tasks.forEach(task => {
             totalTasks++;
@@ -1828,7 +1917,8 @@
             <div class="dashboard-title"><i class="fas fa-chart-pie"></i> Dashboard Progress Rapat Ini</div>
             <div class="stats-grid">
               <div class="stat-item"><span class="stat-label">Total Tugas</span><div class="stat-value">${totalTasks}</div></div>
-              <div class="stat-item"><span class="stat-label">Total RAB</span><div class="stat-value" style="color:#16a34a;">${formatRupiah(totalBudget)}</div></div>
+              <div class="stat-item"><span class="stat-label">Estimasi RAB</span><div class="stat-value" style="color:#16a34a;">${formatRupiah(totalBudget)}</div></div>
+              <div class="stat-item"><span class="stat-label">Realisasi RAB</span><div class="stat-value" style="color:#b45309;">${formatRupiah(totalRealisasi)}</div></div>
               <div class="stat-item"><span class="stat-label">Rata-rata Progress</span><div class="stat-value">${Math.round(overallAvg)}%</div></div>
               <div class="stat-item"><span class="stat-label">Selesai</span><div class="stat-value" style="color:#1e7e34;">${taskCountByStatus.selesai || 0}</div></div>
               <div class="stat-item"><span class="stat-label">Berlangsung</span><div class="stat-value" style="color:#b07d00;">${taskCountByStatus.berlangsung || 0}</div></div>
@@ -1924,22 +2014,60 @@
           `;
         });
 
-        // TAMPILAN BADGE ATAU TABEL RINCIAN RAB DI KARTU SEKSI
+        // TAMPILAN RAB & REALISASI DI KARTU SEKSI
         let rabDetailsHtml = '';
+        let secBudget = Number(section.sectionBudget) || 0;
+        let secRealisasi = Number(section.sectionRealisasi) || 0;
+        let secSisa = secBudget - secRealisasi;
+        let sisaColor = secSisa < 0 ? '#dc2626' : '#15803d';
+        let sisaBg = secSisa < 0 ? '#fee2e2' : '#f0fdf4';
+        let sisaBorder = secSisa < 0 ? '#fca5a5' : '#bbf7d0';
+
         if (section.rabItems && section.rabItems.length > 0) {
             rabDetailsHtml = `
-            <div style="margin-top: 12px; font-size: 0.9rem; color: #166534; background: #f0fdf4; padding: 12px 16px; border-radius: 8px; border: 1px solid #bbf7d0;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #86efac; padding-bottom:6px;">
-                    <strong style="font-family:var(--font-heading);"><i class="fas fa-wallet"></i> Rincian Anggaran (RAB)</strong>
+            <div style="margin-top: 16px; border-radius: 8px; border: 1px solid var(--color-border); overflow: hidden;">
+                <div style="background: var(--color-bg-light); padding: 8px 16px; border-bottom: 1px solid var(--color-border); font-weight: 600; font-size: 0.9rem; color: var(--color-secondary); display:flex; align-items:center; gap:6px;">
+                    <i class="fas fa-wallet"></i> Laporan Anggaran (RAB)
                 </div>
-                <ul style="list-style: none; padding: 0; margin: 0;">`;
+                <div style="padding: 12px 16px;">
+                    <table style="width: 100%; font-size: 0.85rem; border-collapse: collapse;">
+                        <tr style="color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.5px;">
+                            <th style="text-align: left; padding-bottom: 8px; border-bottom: 1px solid var(--color-border); font-weight: 600;">Item / Pengeluaran</th>
+                            <th style="text-align: right; padding-bottom: 8px; border-bottom: 1px solid var(--color-border); font-weight: 600;">Estimasi (Rp)</th>
+                            <th style="text-align: right; padding-bottom: 8px; border-bottom: 1px solid var(--color-border); font-weight: 600;">Realisasi (Rp)</th>
+                        </tr>`;
+            
             section.rabItems.forEach(item => {
-                rabDetailsHtml += `<li style="display: flex; justify-content: space-between; border-bottom: 1px dashed #86efac; padding: 6px 0;"><span>${escapeHtml(item.name)}</span> <strong>${formatRupiah(item.amount)}</strong></li>`;
+                let itemEst = Number(item.amount) || 0;
+                let itemReal = Number(item.realisasi) || 0;
+                rabDetailsHtml += `
+                        <tr>
+                            <td style="padding: 6px 0; border-bottom: 1px dashed #e2e8f0; color: var(--color-text); font-weight:500;">${escapeHtml(item.name)}</td>
+                            <td style="text-align: right; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; color: #15803d;">${formatRupiah(itemEst)}</td>
+                            <td style="text-align: right; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; color: #b45309;">${formatRupiah(itemReal)}</td>
+                        </tr>`;
             });
-            rabDetailsHtml += `<li style="display: flex; justify-content: space-between; padding-top: 8px; margin-top: 4px; font-weight: bold; font-size:0.95rem;"><span>TOTAL ANGGARAN SEKSI</span> <span>${formatRupiah(section.sectionBudget)}</span></li>`;
-            rabDetailsHtml += `</ul></div>`;
-        } else if (section.sectionBudget) {
-            rabDetailsHtml = `<div style="font-size:0.85rem; background:#f0fdf4; color:#16a34a; padding:6px 12px; border-radius:6px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-weight:700;"><i class="fas fa-wallet"></i> RAB Seksi: ${formatRupiah(section.sectionBudget)}</div>`;
+            
+            rabDetailsHtml += `
+                        <tr style="font-weight: 700; font-size: 0.9rem;">
+                            <td style="padding-top: 12px; color: var(--color-secondary);">TOTAL SEKSI</td>
+                            <td style="text-align: right; padding-top: 12px; color: #16a34a;">${formatRupiah(secBudget)}</td>
+                            <td style="text-align: right; padding-top: 12px; color: #d97706;">${formatRupiah(secRealisasi)}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div style="background: ${sisaBg}; padding: 10px 16px; border-top: 1px solid ${sisaBorder}; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.85rem; font-weight: 600; color: ${sisaColor};">SISA ANGGARAN SEKSI:</span>
+                    <span style="font-size: 1.05rem; font-weight: 700; color: ${sisaColor};">${formatRupiah(secSisa)}</span>
+                </div>
+            </div>`;
+        } else if (secBudget > 0 || secRealisasi > 0) {
+            rabDetailsHtml = `
+            <div style="margin-top: 12px; display: flex; gap: 12px; flex-wrap: wrap;">
+                <div style="font-size:0.85rem; background:#f0fdf4; color:#16a34a; padding:6px 12px; border-radius:6px; border:1px solid #bbf7d0; font-weight:600;"><i class="fas fa-bullseye"></i> Estimasi: ${formatRupiah(secBudget)}</div>
+                <div style="font-size:0.85rem; background:#fffbeb; color:#d97706; padding:6px 12px; border-radius:6px; border:1px solid #fde68a; font-weight:600;"><i class="fas fa-receipt"></i> Realisasi: ${formatRupiah(secRealisasi)}</div>
+                <div style="font-size:0.85rem; background:${sisaBg}; color:${sisaColor}; padding:6px 12px; border-radius:6px; border:1px solid ${sisaBorder}; font-weight:700;"><i class="fas fa-wallet"></i> Sisa: ${formatRupiah(secSisa)}</div>
+            </div>`;
         }
 
         return `
@@ -2180,6 +2308,7 @@
               name: section.name,
               assignedEmails: section.assignedEmails || '', 
               sectionBudget: section.sectionBudget || 0,
+              sectionRealisasi: section.sectionRealisasi || 0,
               rabItems: section.rabItems || [],
               tasks: section.tasks.map(task => ({
                 id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
@@ -2223,8 +2352,8 @@
           
           if (sec.rabItems && sec.rabItems.length > 0) {
               currentRabItems = JSON.parse(JSON.stringify(sec.rabItems));
-          } else if (sec.sectionBudget) {
-              currentRabItems = [{ name: 'Anggaran Keseluruhan', amount: sec.sectionBudget }];
+          } else if (sec.sectionBudget || sec.sectionRealisasi) {
+              currentRabItems = [{ name: 'Anggaran Keseluruhan', amount: sec.sectionBudget || 0, realisasi: sec.sectionRealisasi || 0 }];
           } else {
               currentRabItems = [];
           }
@@ -2257,13 +2386,17 @@
         if (!name) return alert('Nama seksi harus diisi');
 
         let sectionBudget = 0;
-        const rabItemsToSave = currentRabItems.filter(item => item.name.trim() !== '' || item.amount > 0).map(item => {
+        let sectionRealisasi = 0;
+        
+        const rabItemsToSave = currentRabItems.filter(item => item.name.trim() !== '' || item.amount > 0 || item.realisasi > 0).map(item => {
             const amt = Number(item.amount) || 0;
+            const real = Number(item.realisasi) || 0;
             sectionBudget += amt;
-            return { name: item.name.trim() || 'Item Tanpa Nama', amount: amt };
+            sectionRealisasi += real;
+            return { name: item.name.trim() || 'Item Tanpa Nama', amount: amt, realisasi: real };
         });
 
-        const sectionData = { name, assignedEmails, sectionBudget, rabItems: rabItemsToSave, tasks: [] };
+        const sectionData = { name, assignedEmails, sectionBudget, sectionRealisasi, rabItems: rabItemsToSave, tasks: [] };
         if (currentSectionId) {
           sectionData.id = currentSectionId;
           const existing = meeting.sections.find(s => s.id === currentSectionId);
@@ -2596,32 +2729,46 @@
 
           const tbodyRab = document.querySelector('#mom-rab-table tbody');
           tbodyRab.innerHTML = '';
-          let totalRab = 0;
+          let totalEst = 0;
+          let totalReal = 0;
           if (meeting.sections) {
               meeting.sections.forEach(sec => {
-                  if (sec.sectionBudget) {
+                  if (sec.sectionBudget || sec.sectionRealisasi) {
                       let details = '';
                       if (sec.rabItems && sec.rabItems.length > 0) {
                           details = '<ul style="margin: 6px 0 0 16px; padding: 0; font-size: 0.85rem; color: var(--color-text-light); list-style-type: circle;">';
                           sec.rabItems.forEach(item => {
-                              details += `<li>${escapeHtml(item.name)}: ${formatRupiah(item.amount)}</li>`;
+                              let iEst = Number(item.amount)||0;
+                              let iReal = Number(item.realisasi)||0;
+                              details += `<li>${escapeHtml(item.name)} (E: ${formatRupiah(iEst)} | R: ${formatRupiah(iReal)})</li>`;
                           });
                           details += '</ul>';
                       }
+                      
+                      let sisa = (Number(sec.sectionBudget)||0) - (Number(sec.sectionRealisasi)||0);
+                      let sisaColor = sisa < 0 ? '#dc2626' : '#15803d';
+
                       tbodyRab.innerHTML += `<tr>
                           <td><strong style="color:var(--color-secondary);">${escapeHtml(sec.name)}</strong>${details}</td>
-                          <td style="color:#16a34a; font-weight:600; vertical-align:top;">${formatRupiah(sec.sectionBudget)}</td>
+                          <td style="color:#16a34a; font-weight:600; vertical-align:top;">${formatRupiah(sec.sectionBudget||0)}</td>
+                          <td style="color:#b45309; font-weight:600; vertical-align:top;">${formatRupiah(sec.sectionRealisasi||0)}</td>
+                          <td style="color:${sisaColor}; font-weight:700; vertical-align:top;">${formatRupiah(sisa)}</td>
                       </tr>`;
-                      totalRab += Number(sec.sectionBudget);
+                      totalEst += Number(sec.sectionBudget)||0;
+                      totalReal += Number(sec.sectionRealisasi)||0;
                   }
               });
           }
-          if (totalRab === 0) {
-              tbodyRab.innerHTML = '<tr><td colspan="2" style="text-align:center; color:var(--color-text-light); font-style:italic;">Belum ada RAB diinput pada Seksi manapun.</td></tr>';
+          if (totalEst === 0 && totalReal === 0) {
+              tbodyRab.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--color-text-light); font-style:italic;">Belum ada RAB diinput pada Seksi manapun.</td></tr>';
           } else {
+              let tSisa = totalEst - totalReal;
+              let tColor = tSisa < 0 ? '#dc2626' : '#1e7e34';
               tbodyRab.innerHTML += `<tr style="background:var(--color-bg-light); font-weight:700;">
                   <td>TOTAL KESELURUHAN</td>
-                  <td style="color:#1e7e34; vertical-align:top;">${formatRupiah(totalRab)}</td>
+                  <td style="color:#1e7e34; vertical-align:top;">${formatRupiah(totalEst)}</td>
+                  <td style="color:#b45309; vertical-align:top;">${formatRupiah(totalReal)}</td>
+                  <td style="color:${tColor}; vertical-align:top;">${formatRupiah(tSisa)}</td>
               </tr>`;
           }
 
@@ -2734,39 +2881,49 @@
           
           doc.setFont("helvetica", "bold");
           doc.setFontSize(11);
-          doc.text("D. RENCANA ANGGARAN BIAYA (RAB) PER SEKSI", 14, yPos);
+          doc.text("D. LAPORAN ANGGARAN (RAB & REALISASI)", 14, yPos);
           yPos += 5;
 
           const rabData = [];
-          let totalPdfRab = 0;
+          let totalPdfEst = 0;
+          let totalPdfReal = 0;
           if (meeting && meeting.sections) {
               meeting.sections.forEach(sec => {
-                  if(sec.sectionBudget) {
+                  if(sec.sectionBudget || sec.sectionRealisasi) {
                       let secNameStr = sec.name;
                       if (sec.rabItems && sec.rabItems.length > 0) {
                           sec.rabItems.forEach(item => {
-                              secNameStr += `\n   • ${item.name} : ${formatRupiah(item.amount)}`;
+                              secNameStr += `\n   • ${item.name} (E: ${formatRupiah(item.amount)} | R: ${formatRupiah(item.realisasi)})`;
                           });
                       }
-                      rabData.push([secNameStr, formatRupiah(sec.sectionBudget)]);
-                      totalPdfRab += Number(sec.sectionBudget);
+                      let b = Number(sec.sectionBudget)||0;
+                      let r = Number(sec.sectionRealisasi)||0;
+                      rabData.push([secNameStr, formatRupiah(b), formatRupiah(r), formatRupiah(b - r)]);
+                      totalPdfEst += b;
+                      totalPdfReal += r;
                   }
               });
           }
 
           if (rabData.length > 0) {
-              rabData.push(['TOTAL KESELURUHAN', formatRupiah(totalPdfRab)]);
+              rabData.push(['TOTAL KESELURUHAN', formatRupiah(totalPdfEst), formatRupiah(totalPdfReal), formatRupiah(totalPdfEst - totalPdfReal)]);
               doc.autoTable({
                   startY: yPos,
-                  head: [['Seksi / Divisi (Beserta Rincian)', 'Anggaran Total (Rp)']],
+                  head: [['Seksi & Rincian', 'Estimasi', 'Realisasi', 'Sisa']],
                   body: rabData,
                   theme: 'grid',
-                  styles: { fontSize: 9, font: 'helvetica' },
-                  headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] }, // Hijau khusus RAB
+                  styles: { fontSize: 8, font: 'helvetica' },
+                  headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] }, 
                   didParseCell: function (data) {
                       if (data.row.index === rabData.length - 1) {
                           data.cell.styles.fontStyle = 'bold';
                           data.cell.styles.fillColor = [240, 253, 244];
+                      }
+                      if (data.column.index === 3 && data.row.index > 0) {
+                           const sisaStr = data.cell.text[0];
+                           if(sisaStr && sisaStr.includes('-')) {
+                               data.cell.styles.textColor = [220, 38, 38]; // Merah jika minus
+                           }
                       }
                   }
               });
@@ -2808,29 +2965,38 @@
         const wsTasks = XLSX.utils.aoa_to_sheet(dataTasks);
         XLSX.utils.book_append_sheet(wb, wsTasks, 'Progress');
 
-        // Sheet 2: RAB Seksi
+        // Sheet 2: RAB Seksi & Realisasi
         const dataRab = [];
-        dataRab.push(['Seksi / Divisi', 'Item Anggaran', 'Anggaran (Rp)', 'Total Seksi (Rp)']);
-        let totalExRab = 0;
+        dataRab.push(['Seksi / Divisi', 'Item Anggaran', 'Estimasi (Rp)', 'Realisasi (Rp)', 'Sisa (Rp)']);
+        let totalExEst = 0;
+        let totalExReal = 0;
         meeting.sections.forEach(sec => {
-          if (sec.sectionBudget) {
+          let sBudget = Number(sec.sectionBudget)||0;
+          let sReal = Number(sec.sectionRealisasi)||0;
+          
+          if (sBudget > 0 || sReal > 0) {
               if (sec.rabItems && sec.rabItems.length > 0) {
                   sec.rabItems.forEach((item, index) => {
+                      let iEst = Number(item.amount)||0;
+                      let iReal = Number(item.realisasi)||0;
                       if (index === 0) {
-                          dataRab.push([sec.name, item.name, item.amount, sec.sectionBudget]);
+                          dataRab.push([sec.name, item.name, iEst, iReal, iEst - iReal]);
                       } else {
-                          dataRab.push(['', item.name, item.amount, '']);
+                          dataRab.push(['', item.name, iEst, iReal, iEst - iReal]);
                       }
                   });
+                  // Tambahkan baris subtotal untuk seksi
+                  dataRab.push(['Subtotal ' + sec.name, '', sBudget, sReal, sBudget - sReal]);
               } else {
-                  dataRab.push([sec.name, 'Total Anggaran', sec.sectionBudget, sec.sectionBudget]);
+                  dataRab.push([sec.name, 'Total Anggaran', sBudget, sReal, sBudget - sReal]);
               }
-              totalExRab += Number(sec.sectionBudget);
+              totalExEst += sBudget;
+              totalExReal += sReal;
           }
         });
-        dataRab.push(['TOTAL KESELURUHAN', '', '', totalExRab]);
+        dataRab.push(['TOTAL KESELURUHAN', '', totalExEst, totalExReal, totalExEst - totalExReal]);
         const wsRab = XLSX.utils.aoa_to_sheet(dataRab);
-        XLSX.utils.book_append_sheet(wb, wsRab, 'RAB per Seksi');
+        XLSX.utils.book_append_sheet(wb, wsRab, 'RAB & Realisasi');
 
         XLSX.writeFile(wb, `notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
       }
@@ -2867,19 +3033,23 @@
 
         let yPos = doc.lastAutoTable.finalY + 15;
 
-        // Tambah Tabel RAB dengan rincian
+        // Tambah Tabel RAB dengan rincian Realisasi
         const rabData = [];
-        let totalPdfRab = 0;
+        let totalPdfEst = 0;
+        let totalPdfReal = 0;
         meeting.sections.forEach(sec => {
-            if(sec.sectionBudget) {
+            let b = Number(sec.sectionBudget)||0;
+            let r = Number(sec.sectionRealisasi)||0;
+            if(b > 0 || r > 0) {
                 let secNameStr = sec.name;
                 if (sec.rabItems && sec.rabItems.length > 0) {
                     sec.rabItems.forEach(item => {
-                        secNameStr += `\n   • ${item.name} : ${formatRupiah(item.amount)}`;
+                        secNameStr += `\n   • ${item.name} (Est: ${formatRupiah(item.amount)} | Real: ${formatRupiah(item.realisasi)})`;
                     });
                 }
-                rabData.push([secNameStr, formatRupiah(sec.sectionBudget)]);
-                totalPdfRab += Number(sec.sectionBudget);
+                rabData.push([secNameStr, formatRupiah(b), formatRupiah(r), formatRupiah(b - r)]);
+                totalPdfEst += b;
+                totalPdfReal += r;
             }
         });
         
@@ -2887,18 +3057,24 @@
             if (yPos > 240) { doc.addPage(); yPos = 20; }
             doc.setFontSize(11);
             doc.setFont("helvetica", "bold");
-            doc.text("Rekap Rencana Anggaran Biaya (RAB)", 14, yPos);
+            doc.text("Laporan Anggaran (Estimasi vs Realisasi)", 14, yPos);
             
-            rabData.push(['TOTAL KESELURUHAN', formatRupiah(totalPdfRab)]);
+            rabData.push(['TOTAL KESELURUHAN', formatRupiah(totalPdfEst), formatRupiah(totalPdfReal), formatRupiah(totalPdfEst - totalPdfReal)]);
             doc.autoTable({
-                head: [['Seksi / Divisi (Beserta Rincian)', 'Anggaran Total (Rp)']],
+                head: [['Seksi & Rincian', 'Estimasi', 'Realisasi', 'Sisa']],
                 body: rabData,
                 startY: yPos + 5,
-                styles: { fontSize: 9 },
+                styles: { fontSize: 8 },
                 headStyles: { fillColor: [22, 163, 74] }, 
                 didParseCell: function (data) {
                     if (data.row.index === rabData.length - 1) {
                         data.cell.styles.fontStyle = 'bold';
+                    }
+                    if (data.column.index === 3 && data.row.index > 0) {
+                        const sisaStr = data.cell.text[0];
+                        if(sisaStr && sisaStr.includes('-')) {
+                            data.cell.styles.textColor = [220, 38, 38]; 
+                        }
                     }
                 }
             });
