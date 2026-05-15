@@ -130,7 +130,6 @@
     .theme-btn.orange { background: linear-gradient(145deg, #f97316, #1e4a6d); }
     .theme-btn.green { background: linear-gradient(145deg, #16a34a, #1e3a5f); }
     .theme-btn.blue { background: linear-gradient(145deg, #3498db, #2c3e50); }
-    /* NEW THEMES */
     .theme-btn.maroon { background: linear-gradient(145deg, #9f1239, #4c0519); }
     .theme-btn.teal { background: linear-gradient(145deg, #0d9488, #134e4a); }
     .theme-btn.dark { background: linear-gradient(145deg, #475569, #0f172a); }
@@ -494,6 +493,10 @@
         </div>
       </div>
       <div class="form-group">
+        <label>Estimasi RAB / Anggaran (Rp) - Opsional</label>
+        <input type="number" id="taskBudgetInput" placeholder="Contoh: 1500000" min="0">
+      </div>
+      <div class="form-group">
         <label>Catatan (opsional)</label>
         <textarea id="taskNotesInput" rows="2"></textarea>
       </div>
@@ -542,13 +545,14 @@
           <textarea id="mom-discussion" rows="6" placeholder="Tuliskan detail pembahasan rapat, keputusan yang diambil, dsb..."></textarea>
       </div>
 
-      <div style="background: rgba(184, 134, 11, 0.05); padding: 12px 16px; border-left: 4px solid var(--color-primary); margin-bottom: 16px; margin-top:32px; font-weight: 600; color: var(--color-secondary); border-radius: 0 8px 8px 0; font-family: var(--font-body);">3. Action Items (Otomatis)</div>
+      <div style="background: rgba(184, 134, 11, 0.05); padding: 12px 16px; border-left: 4px solid var(--color-primary); margin-bottom: 16px; margin-top:32px; font-weight: 600; color: var(--color-secondary); border-radius: 0 8px 8px 0; font-family: var(--font-body);">3. Action Items & Estimasi RAB</div>
       <p style="font-size: 0.9rem; color: var(--color-text-light); margin-bottom: 12px;"><i class="fas fa-info-circle"></i> Ditarik otomatis dari daftar Tugas di rapat ini.</p>
       <table class="mom-table" id="mom-tasks-table">
           <thead>
               <tr>
                   <th>Tugas / Deskripsi</th>
                   <th>PIC</th>
+                  <th>RAB (Rp)</th>
                   <th>Status</th>
               </tr>
           </thead>
@@ -606,7 +610,6 @@
           <div class="theme-btn orange" data-theme="orange" title="Vibrant Orange"></div>
           <div class="theme-btn green" data-theme="green" title="Nature Green"></div>
           <div class="theme-btn blue" data-theme="blue" title="Corporate Blue"></div>
-          <!-- 3 TEMA WARNA BARU -->
           <div class="theme-btn maroon" data-theme="maroon" title="Elegant Maroon"></div>
           <div class="theme-btn teal" data-theme="teal" title="Modern Teal"></div>
           <div class="theme-btn dark" data-theme="dark" title="Monochrome Dark"></div>
@@ -692,7 +695,7 @@
           agenda: '1. Pemaparan Job Description tiap seksi\n2. Pemaparan Rencana Anggaran Biaya (RAB)',
           sections: [
             { name: 'Sekretariat', assignedEmails: '', tasks: [
-              { desc: '[JobDesc] Membuat surat menyurat panitia', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: '', deadline: '' }
+              { desc: '[JobDesc] Membuat surat menyurat panitia', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: '', budget: 500000, deadline: '' }
             ]}
           ]
         }
@@ -848,6 +851,7 @@
                     progress: task.progress,
                     pic: task.pic,
                     notes: task.notes,
+                    budget: task.budget || 0,
                     deadline: task.deadline || ''
                   }))
                 }))
@@ -1405,6 +1409,7 @@
 
         let totalTasks = 0;
         let totalProgress = 0;
+        let totalBudget = 0;
         let taskCount = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
         let kendalaTasks = [];
         let sectionTotals = {};
@@ -1428,6 +1433,7 @@
             section.tasks?.forEach(task => {
               totalTasks++;
               totalProgress += task.progress || 0;
+              totalBudget += Number(task.budget) || 0;
               progressSumBySection[section.name] += (task.progress || 0);
               taskCount[task.status] = (taskCount[task.status] || 0) + 1;
               sectionTotals[section.name]++;
@@ -1484,6 +1490,10 @@
                 <span class="global-stat-label">Total Tugas</span>
                 <div class="global-stat-value">${totalTasks}</div>
               </div>
+              <div class="global-stat-item">
+                <span class="global-stat-label">Total RAB</span>
+                <div class="global-stat-value" style="color:#16a34a;">${formatRupiah(totalBudget)}</div>
+              </div>
               <div class="global-stat-item" data-stat="selesai">
                 <span class="global-stat-label">Selesai</span>
                 <div class="global-stat-value" style="color:#1e7e34;">${taskCount.selesai || 0}</div>
@@ -1528,6 +1538,7 @@
           const statItems = document.querySelectorAll('.global-stat-item');
           statItems.forEach(item => {
             const stat = item.getAttribute('data-stat');
+            if(!stat) return;
             const showTooltip = (e) => {
               e.stopPropagation();
               showStatTooltip(stat, e, statsData);
@@ -1680,7 +1691,7 @@
       function renderDashboard(meeting) {
         if (!meeting.sections) return '';
         const sections = meeting.sections;
-        let totalTasks = 0, totalProgress = 0, taskCountByStatus = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
+        let totalTasks = 0, totalProgress = 0, totalBudget = 0, taskCountByStatus = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
         const sectionProgress = [];
 
         sections.forEach(sec => {
@@ -1688,6 +1699,7 @@
           sec.tasks.forEach(task => {
             totalTasks++;
             secSum += task.progress || 0;
+            totalBudget += Number(task.budget) || 0;
             taskCountByStatus[task.status] = (taskCountByStatus[task.status] || 0) + 1;
           });
           const avg = sec.tasks.length ? (secSum / sec.tasks.length) : 0;
@@ -1702,6 +1714,7 @@
             <div class="dashboard-title"><i class="fas fa-chart-pie"></i> Dashboard Progress Rapat Ini</div>
             <div class="stats-grid">
               <div class="stat-item"><span class="stat-label">Total Tugas</span><div class="stat-value">${totalTasks}</div></div>
+              <div class="stat-item"><span class="stat-label">Total RAB</span><div class="stat-value" style="color:#16a34a;">${formatRupiah(totalBudget)}</div></div>
               <div class="stat-item"><span class="stat-label">Rata-rata Progress</span><div class="stat-value">${Math.round(overallAvg)}%</div></div>
               <div class="stat-item"><span class="stat-label">Selesai</span><div class="stat-value" style="color:#1e7e34;">${taskCountByStatus.selesai || 0}</div></div>
               <div class="stat-item"><span class="stat-label">Berlangsung</span><div class="stat-value" style="color:#b07d00;">${taskCountByStatus.berlangsung || 0}</div></div>
@@ -1775,12 +1788,15 @@
             attachmentsHtml += `</div>`;
           }
 
+          const budgetHtml = task.budget ? `<div style="font-size:0.8rem; background:#f0fdf4; color:#16a34a; padding:4px 10px; border-radius:6px; border:1px solid #bbf7d0; display:flex; align-items:center; gap:6px; white-space:nowrap; font-weight:600;"><i class="fas fa-wallet"></i> ${formatRupiah(task.budget)}</div>` : '';
+
           tasksHtml += `
             <div class="task-item">
               <div class="task-row">
                 <div class="task-status"><span class="status-badge ${statusClass}">${translateStatus(task.status)}</span></div>
                 <div class="task-desc">${escapeHtml(task.desc)}</div>
                 <div class="task-pic"><i class="fas fa-user"></i> ${escapeHtml(pic)}</div>
+                ${budgetHtml}
                 <div class="progress-container">
                   <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${progress}%;"></div></div>
                   <span class="progress-percent">${progress}%</span>
@@ -2040,6 +2056,7 @@
                 progress: task.progress,
                 pic: task.pic,
                 notes: task.notes,
+                budget: task.budget || 0,
                 deadline: task.deadline || ''
               }))
             }));
@@ -2119,6 +2136,7 @@
         document.getElementById('taskStatusInput').value = task ? task.status : 'rencana';
         document.getElementById('taskProgressInput').value = task ? (task.progress ?? 0) : 0;
         document.getElementById('taskPicInput').value = task ? (task.pic || '') : '';
+        document.getElementById('taskBudgetInput').value = task && task.budget ? task.budget : '';
         document.getElementById('taskDeadlineInput').value = task && task.deadline ? task.deadline.slice(0, 16) : '';
         document.getElementById('taskNotesInput').value = task ? (task.notes || '') : '';
         document.getElementById('modalTaskTitle').innerText = task ? 'Edit Tugas' : 'Tugas Baru';
@@ -2187,6 +2205,7 @@
         const status = document.getElementById('taskStatusInput').value;
         const progress = parseInt(document.getElementById('taskProgressInput').value, 10) || 0;
         const pic = document.getElementById('taskPicInput').value.trim();
+        const budget = parseInt(document.getElementById('taskBudgetInput').value, 10) || 0;
         const deadline = document.getElementById('taskDeadlineInput').value;
         const notes = document.getElementById('taskNotesInput').value.trim();
         
@@ -2227,7 +2246,7 @@
                         path: 'rtdb'
                     });
                     
-                    const taskData = { desc, status, progress, pic, notes, deadline, attachments };
+                    const taskData = { desc, status, progress, pic, budget, notes, deadline, attachments };
                     if (currentTaskId) taskData.id = currentTaskId;
                     
                     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
@@ -2254,7 +2273,7 @@
 
         } else {
             try {
-                const taskData = { desc, status, progress, pic, notes, deadline, attachments };
+                const taskData = { desc, status, progress, pic, budget, notes, deadline, attachments };
                 if (currentTaskId) taskData.id = currentTaskId;
                 
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
@@ -2368,6 +2387,7 @@
       function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
       function formatDate(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }); }
       function translateStatus(st) { const map = { selesai:'Selesai', berlangsung:'Berlangsung', rencana:'Rencana', kendala:'Kendala' }; return map[st] || st; }
+      function formatRupiah(angka) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(angka); }
 
       function updateExportButtons() {
         const disabled = !currentMeetingId;
@@ -2415,6 +2435,7 @@
                           tbody.innerHTML += `<tr>
                               <td>${escapeHtml(task.desc)}</td>
                               <td>${escapeHtml(task.pic || '-')}</td>
+                              <td>${task.budget ? formatRupiah(task.budget) : '-'}</td>
                               <td><strong>${translateStatus(task.status)}</strong></td>
                           </tr>`;
                       });
@@ -2422,7 +2443,7 @@
               });
           }
           if (!hasTask) {
-              tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--color-text-light); font-style:italic;">Belum ada tugas/action items.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--color-text-light); font-style:italic;">Belum ada tugas/action items.</td></tr>';
           }
 
           momModal.classList.add('active');
@@ -2499,20 +2520,20 @@
 
           doc.setFont("helvetica", "bold");
           doc.setFontSize(11);
-          doc.text("C. ACTION ITEMS", 14, yPos);
+          doc.text("C. ACTION ITEMS & RAB", 14, yPos);
           yPos += 5;
 
           const tableRows = [];
           document.querySelectorAll('#mom-tasks-table tbody tr').forEach(tr => {
               const rowData = [];
               tr.querySelectorAll('td').forEach(td => rowData.push(td.innerText));
-              if (rowData.length === 3) tableRows.push(rowData);
+              if (rowData.length === 4) tableRows.push(rowData);
           });
 
           if (tableRows.length > 0 && tableRows[0][0] !== "Belum ada tugas/action items.") {
               doc.autoTable({
                   startY: yPos,
-                  head: [['Tugas / Deskripsi', 'PIC', 'Status']],
+                  head: [['Tugas / Deskripsi', 'PIC', 'RAB / Biaya', 'Status']],
                   body: tableRows,
                   theme: 'grid',
                   styles: { fontSize: 9, font: 'helvetica' },
@@ -2543,11 +2564,11 @@
         const meeting = getCurrentMeeting();
         if (!meeting) return;
         const data = [];
-        data.push(['Seksi', 'Tugas', 'Status', 'Progress (%)', 'PIC', 'Deadline', 'Catatan']);
+        data.push(['Seksi', 'Tugas', 'Status', 'Progress (%)', 'PIC', 'RAB (Rp)', 'Deadline', 'Catatan']);
         meeting.sections.forEach(section => {
           section.tasks.forEach(task => {
             const deadline = task.deadline ? new Date(task.deadline).toLocaleString('id-ID') : '';
-            data.push([section.name, task.desc, translateStatus(task.status), task.progress ?? 0, task.pic || '-', deadline, task.notes || '']);
+            data.push([section.name, task.desc, translateStatus(task.status), task.progress ?? 0, task.pic || '-', task.budget || 0, deadline, task.notes || '']);
           });
         });
         const wb = XLSX.utils.book_new();
@@ -2573,11 +2594,11 @@
         meeting.sections.forEach(section => {
           section.tasks.forEach(task => {
             const deadline = task.deadline ? new Date(task.deadline).toLocaleString('id-ID') : '';
-            tableData.push([section.name, task.desc, translateStatus(task.status), (task.progress ?? 0).toString(), task.pic || '-', deadline, task.notes || '']);
+            tableData.push([section.name, task.desc, translateStatus(task.status), (task.progress ?? 0).toString(), task.pic || '-', task.budget ? formatRupiah(task.budget) : '-', deadline, task.notes || '']);
           });
         });
         doc.autoTable({
-          head: [['Seksi', 'Tugas', 'Status', 'Prog(%)', 'PIC', 'Deadline', 'Catatan']],
+          head: [['Seksi', 'Tugas', 'Status', 'Prog(%)', 'PIC', 'RAB (Rp)', 'Deadline', 'Catatan']],
           body: tableData,
           startY: meeting.agenda ? 60 : 45,
           styles: { fontSize: 8 },
