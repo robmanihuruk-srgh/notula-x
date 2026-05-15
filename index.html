@@ -442,7 +442,7 @@
     </div>
   </div>
 
-  <!-- INI ADALAH MODAL SEKSI (TEMPAT FITUR RAB BARU BERADA) -->
+  <!-- MODAL SEKSI DENGAN FITUR RINCIAN RAB DINAMIS -->
   <div class="modal" id="sectionModal">
     <div class="modal-content">
       <h3 id="modalSectionTitle">Tambah seksi</h3>
@@ -451,11 +451,22 @@
         <input type="text" id="sectionNameInput" placeholder="contoh: Seksi Acara">
       </div>
       
-      <!-- KOLOM INPUT RAB ADA DI SINI -->
+      <!-- KOLOM INPUT RAB DINAMIS -->
       <div class="form-group" style="background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0;">
-        <label style="color: #166534;"><i class="fas fa-wallet"></i> Estimasi RAB / Anggaran Seksi (Rp) <span style="background: #16a34a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 6px;">Fitur Baru</span></label>
-        <input type="number" id="sectionBudgetInput" placeholder="Contoh: 5000000" min="0" style="border-color: #86efac; margin-top: 8px;">
-        <p style="font-size: 0.8rem; color: #16a34a; margin-top: 6px; margin-bottom: 0;">Isi anggaran untuk seksi/divisi ini. Akan direkap otomatis di MoM.</p>
+        <label style="color: #166534; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span><i class="fas fa-wallet"></i> Rincian Anggaran (RAB) <span style="background: #16a34a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 6px;">Update</span></span>
+            <button type="button" id="addRabItemBtn" style="background: #16a34a; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: 500;"><i class="fas fa-plus"></i> Item</button>
+        </label>
+        
+        <div id="rabItemsContainer" style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Input Dinamis akan muncul di sini via JavaScript -->
+        </div>
+        
+        <div style="margin-top: 12px; border-top: 1px dashed #86efac; padding-top: 12px; display: flex; justify-content: space-between; font-weight: bold; color: #166534; font-size: 0.95rem;">
+            <span>Total Anggaran:</span>
+            <span id="sectionBudgetTotalDisplay">Rp 0</span>
+        </div>
+        <p style="font-size: 0.8rem; color: #16a34a; margin-top: 8px; margin-bottom: 0;">Rincikan pengeluaran (misal: ATK, Konsumsi). Total akan direkap otomatis ke MoM & Excel.</p>
       </div>
 
       <div class="form-group" style="margin-top: 16px;">
@@ -567,8 +578,8 @@
       <table class="mom-table" id="mom-rab-table">
           <thead>
               <tr>
-                  <th>Seksi / Divisi</th>
-                  <th>Anggaran (Rp)</th>
+                  <th>Seksi / Divisi (Beserta Rincian)</th>
+                  <th>Anggaran Total (Rp)</th>
               </tr>
           </thead>
           <tbody></tbody>
@@ -676,6 +687,87 @@
       let unsubscribeWorkspaces = null;
       let selectedMeetingIds = new Set();
       let selectedWorkspaceIds = new Set();
+      let currentRabItems = []; // STATE UNTUK RINCIAN RAB DINAMIS
+
+      // ========== FUNGSI RINCIAN RAB DINAMIS ==========
+      function renderRabItems() {
+          const container = document.getElementById('rabItemsContainer');
+          container.innerHTML = '';
+          let total = 0;
+          
+          if (currentRabItems.length === 0) {
+              container.innerHTML = '<div style="text-align:center; font-size:0.85rem; color:#15803d; padding:10px; border: 1px dashed #86efac; border-radius: 4px; background: rgba(255,255,255,0.5);">Belum ada rincian anggaran. Klik tombol "+ Item".</div>';
+          } else {
+              currentRabItems.forEach((item, index) => {
+                  total += Number(item.amount) || 0;
+                  const div = document.createElement('div');
+                  div.style.display = 'flex';
+                  div.style.gap = '8px';
+                  div.style.alignItems = 'center';
+                  
+                  const inputName = document.createElement('input');
+                  inputName.type = 'text';
+                  inputName.placeholder = 'Nama Pengeluaran (Cth: ATK)';
+                  inputName.value = item.name;
+                  inputName.style.flex = '2';
+                  inputName.style.padding = '8px';
+                  inputName.style.border = '1px solid #86efac';
+                  inputName.style.borderRadius = '4px';
+                  inputName.style.fontFamily = 'var(--font-body)';
+                  inputName.style.fontSize = '0.9rem';
+                  inputName.oninput = (e) => { currentRabItems[index].name = e.target.value; };
+                  
+                  const inputAmt = document.createElement('input');
+                  inputAmt.type = 'number';
+                  inputAmt.placeholder = 'Nominal (Rp)';
+                  inputAmt.value = item.amount || '';
+                  inputAmt.style.flex = '1';
+                  inputAmt.style.padding = '8px';
+                  inputAmt.style.border = '1px solid #86efac';
+                  inputAmt.style.borderRadius = '4px';
+                  inputAmt.style.fontFamily = 'var(--font-body)';
+                  inputAmt.style.fontSize = '0.9rem';
+                  inputAmt.min = '0';
+                  inputAmt.oninput = (e) => { 
+                      currentRabItems[index].amount = Number(e.target.value); 
+                      updateRabTotal(); 
+                  };
+                  
+                  const btnDel = document.createElement('button');
+                  btnDel.type = 'button';
+                  btnDel.innerHTML = '<i class="fas fa-trash"></i>';
+                  btnDel.title = 'Hapus Item';
+                  btnDel.style.background = '#fee2e2';
+                  btnDel.style.border = '1px solid #fca5a5';
+                  btnDel.style.color = '#dc2626';
+                  btnDel.style.cursor = 'pointer';
+                  btnDel.style.padding = '8px 10px';
+                  btnDel.style.borderRadius = '4px';
+                  btnDel.onclick = () => {
+                      currentRabItems.splice(index, 1);
+                      renderRabItems();
+                      updateRabTotal();
+                  };
+                  
+                  div.appendChild(inputName);
+                  div.appendChild(inputAmt);
+                  div.appendChild(btnDel);
+                  container.appendChild(div);
+              });
+          }
+          document.getElementById('sectionBudgetTotalDisplay').innerText = formatRupiah(total);
+      }
+
+      function updateRabTotal() {
+          let total = 0;
+          currentRabItems.forEach(item => total += Number(item.amount) || 0);
+          document.getElementById('sectionBudgetTotalDisplay').innerText = formatRupiah(total);
+      }
+
+      document.getElementById('addRabItemBtn').addEventListener('click', () => {
+          currentRabItems.push({ name: '', amount: '' });
+          renderRabItems();
+      });
 
       // FUNGSI MENGUNDUH BASE64 DARI RTDB
       window.downloadRtdbAttachment = async function(rtdbId, fileName, btnElement) {
@@ -712,6 +804,7 @@
               name: 'Sekretariat', 
               assignedEmails: '', 
               sectionBudget: 500000,
+              rabItems: [{ name: 'Pembuatan Surat Menyurat', amount: 300000 }, { name: 'Print & Fotocopy', amount: 200000 }],
               tasks: [
                 { desc: '[JobDesc] Membuat surat menyurat panitia', status: 'rencana', progress: 0, pic: 'Sekretaris', notes: '', deadline: '' }
               ]
@@ -864,6 +957,7 @@
                   name: section.name,
                   assignedEmails: section.assignedEmails || '',
                   sectionBudget: section.sectionBudget || 0,
+                  rabItems: section.rabItems || [],
                   tasks: section.tasks.map(task => ({
                     id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
                     desc: task.desc,
@@ -1449,7 +1543,7 @@
             if (!kendalaBySection[section.name]) kendalaBySection[section.name] = 0;
             if (!progressSumBySection[section.name]) progressSumBySection[section.name] = 0;
             
-            totalBudget += Number(section.sectionBudget) || 0; // Hitung RAB dari level Seksi
+            totalBudget += Number(section.sectionBudget) || 0;
 
             section.tasks?.forEach(task => {
               totalTasks++;
@@ -1715,7 +1809,7 @@
         const sectionProgress = [];
 
         sections.forEach(sec => {
-          totalBudget += Number(sec.sectionBudget) || 0; // RAB dari seksi
+          totalBudget += Number(sec.sectionBudget) || 0;
           let secSum = 0;
           sec.tasks.forEach(task => {
             totalTasks++;
@@ -1830,20 +1924,35 @@
           `;
         });
 
-        // TAMPILAN BADGE RAB ADA DI SINI
-        const sectionBudgetHtml = section.sectionBudget ? `<div style="font-size:0.85rem; background:#f0fdf4; color:#16a34a; padding:6px 12px; border-radius:6px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-weight:700;"><i class="fas fa-wallet"></i> RAB Seksi: ${formatRupiah(section.sectionBudget)}</div>` : '';
+        // TAMPILAN BADGE ATAU TABEL RINCIAN RAB DI KARTU SEKSI
+        let rabDetailsHtml = '';
+        if (section.rabItems && section.rabItems.length > 0) {
+            rabDetailsHtml = `
+            <div style="margin-top: 12px; font-size: 0.9rem; color: #166534; background: #f0fdf4; padding: 12px 16px; border-radius: 8px; border: 1px solid #bbf7d0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #86efac; padding-bottom:6px;">
+                    <strong style="font-family:var(--font-heading);"><i class="fas fa-wallet"></i> Rincian Anggaran (RAB)</strong>
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0;">`;
+            section.rabItems.forEach(item => {
+                rabDetailsHtml += `<li style="display: flex; justify-content: space-between; border-bottom: 1px dashed #86efac; padding: 6px 0;"><span>${escapeHtml(item.name)}</span> <strong>${formatRupiah(item.amount)}</strong></li>`;
+            });
+            rabDetailsHtml += `<li style="display: flex; justify-content: space-between; padding-top: 8px; margin-top: 4px; font-weight: bold; font-size:0.95rem;"><span>TOTAL ANGGARAN SEKSI</span> <span>${formatRupiah(section.sectionBudget)}</span></li>`;
+            rabDetailsHtml += `</ul></div>`;
+        } else if (section.sectionBudget) {
+            rabDetailsHtml = `<div style="font-size:0.85rem; background:#f0fdf4; color:#16a34a; padding:6px 12px; border-radius:6px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-weight:700;"><i class="fas fa-wallet"></i> RAB Seksi: ${formatRupiah(section.sectionBudget)}</div>`;
+        }
 
         return `
           <div class="section-card">
             <div class="section-title">
-              <div>
-                 <h4>${escapeHtml(section.name)}</h4>
-                 ${sectionBudgetHtml}
+              <div style="width:100%; padding-right:12px;">
+                 <h4 style="margin-bottom:0;">${escapeHtml(section.name)}</h4>
                  ${section.assignedEmails 
                     ? `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-lock"></i> Akses: ${escapeHtml(section.assignedEmails)}</div>` 
                     : `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-globe"></i> Akses Terbuka</div>`}
+                 ${rabDetailsHtml}
               </div>
-              <div class="section-actions">
+              <div class="section-actions" style="flex-shrink:0;">
                 <button id="edit-section-${section.id}" title="Edit seksi" ${!canEditSec ? 'disabled class="disabled"' : ''}><i class="fas fa-edit"></i> Edit Seksi</button>
                 <button id="del-section-${section.id}" title="Hapus seksi" ${!canDeleteSec ? 'disabled class="disabled"' : ''}><i class="fas fa-times-circle"></i> Hapus</button>
               </div>
@@ -2071,6 +2180,7 @@
               name: section.name,
               assignedEmails: section.assignedEmails || '', 
               sectionBudget: section.sectionBudget || 0,
+              rabItems: section.rabItems || [],
               tasks: section.tasks.map(task => ({
                 id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
                 desc: task.desc,
@@ -2106,19 +2216,28 @@
         const modalTitle = document.getElementById('modalSectionTitle');
         const nameInput = document.getElementById('sectionNameInput');
         const emailsInput = document.getElementById('sectionEmailsInput');
-        const budgetInput = document.getElementById('sectionBudgetInput');
         
         if (sectionId && sec) {
           nameInput.value = sec.name; 
           emailsInput.value = sec.assignedEmails || '';
-          budgetInput.value = sec.sectionBudget || '';
+          
+          if (sec.rabItems && sec.rabItems.length > 0) {
+              currentRabItems = JSON.parse(JSON.stringify(sec.rabItems));
+          } else if (sec.sectionBudget) {
+              currentRabItems = [{ name: 'Anggaran Keseluruhan', amount: sec.sectionBudget }];
+          } else {
+              currentRabItems = [];
+          }
+          
           modalTitle.innerText = 'Edit Seksi'; 
         } else {
           nameInput.value = '';
           emailsInput.value = currentUser?.email || ''; 
-          budgetInput.value = '';
+          currentRabItems = [];
           modalTitle.innerText = 'Tambah Seksi';
         }
+        
+        renderRabItems();
         sectionModal.classList.add('active');
       }
 
@@ -2134,11 +2253,17 @@
 
         const name = document.getElementById('sectionNameInput').value.trim();
         const assignedEmails = document.getElementById('sectionEmailsInput').value.trim();
-        const sectionBudget = parseInt(document.getElementById('sectionBudgetInput').value, 10) || 0;
         
         if (!name) return alert('Nama seksi harus diisi');
 
-        const sectionData = { name, assignedEmails, sectionBudget, tasks: [] };
+        let sectionBudget = 0;
+        const rabItemsToSave = currentRabItems.filter(item => item.name.trim() !== '' || item.amount > 0).map(item => {
+            const amt = Number(item.amount) || 0;
+            sectionBudget += amt;
+            return { name: item.name.trim() || 'Item Tanpa Nama', amount: amt };
+        });
+
+        const sectionData = { name, assignedEmails, sectionBudget, rabItems: rabItemsToSave, tasks: [] };
         if (currentSectionId) {
           sectionData.id = currentSectionId;
           const existing = meeting.sections.find(s => s.id === currentSectionId);
@@ -2475,9 +2600,17 @@
           if (meeting.sections) {
               meeting.sections.forEach(sec => {
                   if (sec.sectionBudget) {
+                      let details = '';
+                      if (sec.rabItems && sec.rabItems.length > 0) {
+                          details = '<ul style="margin: 6px 0 0 16px; padding: 0; font-size: 0.85rem; color: var(--color-text-light); list-style-type: circle;">';
+                          sec.rabItems.forEach(item => {
+                              details += `<li>${escapeHtml(item.name)}: ${formatRupiah(item.amount)}</li>`;
+                          });
+                          details += '</ul>';
+                      }
                       tbodyRab.innerHTML += `<tr>
-                          <td>${escapeHtml(sec.name)}</td>
-                          <td style="color:#16a34a; font-weight:600;">${formatRupiah(sec.sectionBudget)}</td>
+                          <td><strong style="color:var(--color-secondary);">${escapeHtml(sec.name)}</strong>${details}</td>
+                          <td style="color:#16a34a; font-weight:600; vertical-align:top;">${formatRupiah(sec.sectionBudget)}</td>
                       </tr>`;
                       totalRab += Number(sec.sectionBudget);
                   }
@@ -2488,7 +2621,7 @@
           } else {
               tbodyRab.innerHTML += `<tr style="background:var(--color-bg-light); font-weight:700;">
                   <td>TOTAL KESELURUHAN</td>
-                  <td style="color:#1e7e34;">${formatRupiah(totalRab)}</td>
+                  <td style="color:#1e7e34; vertical-align:top;">${formatRupiah(totalRab)}</td>
               </tr>`;
           }
 
@@ -2596,7 +2729,7 @@
               yPos += 15;
           }
 
-          // TABLE 2: RAB PER SEKSI
+          // TABLE 2: RAB PER SEKSI DENGAN RINCIAN
           if (yPos > 240) { doc.addPage(); yPos = 20; }
           
           doc.setFont("helvetica", "bold");
@@ -2609,7 +2742,13 @@
           if (meeting && meeting.sections) {
               meeting.sections.forEach(sec => {
                   if(sec.sectionBudget) {
-                      rabData.push([sec.name, formatRupiah(sec.sectionBudget)]);
+                      let secNameStr = sec.name;
+                      if (sec.rabItems && sec.rabItems.length > 0) {
+                          sec.rabItems.forEach(item => {
+                              secNameStr += `\n   • ${item.name} : ${formatRupiah(item.amount)}`;
+                          });
+                      }
+                      rabData.push([secNameStr, formatRupiah(sec.sectionBudget)]);
                       totalPdfRab += Number(sec.sectionBudget);
                   }
               });
@@ -2619,13 +2758,12 @@
               rabData.push(['TOTAL KESELURUHAN', formatRupiah(totalPdfRab)]);
               doc.autoTable({
                   startY: yPos,
-                  head: [['Seksi / Divisi', 'Anggaran (Rp)']],
+                  head: [['Seksi / Divisi (Beserta Rincian)', 'Anggaran Total (Rp)']],
                   body: rabData,
                   theme: 'grid',
                   styles: { fontSize: 9, font: 'helvetica' },
                   headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] }, // Hijau khusus RAB
                   didParseCell: function (data) {
-                      // Bikin baris terakhir (TOTAL) jadi tebal
                       if (data.row.index === rabData.length - 1) {
                           data.cell.styles.fontStyle = 'bold';
                           data.cell.styles.fillColor = [240, 253, 244];
@@ -2672,15 +2810,25 @@
 
         // Sheet 2: RAB Seksi
         const dataRab = [];
-        dataRab.push(['Seksi / Divisi', 'Anggaran (Rp)']);
+        dataRab.push(['Seksi / Divisi', 'Item Anggaran', 'Anggaran (Rp)', 'Total Seksi (Rp)']);
         let totalExRab = 0;
         meeting.sections.forEach(sec => {
           if (sec.sectionBudget) {
-              dataRab.push([sec.name, sec.sectionBudget]);
+              if (sec.rabItems && sec.rabItems.length > 0) {
+                  sec.rabItems.forEach((item, index) => {
+                      if (index === 0) {
+                          dataRab.push([sec.name, item.name, item.amount, sec.sectionBudget]);
+                      } else {
+                          dataRab.push(['', item.name, item.amount, '']);
+                      }
+                  });
+              } else {
+                  dataRab.push([sec.name, 'Total Anggaran', sec.sectionBudget, sec.sectionBudget]);
+              }
               totalExRab += Number(sec.sectionBudget);
           }
         });
-        dataRab.push(['TOTAL KESELURUHAN', totalExRab]);
+        dataRab.push(['TOTAL KESELURUHAN', '', '', totalExRab]);
         const wsRab = XLSX.utils.aoa_to_sheet(dataRab);
         XLSX.utils.book_append_sheet(wb, wsRab, 'RAB per Seksi');
 
@@ -2719,12 +2867,18 @@
 
         let yPos = doc.lastAutoTable.finalY + 15;
 
-        // Tambah Tabel RAB
+        // Tambah Tabel RAB dengan rincian
         const rabData = [];
         let totalPdfRab = 0;
         meeting.sections.forEach(sec => {
             if(sec.sectionBudget) {
-                rabData.push([sec.name, formatRupiah(sec.sectionBudget)]);
+                let secNameStr = sec.name;
+                if (sec.rabItems && sec.rabItems.length > 0) {
+                    sec.rabItems.forEach(item => {
+                        secNameStr += `\n   • ${item.name} : ${formatRupiah(item.amount)}`;
+                    });
+                }
+                rabData.push([secNameStr, formatRupiah(sec.sectionBudget)]);
                 totalPdfRab += Number(sec.sectionBudget);
             }
         });
@@ -2737,7 +2891,7 @@
             
             rabData.push(['TOTAL KESELURUHAN', formatRupiah(totalPdfRab)]);
             doc.autoTable({
-                head: [['Seksi / Divisi', 'Anggaran (Rp)']],
+                head: [['Seksi / Divisi (Beserta Rincian)', 'Anggaran Total (Rp)']],
                 body: rabData,
                 startY: yPos + 5,
                 styles: { fontSize: 9 },
