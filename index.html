@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip</title>
+  <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip + Notifikasi</title>
   
   <meta name="theme-color" content="#1a2b4c">
   <meta name="mobile-web-app-capable" content="yes">
@@ -134,6 +134,25 @@
     .theme-btn.teal { background: linear-gradient(145deg, #0d9488, #134e4a); }
     .theme-btn.dark { background: linear-gradient(145deg, #475569, #0f172a); }
     
+    /* NOTIFIKASI CSS */
+    .notification-wrapper { position: relative; margin-right: 15px; display: flex; align-items: center; }
+    .notification-btn { background: none; border: none; color: var(--color-secondary); font-size: 1.2rem; cursor: pointer; position: relative; transition: 0.2s; }
+    .notification-btn:hover { transform: scale(1.1); color: var(--color-primary); }
+    .notification-badge { position: absolute; top: -5px; right: -5px; background: #dc3545; color: white; font-size: 0.65rem; font-weight: bold; padding: 2px 5px; border-radius: 50%; display: none; }
+    .notification-dropdown { position: absolute; top: 100%; right: 0; width: 320px; background: white; border: 1px solid var(--color-border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: none; flex-direction: column; z-index: 1000; max-height: 400px; overflow-y: auto; margin-top: 10px; }
+    .notification-dropdown.active { display: flex; }
+    .notification-header { padding: 12px 16px; border-bottom: 1px solid var(--color-border); font-weight: 600; color: var(--color-secondary); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: white; z-index: 2; }
+    .mark-all-read { font-size: 0.8rem; color: var(--color-primary); cursor: pointer; font-weight: 500; }
+    .mark-all-read:hover { text-decoration: underline; }
+    .notification-list { list-style: none; padding: 0; margin: 0; }
+    .notification-item { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: background 0.2s; }
+    .notification-item.unread { background: #f0fdf4; border-left: 3px solid var(--color-primary); }
+    .notification-item:hover { background: #f8fafc; }
+    .notif-title { font-weight: 600; font-size: 0.9rem; color: var(--color-secondary); }
+    .notif-body { font-size: 0.85rem; color: var(--color-text); line-height: 1.4; }
+    .notif-time { font-size: 0.75rem; color: var(--color-text-light); margin-top: 2px; }
+    .notif-empty { padding: 20px; text-align: center; color: var(--color-text-light); font-size: 0.9rem; }
+
     .user-info { display: flex; align-items: center; gap: 12px; background: #ffffff; border: 1px solid var(--color-border); padding: 6px 16px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
     .user-info span { font-size: 0.85rem; font-weight: 500; color: var(--color-secondary); }
     .logout-btn { background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1rem; transition: 0.2s; }
@@ -287,7 +306,7 @@
     .mom-table tr:nth-child(even) { background: #f8fafc; }
 
     @media print {
-      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .btn-delete-meeting, .theme-switcher, #fontSwitcher, .user-info, .log-card { display: none !important; }
+      .sidebar, .panel-header, .btn-add-section, .section-actions, .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting, .btn-delete-meeting, .theme-switcher, #fontSwitcher, .user-info, .log-card, .notification-wrapper, #install-pwa-container { display: none !important; }
       body, .main-panel, .content { background: white; overflow: visible; height: auto; }
       .content { padding: 0.5in; }
       .section-card { break-inside: avoid; border: 1px solid #ccc; box-shadow: none; }
@@ -320,6 +339,7 @@
   </style>
 </head>
 <body>
+  <!-- PWA INSTALL BUTTON -->
   <div id="install-pwa-container">
     <button id="btnInstallPWA" class="btn-install-pwa">
       <i class="fas fa-download"></i> Install Notula App
@@ -508,7 +528,7 @@
       <div class="form-row">
         <div class="form-group">
           <label>Penanggung Jawab (PIC)</label>
-          <input type="text" id="taskPicInput" placeholder="Nama / seksi">
+          <input type="text" id="taskPicInput" placeholder="Nama / email untuk notifikasi">
         </div>
         <div class="form-group">
           <label>Tenggat waktu (deadline)</label>
@@ -653,6 +673,23 @@
         <button class="btn-header" id="printBtn" disabled><i class="fas fa-print"></i> Cetak</button>
         <button class="btn-edit-meeting" id="editMeetingBtn" disabled><i class="fas fa-pen"></i> Edit</button>
         <button class="btn-delete-meeting" id="deleteMeetingBtn" disabled><i class="fas fa-trash"></i> Hapus</button>
+        
+        <!-- INTEGRASI NOTIFIKASI -->
+        <div class="notification-wrapper" id="notifWrapper" style="display: none;">
+          <button class="notification-btn" id="notifBtn">
+            <i class="fas fa-bell"></i>
+            <span class="notification-badge" id="notifBadge">0</span>
+          </button>
+          <div class="notification-dropdown" id="notifDropdown">
+            <div class="notification-header">
+              Notifikasi <span class="mark-all-read" id="markAllReadBtn">Tandai semua dibaca</span>
+            </div>
+            <ul class="notification-list" id="notifList">
+              <div class="notif-empty">Belum ada notifikasi.</div>
+            </ul>
+          </div>
+        </div>
+
         <div class="user-info" id="userInfo" style="display: none;">
           <span id="userEmail"></span>
           <span id="userRole" style="background:var(--color-primary); color:white; padding:2px 10px; border-radius:12px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">admin</span>
@@ -684,6 +721,7 @@
       // ========== GLOBAL STATE ==========
       let meetings = [];
       let workspaces = [];
+      let notifications = []; // Menampung notifikasi user login
       let currentMeetingId = null;
       let currentWorkspaceId = null;
       let currentSectionId = null;
@@ -693,9 +731,103 @@
       let userRole = 'member';
       let unsubscribeMeetings = null;
       let unsubscribeWorkspaces = null;
+      let unsubscribeNotifications = null; // Unsubscribe listener notifikasi
       let selectedMeetingIds = new Set();
       let selectedWorkspaceIds = new Set();
       let currentRabItems = []; 
+
+      // ========== LOGIKA NOTIFIKASI ==========
+      const notifBtn = document.getElementById('notifBtn');
+      const notifDropdown = document.getElementById('notifDropdown');
+      
+      notifBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          notifDropdown.classList.toggle('active');
+      });
+      
+      document.addEventListener('click', (e) => {
+          if (!notifDropdown.contains(e.target) && e.target !== notifBtn) {
+              notifDropdown.classList.remove('active');
+          }
+      });
+
+      function renderNotifications() {
+          const list = document.getElementById('notifList');
+          const badge = document.getElementById('notifBadge');
+          const unreadCount = notifications.filter(n => !n.isRead).length;
+
+          if (unreadCount > 0) {
+              badge.innerText = unreadCount;
+              badge.style.display = 'block';
+          } else {
+              badge.style.display = 'none';
+          }
+
+          if (notifications.length === 0) {
+              list.innerHTML = '<div class="notif-empty">Belum ada notifikasi.</div>';
+              return;
+          }
+
+          list.innerHTML = '';
+          notifications.forEach(n => {
+              const li = document.createElement('li');
+              li.className = `notification-item ${!n.isRead ? 'unread' : ''}`;
+              const timeStr = n.createdAt ? new Date(n.createdAt.toDate()).toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Baru saja';
+              li.innerHTML = `
+                  <div class="notif-title">${escapeHtml(n.title)}</div>
+                  <div class="notif-body">${escapeHtml(n.body)}</div>
+                  <div class="notif-time">${timeStr}</div>
+              `;
+              
+              li.addEventListener('click', () => {
+                  if (!n.isRead) {
+                      db.collection('notifications').doc(n.id).update({ isRead: true });
+                  }
+                  if (n.meetingId) {
+                      const m = meetings.find(x => x.id === n.meetingId);
+                      if (m) {
+                          currentWorkspaceId = m.workspaceId || null;
+                          currentMeetingId = m.id;
+                          if (currentWorkspaceId) {
+                              renderWorkspaceList();
+                              renderWorkspaceMeetings(currentWorkspaceId);
+                          } else {
+                              renderPrivateMeetings();
+                          }
+                          renderDetail(m);
+                          notifDropdown.classList.remove('active');
+                      }
+                  }
+              });
+              list.appendChild(li);
+          });
+      }
+
+      document.getElementById('markAllReadBtn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          notifications.forEach(n => {
+              if (!n.isRead) {
+                  db.collection('notifications').doc(n.id).update({ isRead: true });
+              }
+          });
+      });
+
+      function initNotifications(userEmail) {
+          if (unsubscribeNotifications) unsubscribeNotifications();
+          unsubscribeNotifications = db.collection('notifications')
+              .where('targetEmail', '==', userEmail.toLowerCase())
+              .onSnapshot(snap => {
+                  notifications = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                  // Sort descending secara lokal
+                  notifications.sort((a, b) => {
+                      const timeA = a.createdAt ? a.createdAt.toMillis() : Date.now();
+                      const timeB = b.createdAt ? b.createdAt.toMillis() : Date.now();
+                      return timeB - timeA;
+                  });
+                  renderNotifications();
+              });
+      }
+
 
       // ========== FUNGSI RINCIAN RAB DINAMIS (DENGAN REALISASI) ==========
       function renderRabItems() {
@@ -1044,8 +1176,12 @@
           currentUser = user;
           document.getElementById('userEmail').innerText = user.email;
           document.getElementById('userInfo').style.display = 'flex';
+          document.getElementById('notifWrapper').style.display = 'flex'; // Tampilkan notifikasi
           hideLogin();
+          
           await fetchUserRole(user.uid);
+          initNotifications(user.email); // Mulai listener notifikasi
+          
           if (userRole === 'admin') {
             await seedDefaultData();
           }
@@ -1092,14 +1228,17 @@
           currentUser = null;
           userRole = 'member';
           document.getElementById('userInfo').style.display = 'none';
+          document.getElementById('notifWrapper').style.display = 'none'; // Sembunyikan notifikasi
           meetings = [];
           workspaces = [];
+          notifications = [];
           renderWorkspaceList();
           renderPrivateMeetings();
           document.getElementById('contentArea').innerHTML = '';
           showLogin();
           if (unsubscribeMeetings) unsubscribeMeetings();
           if (unsubscribeWorkspaces) unsubscribeWorkspaces();
+          if (unsubscribeNotifications) unsubscribeNotifications();
         }
       });
 
@@ -1164,9 +1303,9 @@
           <ul class="log-list">`;
         
         sortedLogs.forEach(log => {
-            const time = new Date(log.time).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
-            const shortEmail = log.user.split('@')[0];
-            html += `<li><span class="log-time">${time}</span> <strong>${escapeHtml(shortEmail)}</strong> ${escapeHtml(log.msg)}</li>`;
+          const time = new Date(log.time).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+          const shortEmail = log.user.split('@')[0];
+          html += `<li><span class="log-time">${time}</span> <strong>${escapeHtml(shortEmail)}</strong> ${escapeHtml(log.msg)}</li>`;
         });
         html += `</ul></div>`;
         return html;
@@ -2191,9 +2330,15 @@
         if (!section.tasks) section.tasks = [];
         
         let isNew = false;
+        let picChanged = false;
+
         if (taskData.id) {
           const index = section.tasks.findIndex(t => t.id === taskData.id);
-          if (index !== -1) section.tasks[index] = taskData;
+          if (index !== -1) {
+              const existingTask = section.tasks[index];
+              if (existingTask.pic !== taskData.pic) picChanged = true;
+              section.tasks[index] = taskData;
+          }
         } else {
           isNew = true;
           taskData.id = 'task_' + Date.now() + '_' + Math.random().toString(36);
@@ -2202,6 +2347,23 @@
         
         try {
           await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
+          
+          // TRIGGGER NOTIFIKASI JIKA PIC ADALAH EMAIL
+          if ((isNew || picChanged) && taskData.pic && taskData.pic.includes('@')) {
+              const targetEmail = taskData.pic.toLowerCase().trim();
+              if (targetEmail !== currentUser.email.toLowerCase()) {
+                  db.collection('notifications').add({
+                      targetEmail: targetEmail,
+                      title: isNew ? 'Tugas Baru Diberikan' : 'Perubahan PIC Tugas',
+                      body: `Anda ditugaskan pada: "${taskData.desc}" di rapat "${meeting.title}"`,
+                      isRead: false,
+                      meetingId: currentMeetingId,
+                      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                      pushTrigger: taskData.deadline || null
+                  });
+              }
+          }
+
           const actionMsg = isNew ? `menambahkan tugas baru` : `memperbarui progress/tugas`;
           await addLog(currentMeetingId, `${actionMsg}: "${taskData.desc}"`);
         } catch (error) {
