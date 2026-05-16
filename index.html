@@ -830,6 +830,9 @@
           <div class="theme-btn dark" data-theme="dark" title="Monochrome Dark"></div>
         </div>
 
+        <!-- Tombol Instal untuk Desktop (Disembunyikan secara default, muncul jika didukung) -->
+        <button class="btn-header" id="headerInstallBtn" style="display: none; background: rgba(184, 134, 11, 0.1); border-color: var(--color-primary); color: var(--color-primary); font-weight: 600;"><i class="fas fa-desktop"></i> Instal App Desktop</button>
+
         <button class="btn-header" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Excel</button>
         <button class="btn-header" id="printBtn" disabled><i class="fas fa-print"></i> Cetak</button>
         <button class="btn-edit-meeting" id="editMeetingBtn" disabled><i class="fas fa-pen"></i> Edit</button>
@@ -3713,6 +3716,7 @@
       let deferredPrompt;
       const installContainer = document.getElementById('install-pwa-container');
       const btnInstallPWA = document.getElementById('btnInstallPWA');
+      const headerInstallBtn = document.getElementById('headerInstallBtn');
 
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -3722,28 +3726,45 @@
         });
       }
 
+      // Mengecek jika aplikasi sedang dijalankan dalam mode Standalone (Sudah Terinstal)
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      
+      if (isStandalone) {
+          console.log('Aplikasi sudah dijalankan dalam mode terinstal (standalone).');
+      }
+
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
-        deferredPrompt = e;
-        if(installContainer) installContainer.style.display = 'block'; 
+        console.log('Event beforeinstallprompt berhasil dipicu di perangkat ini.');
+        
+        // Hanya tampilkan tombol jika aplikasi belum dibuka dalam mode standalone
+        if (!isStandalone) {
+            deferredPrompt = e;
+            if(installContainer) installContainer.style.display = 'block'; 
+            if(headerInstallBtn) headerInstallBtn.style.display = 'inline-flex';
+        }
       });
 
-      if(btnInstallPWA) {
-        btnInstallPWA.addEventListener('click', async () => {
+      const handleInstallClick = async () => {
           if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response: ${outcome}`);
+            console.log(`Respon pengguna terhadap instalasi: ${outcome}`);
             deferredPrompt = null;
             if(installContainer) installContainer.style.display = 'none'; 
+            if(headerInstallBtn) headerInstallBtn.style.display = 'none'; 
           }
-        });
-      }
+      };
+
+      if(btnInstallPWA) btnInstallPWA.addEventListener('click', handleInstallClick);
+      if(headerInstallBtn) headerInstallBtn.addEventListener('click', handleInstallClick);
 
       window.addEventListener('appinstalled', () => {
+        console.log('Aplikasi berhasil diinstal!');
         if(installContainer) installContainer.style.display = 'none';
+        if(headerInstallBtn) headerInstallBtn.style.display = 'none';
         deferredPrompt = null;
-        alert('Terima kasih! Notula kini tersedia di layar utama Anda.');
+        alert('Terima kasih! Notula kini tersedia di perangkat Anda.');
       });
 
     })();
