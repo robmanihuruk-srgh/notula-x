@@ -3483,4 +3483,270 @@
           doc.setFontSize(11);
           doc.text("B. AGENDA & POIN PEMBAHASAN", 14, yPos);
           
-          doc.setFont("helvetica", "
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          yPos += 7;
+          const splitDiscussion = doc.splitTextToSize(discussion || '-', 180);
+          doc.text(splitDiscussion, 14, yPos);
+
+          yPos += (splitDiscussion.length * 5) + 10;
+
+          // TABLE 1: ACTION ITEMS
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text("C. ACTION ITEMS", 14, yPos);
+          yPos += 5;
+
+          const tableTasks = [];
+          document.querySelectorAll('#mom-tasks-table tbody tr').forEach(tr => {
+              const rowData = [];
+              tr.querySelectorAll('td').forEach(td => rowData.push(td.innerText));
+              if (rowData.length === 6) tableTasks.push(rowData);
+          });
+
+          if (tableTasks.length > 0 && tableTasks[0][0] !== "Belum ada tugas/action items.") {
+              doc.autoTable({
+                  startY: yPos,
+                  head: [['Tugas / Deskripsi', 'PIC', 'Status', 'Prog (%)', 'Deadline', 'Catatan']],
+                  body: tableTasks,
+                  theme: 'grid',
+                  styles: { fontSize: 9, font: 'helvetica' },
+                  headStyles: { fillColor: [26, 43, 76], textColor: [255, 255, 255] }, 
+                  alternateRowStyles: { fillColor: [248, 250, 252] }
+              });
+              yPos = doc.lastAutoTable.finalY + 15;
+          } else {
+              doc.setFont("helvetica", "italic");
+              doc.setFontSize(10);
+              doc.text("Tidak ada action items / tugas yang dicatat.", 14, yPos + 5);
+              yPos += 15;
+          }
+
+          // TABLE: PEMASUKAN
+          if (yPos > 240) { doc.addPage(); yPos = 20; }
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text("D. LAPORAN PEMASUKAN", 14, yPos);
+          yPos += 5;
+
+          const incomeData = [];
+          let totalPdfIncome = 0;
+          if (meeting && meeting.incomeItems && meeting.incomeItems.length > 0) {
+            meeting.incomeItems.forEach(item => {
+              const amt = Number(item.amount) || 0;
+              incomeData.push([item.name, formatDate(item.date), formatRupiah(amt), item.notes || '-']);
+              totalPdfIncome += amt;
+            });
+          }
+
+          if (incomeData.length > 0) {
+            incomeData.push(['TOTAL PEMASUKAN', '', formatRupiah(totalPdfIncome), '']);
+            doc.autoTable({
+              startY: yPos,
+              head: [['Sumber Pemasukan', 'Tanggal', 'Jumlah', 'Keterangan']],
+              body: incomeData,
+              theme: 'grid',
+              styles: { fontSize: 9, font: 'helvetica' },
+              headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] },
+              didParseCell: function(data) {
+                if (data.row.index === incomeData.length - 1) {
+                  data.cell.styles.fontStyle = 'bold';
+                  data.cell.styles.fillColor = [240, 253, 244];
+                }
+              }
+            });
+            yPos = doc.lastAutoTable.finalY + 15;
+          } else {
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(10);
+            doc.text("Belum ada data pemasukan.", 14, yPos + 5);
+            yPos += 15;
+          }
+
+          // TABLE 2: RAB PER SEKSI DENGAN RINCIAN
+          if (yPos > 240) { doc.addPage(); yPos = 20; }
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text("E. LAPORAN ANGGARAN (RAB & REALISASI)", 14, yPos);
+          yPos += 5;
+
+          const rabData = [];
+          let totalPdfEst = 0;
+          let totalPdfReal = 0;
+          if (meeting && meeting.sections) {
+              meeting.sections.forEach(sec => {
+                  if(sec.sectionBudget || sec.sectionRealisasi) {
+                      let secNameStr = sec.name;
+                      if (sec.rabItems && sec.rabItems.length > 0) {
+                          sec.rabItems.forEach(item => {
+                              secNameStr += `\n   • ${item.name} (E: ${formatRupiah(item.amount)} | R: ${formatRupiah(item.realisasi)})`;
+                          });
+                      }
+                      let b = Number(sec.sectionBudget)||0;
+                      let r = Number(sec.sectionRealisasi)||0;
+                      rabData.push([secNameStr, formatRupiah(b), formatRupiah(r), formatRupiah(b - r)]);
+                      totalPdfEst += b;
+                      totalPdfReal += r;
+                  }
+              });
+          }
+
+          if (rabData.length > 0) {
+              rabData.push(['TOTAL KESELURUHAN', formatRupiah(totalPdfEst), formatRupiah(totalPdfReal), formatRupiah(totalPdfEst - totalPdfReal)]);
+              doc.autoTable({
+                  startY: yPos,
+                  head: [['Seksi & Rincian', 'Estimasi', 'Realisasi', 'Sisa']],
+                  body: rabData,
+                  theme: 'grid',
+                  styles: { fontSize: 8, font: 'helvetica' },
+                  headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] }, 
+                  didParseCell: function (data) {
+                      if (data.row.index === rabData.length - 1) {
+                          data.cell.styles.fontStyle = 'bold';
+                          data.cell.styles.fillColor = [240, 253, 244];
+                      }
+                      if (data.column.index === 3 && data.row.index > 0) {
+                           const sisaStr = data.cell.text[0];
+                           if(sisaStr && sisaStr.includes('-')) {
+                               data.cell.styles.textColor = [220, 38, 38]; // Merah jika minus
+                           }
+                      }
+                  }
+              });
+              yPos = doc.lastAutoTable.finalY + 15;
+          } else {
+              doc.setFont("helvetica", "italic");
+              doc.setFontSize(10);
+              doc.text("Belum ada anggaran yang diinput di Seksi mana pun.", 14, yPos + 5);
+              yPos += 15;
+          }
+
+          if (yPos > 250) { doc.addPage(); yPos = 20; }
+          
+          doc.setFont("helvetica", "normal");
+          doc.text("Dibuat oleh,", 150, yPos);
+          doc.text("____________________", 145, yPos + 25);
+          doc.text("Notulis / Pencatat", 152, yPos + 30);
+
+          doc.save(`MoM_${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+      });
+
+      // ========== EXPORT ==========
+      function getCurrentMeeting() { return meetings.find(m => m.id === currentMeetingId); }
+      
+      function exportToExcel() {
+        const meeting = getCurrentMeeting();
+        if (!meeting) return;
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Progress (Tugas)
+        const dataTasks = [];
+        dataTasks.push(['Seksi', 'Tugas', 'Status', 'Progress (%)', 'PIC', 'Deadline', 'Catatan']);
+        meeting.sections.forEach(section => {
+          section.tasks.forEach(task => {
+            const deadline = task.deadline ? new Date(task.deadline).toLocaleString('id-ID') : '';
+            dataTasks.push([section.name, task.desc, translateStatus(task.status), task.progress ?? 0, task.pic || '-', deadline, task.notes || '']);
+          });
+        });
+        const wsTasks = XLSX.utils.aoa_to_sheet(dataTasks);
+        XLSX.utils.book_append_sheet(wb, wsTasks, 'Progress');
+
+        // Sheet 2: RAB Seksi & Realisasi
+        const dataRab = [];
+        dataRab.push(['Seksi / Divisi', 'Item Anggaran', 'Estimasi (Rp)', 'Realisasi (Rp)', 'Sisa (Rp)']);
+        let totalExEst = 0;
+        let totalExReal = 0;
+        meeting.sections.forEach(sec => {
+          let sBudget = Number(sec.sectionBudget)||0;
+          let sReal = Number(sec.sectionRealisasi)||0;
+          
+          if (sBudget > 0 || sReal > 0) {
+              if (sec.rabItems && sec.rabItems.length > 0) {
+                  sec.rabItems.forEach((item, index) => {
+                      let iEst = Number(item.amount)||0;
+                      let iReal = Number(item.realisasi)||0;
+                      if (index === 0) {
+                          dataRab.push([sec.name, item.name, iEst, iReal, iEst - iReal]);
+                      } else {
+                          dataRab.push(['', item.name, iEst, iReal, iEst - iReal]);
+                      }
+                  });
+                  // Tambahkan baris subtotal untuk seksi
+                  dataRab.push(['Subtotal ' + sec.name, '', sBudget, sReal, sBudget - sReal]);
+              } else {
+                  dataRab.push([sec.name, 'Total Anggaran', sBudget, sReal, sBudget - sReal]);
+              }
+              totalExEst += sBudget;
+              totalExReal += sReal;
+          }
+        });
+        dataRab.push(['TOTAL KESELURUHAN', '', totalExEst, totalExReal, totalExEst - totalExReal]);
+        const wsRab = XLSX.utils.aoa_to_sheet(dataRab);
+        XLSX.utils.book_append_sheet(wb, wsRab, 'RAB & Realisasi');
+
+        // Sheet 3: Pemasukan
+        const dataIncome = [];
+        dataIncome.push(['No', 'Sumber Pemasukan', 'Tanggal', 'Jumlah (Rp)', 'Keterangan']);
+        let totalExcelIncome = 0;
+        if (meeting.incomeItems && meeting.incomeItems.length > 0) {
+          meeting.incomeItems.forEach((item, index) => {
+            const amt = Number(item.amount) || 0;
+            dataIncome.push([index + 1, item.name, formatDate(item.date), amt, item.notes || '']);
+            totalExcelIncome += amt;
+          });
+        }
+        dataIncome.push(['', 'TOTAL PEMASUKAN', '', totalExcelIncome, '']);
+        const wsIncome = XLSX.utils.aoa_to_sheet(dataIncome);
+        XLSX.utils.book_append_sheet(wb, wsIncome, 'Pemasukan');
+
+        XLSX.writeFile(wb, `notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
+      }
+
+      function printMeeting() { window.print(); }
+
+      document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+      document.getElementById('printBtn').addEventListener('click', printMeeting);
+
+      // ========== PWA INSTALL LOGIC & SERVICE WORKER ==========
+      let deferredPrompt;
+      const installContainer = document.getElementById('install-pwa-container');
+      const btnInstallPWA = document.getElementById('btnInstallPWA');
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker berhasil didaftarkan!', reg.scope))
+            .catch(err => console.log('Service Worker gagal:', err));
+        });
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if(installContainer) installContainer.style.display = 'block'; 
+      });
+
+      if(btnInstallPWA) {
+        btnInstallPWA.addEventListener('click', async () => {
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response: ${outcome}`);
+            deferredPrompt = null;
+            if(installContainer) installContainer.style.display = 'none'; 
+          }
+        });
+      }
+
+      window.addEventListener('appinstalled', () => {
+        if(installContainer) installContainer.style.display = 'none';
+        deferredPrompt = null;
+        alert('Terima kasih! Notula kini tersedia di layar utama Anda.');
+      });
+
+    })();
+  </script>
+</body>
+</html>
