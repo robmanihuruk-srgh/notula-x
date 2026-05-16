@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+<!DOCTYPE html>                    
+                      
+  
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -3230,5 +3232,132 @@
 
     })();
   </script>
+  <!-- ================= MULAI: FITUR PEMASUKAN RAB ================= -->
+<div id="pemasukan-rab-container" style="margin-top: 20px; padding: 20px; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; width: 95%; max-width: 1200px; margin-left: auto; margin-right: auto; margin-bottom: 30px; font-family: 'Poppins', sans-serif;">
+  <h3 style="margin-bottom: 15px; color: #1e293b; font-weight: 600; font-size: 1.25rem;">💰 Tabel Pemasukan RAB</h3>
+
+  <form id="form-pemasukan-rab" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+    <input type="text" id="pem-sumber" placeholder="Sumber Dana (ex: Sponsor/Kas)" required style="flex: 1; min-width: 150px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+    <input type="date" id="pem-tanggal" required style="flex: 1; min-width: 130px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+    <input type="number" id="pem-nominal" placeholder="Nominal (Rp)" required style="flex: 1; min-width: 150px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+    <input type="text" id="pem-keterangan" placeholder="Keterangan Tambahan" style="flex: 2; min-width: 200px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+    <button type="submit" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.2s;">+ Tambah Pemasukan</button>
+  </form>
+
+  <div style="overflow-x: auto; border-radius: 6px; border: 1px solid #e2e8f0;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;">
+      <thead>
+        <tr style="background: #f8fafc; color: #475569;">
+          <th style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">Sumber Dana</th>
+          <th style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">Tanggal</th>
+          <th style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">Keterangan</th>
+          <th style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">Nominal</th>
+          <th style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; text-align: center;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-pemasukan-rab" style="color: #1e293b;">
+        <!-- Data pemasukan akan muncul di sini otomatis -->
+      </tbody>
+      <tfoot>
+        <tr style="background: #f8fafc;">
+          <td colspan="3" style="padding: 16px; font-weight: 700; text-align: right; border-top: 1px solid #e2e8f0; color: #475569;">TOTAL PEMASUKAN:</td>
+          <td colspan="2" style="padding: 16px; font-weight: 700; color: #10b981; font-size: 16px; border-top: 1px solid #e2e8f0;" id="total-pemasukan-rab">Rp 0</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<script>
+/* ================= MULAI: LOGIKA PEMASUKAN RAB ================= */
+document.addEventListener('DOMContentLoaded', () => {
+  const formPemasukan = document.getElementById('form-pemasukan-rab');
+  const tbodyPemasukan = document.getElementById('tbody-pemasukan-rab');
+  const totalPemasukanEl = document.getElementById('total-pemasukan-rab');
+
+  // Menggunakan LocalStorage khusus agar tidak bentrok dengan fitur lain
+  let dataPemasukan = JSON.parse(localStorage.getItem('notula_pemasukan_rab_data')) || [];
+
+  function formatRupiah(angka) {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+  }
+
+  function renderTabelPemasukan() {
+    if (!tbodyPemasukan) return;
+    tbodyPemasukan.innerHTML = '';
+    let total = 0;
+
+    if (dataPemasukan.length === 0) {
+        tbodyPemasukan.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #94a3b8; font-style: italic;">Belum ada data pemasukan yang dicatat.</td></tr>';
+    } else {
+        dataPemasukan.forEach((item, index) => {
+          total += Number(item.nominal);
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid #f1f5f9';
+          tr.innerHTML = `
+            <td style="padding: 12px 16px;">${item.sumber}</td>
+            <td style="padding: 12px 16px;">${item.tanggal}</td>
+            <td style="padding: 12px 16px; color: #64748b;">${item.keterangan || '-'}</td>
+            <td style="padding: 12px 16px; font-weight: 600;">${formatRupiah(item.nominal)}</td>
+            <td style="padding: 12px 16px; text-align: center;">
+              <button onclick="hapusPemasukan(${index})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">Hapus</button>
+            </td>
+          `;
+          tbodyPemasukan.appendChild(tr);
+        });
+    }
+    
+    if (totalPemasukanEl) {
+        totalPemasukanEl.textContent = formatRupiah(total);
+    }
+  }
+
+  if (formPemasukan) {
+      formPemasukan.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const sumber = document.getElementById('pem-sumber').value;
+        const tanggal = document.getElementById('pem-tanggal').value;
+        const nominal = document.getElementById('pem-nominal').value;
+        const keterangan = document.getElementById('pem-keterangan').value;
+
+        dataPemasukan.push({ sumber, tanggal, nominal, keterangan });
+        localStorage.setItem('notula_pemasukan_rab_data', JSON.stringify(dataPemasukan));
+
+        formPemasukan.reset();
+        renderTabelPemasukan();
+      });
+  }
+
+  window.hapusPemasukan = function(index) {
+    if(confirm('Yakin ingin menghapus data pemasukan ini?')) {
+      dataPemasukan.splice(index, 1);
+      localStorage.setItem('notula_pemasukan_rab_data', JSON.stringify(dataPemasukan));
+      renderTabelPemasukan();
+    }
+  }
+
+  // Render tabel saat pertama kali dimuat
+  renderTabelPemasukan();
+  
+  // [AUTO-PLACEMENT] Logika ini memindahkan tabel pemasukan ke atas tabel pengeluaran RAB secara otomatis
+  const pemContainer = document.getElementById('pemasukan-rab-container');
+  const possibleTargets = [
+      document.getElementById('rab-container'), 
+      document.getElementById('pengeluaran-container'),
+      document.querySelector('.rab-section'),
+      // Fallback: Cari tabel pertama di halaman yang bukan bagian dari tabel pemasukan
+      Array.from(document.querySelectorAll('table')).find(t => pemContainer && !pemContainer.contains(t))
+  ];
+  
+  let target = possibleTargets.find(el => el !== null && el !== undefined);
+  
+  // Filter keamanan agar terhindar dari HierarchyRequestError
+  if(target && target.parentNode && pemContainer && !pemContainer.contains(target)) {
+      target.parentNode.insertBefore(pemContainer, target);
+  }
+});
+/* ================= SELESAI: LOGIKA PEMASUKAN RAB ================= */
+</script>
+<!-- ================= SELESAI: FITUR PEMASUKAN RAB ================= -->
 </body>
 </html>
