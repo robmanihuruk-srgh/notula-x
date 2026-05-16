@@ -830,6 +830,9 @@
           <div class="theme-btn dark" data-theme="dark" title="Monochrome Dark"></div>
         </div>
 
+        <!-- Tombol Instal untuk Desktop (Disembunyikan secara default, muncul jika didukung) -->
+        <button class="btn-header" id="headerInstallBtn" style="display: none; background: rgba(184, 134, 11, 0.1); border-color: var(--color-primary); color: var(--color-primary); font-weight: 600;"><i class="fas fa-desktop"></i> Instal App Desktop</button>
+
         <button class="btn-header" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Excel</button>
         <button class="btn-header" id="printBtn" disabled><i class="fas fa-print"></i> Cetak</button>
         <button class="btn-edit-meeting" id="editMeetingBtn" disabled><i class="fas fa-pen"></i> Edit</button>
@@ -3713,6 +3716,7 @@
       let deferredPrompt;
       const installContainer = document.getElementById('install-pwa-container');
       const btnInstallPWA = document.getElementById('btnInstallPWA');
+      const headerInstallBtn = document.getElementById('headerInstallBtn');
 
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -3722,31 +3726,108 @@
         });
       }
 
+      // Mengecek jika aplikasi sedang dijalankan dalam mode Standalone (Sudah Terinstal)
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      
+      if (isStandalone) {
+          console.log('Aplikasi sudah dijalankan dalam mode terinstal (standalone).');
+      }
+
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
-        deferredPrompt = e;
-        if(installContainer) installContainer.style.display = 'block'; 
+        console.log('Event beforeinstallprompt berhasil dipicu di perangkat ini.');
+        
+        // Hanya tampilkan tombol jika aplikasi belum dibuka dalam mode standalone
+        if (!isStandalone) {
+            deferredPrompt = e;
+            if(installContainer) installContainer.style.display = 'block'; 
+            if(headerInstallBtn) headerInstallBtn.style.display = 'inline-flex';
+        }
       });
-
-      if(btnInstallPWA) {
-        btnInstallPWA.addEventListener('click', async () => {
+      const handleInstallClick = async () => {
           if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response: ${outcome}`);
+            console.log(`Respon pengguna terhadap instalasi: ${outcome}`);
             deferredPrompt = null;
             if(installContainer) installContainer.style.display = 'none'; 
+            if(headerInstallBtn) headerInstallBtn.style.display = 'none'; 
           }
-        });
-      }
+      };
+
+      if(btnInstallPWA) btnInstallPWA.addEventListener('click', handleInstallClick);
+      if(headerInstallBtn) headerInstallBtn.addEventListener('click', handleInstallClick);
 
       window.addEventListener('appinstalled', () => {
+        console.log('Aplikasi berhasil diinstal!');
         if(installContainer) installContainer.style.display = 'none';
+        if(headerInstallBtn) headerInstallBtn.style.display = 'none';
         deferredPrompt = null;
-        alert('Terima kasih! Notula kini tersedia di layar utama Anda.');
+        alert('Terima kasih! Notula kini tersedia di perangkat Anda.');
       });
 
     })();
   </script>
+  <script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Membuat elemen style khusus untuk mengelola scroll
+    const scrollStyle = document.createElement('style');
+    scrollStyle.innerHTML = `
+        /* 1. Mengatur tinggi dan scroll HANYA pada Grup Saya */
+        .workspace-section:nth-of-type(1) {
+            max-height: 45vh !important; /* Anda bisa mengubah angka 45 ini sesuai selera */
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            padding-right: 8px !important;
+            scrollbar-width: thin; 
+        }
+
+        /* 2. Mengembalikan pembungkus Rapat Pribadi ke sistem Flex bawaan agar tidak hilang */
+        .workspace-section:nth-of-type(2) {
+            flex: 1 !important;
+            max-height: none !important;
+            overflow: hidden !important; 
+        }
+
+        /* 3. Menambahkan scroll tepat sasaran pada daftar rapatnya saja */
+        #privateMeetingList {
+            flex: 1 !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            padding-right: 8px !important;
+            scrollbar-width: thin; 
+        }
+
+        /* ==================================================== */
+        /* Desain Custom Scrollbar Elegan (Chrome, Safari, Edge)*/
+        /* ==================================================== */
+        .workspace-section:nth-of-type(1)::-webkit-scrollbar,
+        #privateMeetingList::-webkit-scrollbar {
+            width: 5px;
+        }
+        
+        .workspace-section:nth-of-type(1)::-webkit-scrollbar-track,
+        #privateMeetingList::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 8px;
+        }
+        
+        .workspace-section:nth-of-type(1)::-webkit-scrollbar-thumb,
+        #privateMeetingList::-webkit-scrollbar-thumb {
+            background: rgba(184, 134, 11, 0.4); /* Warna primer emas */
+            border-radius: 8px;
+        }
+        
+        .workspace-section:nth-of-type(1)::-webkit-scrollbar-thumb:hover,
+        #privateMeetingList::-webkit-scrollbar-thumb:hover {
+            background: rgba(184, 134, 11, 0.8);
+        }
+    `;
+    
+    // Menyuntikkan style ke dalam file HTML
+    document.head.appendChild(scrollStyle);
+    console.log("Notula-X: Fitur Scroll untuk Grup dan Rapat Pribadi berhasil diperbaiki.");
+});
+</script>
 </body>
 </html>
