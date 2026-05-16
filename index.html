@@ -3269,13 +3269,65 @@
 </div>
 
 <script>
+<!-- ================= MULAI: FITUR PEMASUKAN RAB (MODAL POP-UP) ================= -->
+<div class="modal" id="pemasukanModal" style="z-index: 2300; font-family: 'Poppins', sans-serif;">
+  <div class="modal-content" style="width: 800px; max-width: 95%; max-height: 90vh; overflow-y: auto;">
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom: 2px solid var(--color-secondary); padding-bottom: 12px;">
+      <h3 style="margin:0; border:none; padding:0; color:var(--color-secondary); font-size: 1.5rem;">
+        <i class="fas fa-hand-holding-usd" style="color: #10b981;"></i> Tabel Pemasukan RAB
+      </h3>
+      <button class="btn-secondary" id="closePemasukanBtn" style="padding: 8px 12px;"><i class="fas fa-times"></i></button>
+    </div>
+
+    <form id="form-pemasukan-rab" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+      <input type="text" id="pem-sumber" placeholder="Sumber Dana (ex: Sponsor/Kas)" required style="flex: 1; min-width: 150px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+      <input type="date" id="pem-tanggal" required style="flex: 1; min-width: 130px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+      <input type="number" id="pem-nominal" placeholder="Nominal (Rp)" required style="flex: 1; min-width: 150px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+      <input type="text" id="pem-keterangan" placeholder="Keterangan Tambahan" style="flex: 2; min-width: 200px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+      <button type="submit" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.2s; width: 100%;">+ Tambah Pemasukan</button>
+    </form>
+
+    <div style="overflow-x: auto; border-radius: 6px; border: 1px solid #e2e8f0;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;">
+        <thead>
+          <tr style="background: var(--color-secondary); color: white;">
+            <th style="padding: 12px 16px;">Sumber Dana</th>
+            <th style="padding: 12px 16px;">Tanggal</th>
+            <th style="padding: 12px 16px;">Keterangan</th>
+            <th style="padding: 12px 16px;">Nominal</th>
+            <th style="padding: 12px 16px; text-align: center;">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-pemasukan-rab" style="color: #1e293b;">
+          <!-- Data pemasukan akan muncul di sini otomatis -->
+        </tbody>
+        <tfoot>
+          <tr style="background: #f8fafc;">
+            <td colspan="3" style="padding: 16px; font-weight: 700; text-align: right; border-top: 1px solid #e2e8f0; color: #475569;">TOTAL PEMASUKAN:</td>
+            <td colspan="2" style="padding: 16px; font-weight: 700; color: #10b981; font-size: 16px; border-top: 1px solid #e2e8f0;" id="total-pemasukan-rab">Rp 0</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
 /* ================= MULAI: LOGIKA PEMASUKAN RAB ================= */
 document.addEventListener('DOMContentLoaded', () => {
   const formPemasukan = document.getElementById('form-pemasukan-rab');
   const tbodyPemasukan = document.getElementById('tbody-pemasukan-rab');
   const totalPemasukanEl = document.getElementById('total-pemasukan-rab');
+  const pemasukanModal = document.getElementById('pemasukanModal');
+  const closePemasukanBtn = document.getElementById('closePemasukanBtn');
 
-  // Menggunakan LocalStorage khusus agar tidak bentrok dengan fitur lain
+  // Menutup Modal
+  closePemasukanBtn.addEventListener('click', () => {
+      pemasukanModal.classList.remove('active');
+  });
+
+  // LocalStorage Khusus Pemasukan
   let dataPemasukan = JSON.parse(localStorage.getItem('notula_pemasukan_rab_data')) || [];
 
   function formatRupiah(angka) {
@@ -3298,18 +3350,15 @@ document.addEventListener('DOMContentLoaded', () => {
             <td style="padding: 12px 16px;">${item.sumber}</td>
             <td style="padding: 12px 16px;">${item.tanggal}</td>
             <td style="padding: 12px 16px; color: #64748b;">${item.keterangan || '-'}</td>
-            <td style="padding: 12px 16px; font-weight: 600;">${formatRupiah(item.nominal)}</td>
+            <td style="padding: 12px 16px; font-weight: 600; color: #16a34a;">${formatRupiah(item.nominal)}</td>
             <td style="padding: 12px 16px; text-align: center;">
-              <button onclick="hapusPemasukan(${index})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">Hapus</button>
+              <button onclick="hapusPemasukan(${index})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600;">Hapus</button>
             </td>
           `;
           tbodyPemasukan.appendChild(tr);
         });
     }
-    
-    if (totalPemasukanEl) {
-        totalPemasukanEl.textContent = formatRupiah(total);
-    }
+    if (totalPemasukanEl) totalPemasukanEl.textContent = formatRupiah(total);
   }
 
   if (formPemasukan) {
@@ -3336,28 +3385,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Render tabel saat pertama kali dimuat
   renderTabelPemasukan();
   
-  // [AUTO-PLACEMENT] Logika ini memindahkan tabel pemasukan ke atas tabel pengeluaran RAB secara otomatis
-  const pemContainer = document.getElementById('pemasukan-rab-container');
-  const possibleTargets = [
-      document.getElementById('rab-container'), 
-      document.getElementById('pengeluaran-container'),
-      document.querySelector('.rab-section'),
-      // Fallback: Cari tabel pertama di halaman yang bukan bagian dari tabel pemasukan
-      Array.from(document.querySelectorAll('table')).find(t => pemContainer && !pemContainer.contains(t))
-  ];
-  
-  let target = possibleTargets.find(el => el !== null && el !== undefined);
-  
-  // Filter keamanan agar terhindar dari HierarchyRequestError
-  if(target && target.parentNode && pemContainer && !pemContainer.contains(target)) {
-      target.parentNode.insertBefore(pemContainer, target);
-  }
+  // [AUTO-PLACEMENT TOMBOL] Menyuntikkan tombol ke menu Header secara otomatis
+  setTimeout(() => {
+      const headerActions = document.querySelector('.header-actions');
+      if (headerActions) {
+          const btnPemasukan = document.createElement('button');
+          btnPemasukan.className = 'btn-header';
+          btnPemasukan.innerHTML = '<i class="fas fa-hand-holding-usd"></i> Pemasukan';
+          btnPemasukan.style.background = '#f0fdf4'; // Warna hijau muda
+          btnPemasukan.style.borderColor = '#16a34a';
+          btnPemasukan.style.color = '#166534';
+          btnPemasukan.style.fontWeight = '600';
+          
+          // Memasukkan tombol tepat sebelum tombol MoM
+          headerActions.insertBefore(btnPemasukan, headerActions.firstChild);
+
+          // Event buka Modal
+          btnPemasukan.addEventListener('click', () => {
+              pemasukanModal.classList.add('active');
+          });
+      }
+  }, 1000); // Jeda 1 detik agar memastikan header sudah dirender
 });
 /* ================= SELESAI: LOGIKA PEMASUKAN RAB ================= */
 </script>
-<!-- ================= SELESAI: FITUR PEMASUKAN RAB ================= -->
+<!-- ================= SELESAI: FITUR PEMASUKAN RAB (MODAL) ================= -->
 </body>
 </html>
