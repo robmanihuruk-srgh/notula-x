@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+<!DOCTYPE html>                    
+                      
+  
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -336,36 +338,6 @@
     .btn-install-pwa { background-color: var(--color-primary); color: white; border: none; padding: 12px 24px; border-radius: 50px; font-weight: 600; font-family: var(--font-body); box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: transform 0.3s ease, background-color 0.3s; }
     .btn-install-pwa:hover { transform: translateY(-2px); background-color: var(--color-primary-dark); box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
     @supports (-webkit-touch-callout: none) { #install-pwa-container { display: none !important; } }
-
-    /* ==== INCOME / PEMASUKAN STYLES ==== */
-    .income-card { background: #ffffff; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid var(--color-border); box-shadow: 0 4px 20px rgba(0,0,0,0.03); position: relative; overflow: hidden; }
-    .income-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #16a34a; }
-    .income-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); }
-    .income-header h4 { font-size: 1.1rem; font-weight: 700; color: var(--color-secondary); display: flex; align-items: center; gap: 8px; font-family: var(--font-heading); margin: 0; }
-    .income-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; border-radius: 8px; overflow: hidden; }
-    .income-table th { background: var(--color-secondary); color: white; padding: 10px 14px; text-align: left; font-weight: 500; letter-spacing: 0.5px; font-size: 0.85rem; }
-    .income-table td { border-bottom: 1px solid var(--color-border); padding: 10px 14px; color: var(--color-text); }
-    .income-table tr:last-child td { border-bottom: none; }
-    .income-table tr:nth-child(even) { background: #f8fafc; }
-    .income-table .income-total-row { background: var(--color-bg-light); font-weight: 700; }
-    .income-table .income-total-row td { border-top: 2px solid var(--color-border); color: var(--color-secondary); }
-    .income-empty { text-align: center; padding: 24px; color: var(--color-text-light); font-style: italic; font-size: 0.9rem; }
-    .income-actions { display: flex; gap: 6px; }
-    .income-actions button { background: none; border: 1px solid var(--color-border); padding: 4px 8px; border-radius: 4px; cursor: pointer; transition: 0.2s; font-size: 0.8rem; color: var(--color-text-light); }
-    .income-actions button:hover { background: var(--color-primary); color: white; border-color: var(--color-primary); }
-    .income-actions button.delete:hover { background: #dc3545; border-color: #dc3545; }
-    .btn-add-income { border-color: #16a34a !important; color: #16a34a !important; }
-    .btn-add-income:hover { background: rgba(22, 163, 74, 0.05) !important; }
-    #incomeModal .modal-content { width: 560px; }
-    @media print {
-      .income-actions, .btn-add-income { display: none !important; }
-      .income-card { break-inside: avoid; border: 1px solid #ccc; box-shadow: none; }
-    }
-    @media (max-width: 768px) {
-      .income-table { font-size: 0.8rem; }
-      .income-table th, .income-table td { padding: 8px 10px; }
-      .income-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-    }
   </style>
 </head>
 <body>
@@ -630,21 +602,7 @@
       </table>
 
       <!-- TABEL RAB MOM -->
-      <!-- TABEL PEMASUKAN MOM -->
-      <div style="background: #f0fdf4; padding: 12px 16px; border-left: 4px solid #16a34a; margin-bottom: 16px; margin-top:32px; font-weight: 600; color: #166534; border-radius: 0 8px 8px 0; font-family: var(--font-body);">4. Pemasukan</div>
-      <table class="mom-table" id="mom-income-table">
-          <thead>
-              <tr>
-                  <th>Sumber Pemasukan</th>
-                  <th>Tanggal</th>
-                  <th>Jumlah (Rp)</th>
-                  <th>Keterangan</th>
-              </tr>
-          </thead>
-          <tbody></tbody>
-      </table>
-
-      <div style="background: #f0fdf4; padding: 12px 16px; border-left: 4px solid #16a34a; margin-bottom: 16px; margin-top:32px; font-weight: 600; color: #166534; border-radius: 0 8px 8px 0; font-family: var(--font-body);">5. Laporan Anggaran (Estimasi vs Realisasi)</div>
+      <div style="background: #f0fdf4; padding: 12px 16px; border-left: 4px solid #16a34a; margin-bottom: 16px; margin-top:32px; font-weight: 600; color: #166534; border-radius: 0 8px 8px 0; font-family: var(--font-body);">4. Laporan Anggaran (Estimasi vs Realisasi)</div>
       <table class="mom-table" id="mom-rab-table">
           <thead>
               <tr>
@@ -661,37 +619,6 @@
           <button class="btn-secondary" id="cancelMomBtn">Batal</button>
           <button class="btn-primary" id="saveMomBtn" style="background: var(--color-secondary);"><i class="fas fa-save"></i> Simpan Draft</button>
           <button class="btn-primary" id="exportMomBtn" style="background: #1e7e34;"><i class="fas fa-file-pdf"></i> Cetak PDF</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL PEMASUKAN -->
-  <div class="modal" id="incomeModal">
-    <div class="modal-content">
-      <h3 id="modalIncomeTitle"><i class="fas fa-hand-holding-usd"></i> Tambah Pemasukan</h3>
-      <input type="hidden" id="incomeIdInput">
-      <div class="form-group">
-        <label>Sumber Pemasukan <span style="color:#dc3545;">*</span></label>
-        <input type="text" id="incomeNameInput" placeholder="Contoh: Iuran Peserta, Sumbangan, Sponsor">
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Jumlah (Rp) <span style="color:#dc3545;">*</span></label>
-          <input type="number" id="incomeAmountInput" placeholder="5000000" min="0">
-        </div>
-        <div class="form-group">
-          <label>Tanggal <span style="color:#dc3545;">*</span></label>
-          <input type="date" id="incomeDateInput">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Keterangan (opsional)</label>
-        <textarea id="incomeNotesInput" rows="2" placeholder="Catatan tambahan..."></textarea>
-      </div>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="cancelIncomeModal">Batal</button>
-        <button class="btn-primary" id="saveIncomeModal">Simpan Pemasukan</button>
-        <button class="btn-danger hidden" id="deleteIncomeBtn">Hapus</button>
       </div>
     </div>
   </div>
@@ -775,6 +702,50 @@
     <div class="content" id="contentArea"></div>
   </div>
 
+  <!-- ================= MULAI: FITUR PEMASUKAN RAB (MODAL POP-UP) ================= -->
+  <div class="modal" id="pemasukanModal" style="z-index: 2300; font-family: 'Poppins', sans-serif;">
+    <div class="modal-content" style="width: 800px; max-width: 95%; max-height: 90vh; overflow-y: auto;">
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom: 2px solid var(--color-secondary); padding-bottom: 12px;">
+        <h3 style="margin:0; border:none; padding:0; color:var(--color-secondary); font-size: 1.5rem;">
+          <i class="fas fa-hand-holding-usd" style="color: #10b981;"></i> Tabel Pemasukan RAB
+        </h3>
+        <button class="btn-secondary" id="closePemasukanBtn" style="padding: 8px 12px;"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form id="form-pemasukan-rab" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <input type="text" id="pem-sumber" placeholder="Sumber Dana (ex: Sponsor/Kas)" required style="flex: 1; min-width: 150px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+        <input type="date" id="pem-tanggal" required style="flex: 1; min-width: 130px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+        <input type="number" id="pem-nominal" placeholder="Nominal (Rp)" required style="flex: 1; min-width: 150px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+        <input type="text" id="pem-keterangan" placeholder="Keterangan Tambahan" style="flex: 2; min-width: 200px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+        <button type="submit" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.2s; width: 100%;">+ Tambah Pemasukan</button>
+      </form>
+
+      <div style="overflow-x: auto; border-radius: 6px; border: 1px solid #e2e8f0;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;">
+          <thead>
+            <tr style="background: var(--color-secondary); color: white;">
+              <th style="padding: 12px 16px;">Sumber Dana</th>
+              <th style="padding: 12px 16px;">Tanggal</th>
+              <th style="padding: 12px 16px;">Keterangan</th>
+              <th style="padding: 12px 16px;">Nominal</th>
+              <th style="padding: 12px 16px; text-align: center;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-pemasukan-rab" style="color: #1e293b;">
+            <!-- Data pemasukan akan muncul di sini otomatis -->
+          </tbody>
+          <tfoot>
+            <tr style="background: #f8fafc;">
+              <td colspan="3" style="padding: 16px; font-weight: 700; text-align: right; border-top: 1px solid #e2e8f0; color: #475569;">TOTAL PEMASUKAN:</td>
+              <td colspan="2" style="padding: 16px; font-weight: 700; color: #10b981; font-size: 16px; border-top: 1px solid #e2e8f0;" id="total-pemasukan-rab">Rp 0</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function() {
       // ========== FIREBASE CONFIG ==========
@@ -809,8 +780,7 @@
       let unsubscribeNotifications = null; // Unsubscribe listener notifikasi
       let selectedMeetingIds = new Set();
       let selectedWorkspaceIds = new Set();
-      let currentRabItems = [];
-      let currentIncomeId = null; 
+      let currentRabItems = []; 
 
       // ========== LOGIKA NOTIFIKASI ==========
       const notifBtn = document.getElementById('notifBtn');
@@ -1012,207 +982,6 @@
       document.getElementById('addRabItemBtn').addEventListener('click', () => {
           currentRabItems.push({ name: '', amount: '', realisasi: '' });
           renderRabItems();
-      });
-
-      // ========== FUNGSI PEMASUKAN / INCOME ==========
-      function getTotalIncome(meeting) {
-        if (!meeting || !meeting.incomeItems) return 0;
-        return meeting.incomeItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-      }
-
-      function renderIncomeTable(meeting) {
-        const canEdit = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
-        const items = meeting.incomeItems || [];
-        const totalIncome = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-
-        let html = `
-          <div class="income-card">
-            <div class="income-header">
-              <h4><i class="fas fa-hand-holding-usd"></i> Tabel Pemasukan</h4>
-              <div style="font-size:0.9rem; font-weight:600; color:#16a34a; background:#f0fdf4; padding:6px 14px; border-radius:6px; border:1px solid #bbf7d0;">
-                Total: ${formatRupiah(totalIncome)}
-              </div>
-            </div>
-        `;
-
-        if (items.length === 0) {
-          html += `<div class="income-empty"><i class="fas fa-info-circle" style="color:var(--color-text-light); margin-right:6px;"></i> Belum ada data pemasukan. ${canEdit ? 'Klik tombol di bawah untuk menambahkan.' : ''}</div>`;
-        } else {
-          html += `
-            <table class="income-table">
-              <thead>
-                <tr>
-                  <th style="width:30px;">No</th>
-                  <th>Sumber Pemasukan</th>
-                  <th style="width:130px;">Tanggal</th>
-                  <th style="width:150px; text-align:right;">Jumlah (Rp)</th>
-                  <th>Keterangan</th>
-                  ${canEdit ? '<th style="width:80px;">Aksi</th>' : ''}
-                </tr>
-              </thead>
-              <tbody>
-          `;
-          items.forEach((item, index) => {
-            html += `
-              <tr>
-                <td>${index + 1}</td>
-                <td style="font-weight:500;">${escapeHtml(item.name)}</td>
-                <td>${formatDate(item.date)}</td>
-                <td style="text-align:right; color:#16a34a; font-weight:600;">${formatRupiah(item.amount)}</td>
-                <td style="color:var(--color-text-light); font-size:0.85rem;">${escapeHtml(item.notes) || '-'}</td>
-                ${canEdit ? `
-                  <td>
-                    <div class="income-actions">
-                      <button class="edit" onclick="openIncomeModal('${item.id}')" title="Edit"><i class="fas fa-pencil-alt"></i></button>
-                      <button class="delete" onclick="deleteIncomeById('${item.id}')" title="Hapus"><i class="fas fa-trash"></i></button>
-                    </div>
-                  </td>
-                ` : ''}
-              </tr>
-            `;
-          });
-          html += `
-              <tr class="income-total-row">
-                <td colspan="3" style="text-align:right;">TOTAL PEMASUKAN</td>
-                <td style="text-align:right; color:#16a34a;">${formatRupiah(totalIncome)}</td>
-                <td colspan="${canEdit ? 2 : 1}"></td>
-              </tr>
-            </tbody></table>
-          `;
-        }
-
-        if (canEdit) {
-          html += `
-            <button class="add-task-btn btn-add-income" onclick="openIncomeModal(null)" style="margin-top:16px;">
-              <i class="fas fa-plus-circle"></i> Tambah Pemasukan
-            </button>
-          `;
-        }
-
-        html += `</div>`;
-        return html;
-      }
-
-      window.openIncomeModal = function(incomeId) {
-        const meeting = meetings.find(m => m.id === currentMeetingId);
-        if (!meeting) return;
-
-        const canEdit = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
-        if (!canEdit) return alert('Akses ditolak: Hanya admin atau pembuat rapat yang dapat mengelola pemasukan.');
-
-        currentIncomeId = incomeId || null;
-        const modalTitle = document.getElementById('modalIncomeTitle');
-        const nameInput = document.getElementById('incomeNameInput');
-        const amountInput = document.getElementById('incomeAmountInput');
-        const dateInput = document.getElementById('incomeDateInput');
-        const notesInput = document.getElementById('incomeNotesInput');
-        const deleteBtn = document.getElementById('deleteIncomeBtn');
-
-        if (incomeId && meeting.incomeItems) {
-          const item = meeting.incomeItems.find(i => i.id === incomeId);
-          if (item) {
-            modalTitle.innerHTML = '<i class="fas fa-edit"></i> Edit Pemasukan';
-            nameInput.value = item.name || '';
-            amountInput.value = item.amount || '';
-            dateInput.value = item.date || '';
-            notesInput.value = item.notes || '';
-            deleteBtn.classList.remove('hidden');
-          }
-        } else {
-          modalTitle.innerHTML = '<i class="fas fa-hand-holding-usd"></i> Tambah Pemasukan';
-          nameInput.value = '';
-          amountInput.value = '';
-          dateInput.value = '';
-          notesInput.value = '';
-          deleteBtn.classList.add('hidden');
-        }
-
-        document.getElementById('incomeModal').classList.add('active');
-      };
-
-      window.deleteIncomeById = async function(incomeId) {
-        if (!currentMeetingId || !incomeId) return;
-        const meeting = meetings.find(m => m.id === currentMeetingId);
-        if (!meeting || !meeting.incomeItems) return;
-
-        const item = meeting.incomeItems.find(i => i.id === incomeId);
-        if (!item) return;
-
-        if (!confirm(`Hapus pemasukan "${item.name}" sebesar ${formatRupiah(item.amount)}?`)) return;
-
-        meeting.incomeItems = meeting.incomeItems.filter(i => i.id !== incomeId);
-        try {
-          await db.collection('meetings').doc(currentMeetingId).update({ incomeItems: meeting.incomeItems });
-          await addLog(currentMeetingId, `menghapus pemasukan: "${item.name}" - ${formatRupiah(item.amount)}`);
-        } catch (error) {
-          alert('Gagal menghapus pemasukan: ' + error.message);
-        }
-      };
-
-      document.getElementById('cancelIncomeModal').addEventListener('click', () => {
-        document.getElementById('incomeModal').classList.remove('active');
-        currentIncomeId = null;
-      });
-
-      document.getElementById('saveIncomeModal').addEventListener('click', async () => {
-        if (!currentMeetingId) return;
-        const meeting = meetings.find(m => m.id === currentMeetingId);
-        if (!meeting) return;
-
-        const canEdit = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
-        if (!canEdit) return alert('Akses ditolak');
-
-        const name = document.getElementById('incomeNameInput').value.trim();
-        const amount = Number(document.getElementById('incomeAmountInput').value) || 0;
-        const date = document.getElementById('incomeDateInput').value;
-        const notes = document.getElementById('incomeNotesInput').value.trim();
-
-        if (!name) return alert('Sumber pemasukan harus diisi');
-        if (amount <= 0) return alert('Jumlah pemasukan harus lebih dari 0');
-        if (!date) return alert('Tanggal pemasukan harus diisi');
-
-        if (!meeting.incomeItems) meeting.incomeItems = [];
-
-        if (currentIncomeId) {
-          const index = meeting.incomeItems.findIndex(i => i.id === currentIncomeId);
-          if (index !== -1) {
-            meeting.incomeItems[index] = { id: currentIncomeId, name, amount, date, notes };
-          }
-        } else {
-          const newId = 'inc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
-          meeting.incomeItems.push({ id: newId, name, amount, date, notes });
-        }
-
-        try {
-          await db.collection('meetings').doc(currentMeetingId).update({ incomeItems: meeting.incomeItems });
-          const actionMsg = currentIncomeId ? `mengedit pemasukan` : `menambah pemasukan baru`;
-          await addLog(currentMeetingId, `${actionMsg}: "${name}" - ${formatRupiah(amount)}`);
-          document.getElementById('incomeModal').classList.remove('active');
-          currentIncomeId = null;
-        } catch (error) {
-          alert('Gagal menyimpan pemasukan: ' + error.message);
-        }
-      });
-
-      document.getElementById('deleteIncomeBtn').addEventListener('click', async () => {
-        if (!currentMeetingId || !currentIncomeId) return;
-        const meeting = meetings.find(m => m.id === currentMeetingId);
-        if (!meeting || !meeting.incomeItems) return;
-
-        const item = meeting.incomeItems.find(i => i.id === currentIncomeId);
-        if (!item) return;
-
-        if (!confirm(`Hapus pemasukan "${item.name}" sebesar ${formatRupiah(item.amount)}?`)) return;
-
-        meeting.incomeItems = meeting.incomeItems.filter(i => i.id !== currentIncomeId);
-        try {
-          await db.collection('meetings').doc(currentMeetingId).update({ incomeItems: meeting.incomeItems });
-          await addLog(currentMeetingId, `menghapus pemasukan: "${item.name}" - ${formatRupiah(item.amount)}`);
-          document.getElementById('incomeModal').classList.remove('active');
-          currentIncomeId = null;
-        } catch (error) {
-          alert('Gagal menghapus pemasukan: ' + error.message);
-        }
       });
 
       // FUNGSI MENGUNDUH BASE64 DARI RTDB
@@ -2014,7 +1783,6 @@
         let totalProgress = 0;
         let totalBudget = 0;
         let totalRealisasiGlobal = 0;
-        let totalIncomeGlobal = 0;
         let taskCount = { selesai:0, berlangsung:0, rencana:0, kendala:0 };
         let kendalaTasks = [];
         let sectionTotals = {};
@@ -2093,10 +1861,6 @@
            return { name, count: Math.round(avg) + '%' };
         });
 
-        totalIncomeGlobal = getTotalIncome(latestMeeting);
-        const sisaKasGlobal = totalIncomeGlobal - totalRealisasiGlobal;
-        const sisaKasGlobalColor = sisaKasGlobal >= 0 ? '#16a34a' : '#dc3545';
-
         const statsData = {
           sectionTotals: sectionsList,
           selesaiBySection: selesaiList,
@@ -2139,18 +1903,6 @@
               <div class="global-stat-item" data-stat="kendala">
                 <span class="global-stat-label">Kendala</span>
                 <div class="global-stat-value" style="color:#dc3545;">${taskCount.kendala || 0}</div>
-              </div>
-              <div class="global-stat-item" data-stat="income">
-                <span class="global-stat-label">Total Pemasukan</span>
-                <div class="global-stat-value" style="color:#16a34a;">${formatRupiah(totalIncomeGlobal)}</div>
-              </div>
-              <div class="global-stat-item" data-stat="outcome">
-                <span class="global-stat-label">Total Pengeluaran</span>
-                <div class="global-stat-value" style="color:#b45309;">${formatRupiah(totalRealisasiGlobal)}</div>
-              </div>
-              <div class="global-stat-item" data-stat="balance">
-                <span class="global-stat-label">Sisa Kas</span>
-                <div class="global-stat-value" style="color:${sisaKasGlobalColor};">${formatRupiah(sisaKasGlobal)}</div>
               </div>
             </div>
         `;
@@ -2288,7 +2040,6 @@
         
         html += renderDashboard(meeting);
         html += renderLogs(meeting);
-        html += renderIncomeTable(meeting);
 
         html += `
           <div class="section-header">
@@ -2348,10 +2099,6 @@
         });
 
         const overallAvg = totalTasks ? (totalProgress / totalTasks) : 0;
-        const totalIncome = getTotalIncome(meeting);
-        const totalPengeluaran = totalRealisasi;
-        const sisaKas = totalIncome - totalPengeluaran;
-        const sisaKasColor = sisaKas >= 0 ? '#16a34a' : '#dc3545';
 
         let html = `
           <div class="dashboard-card">
@@ -2365,9 +2112,6 @@
               <div class="stat-item"><span class="stat-label">Berlangsung</span><div class="stat-value" style="color:#b07d00;">${taskCountByStatus.berlangsung || 0}</div></div>
               <div class="stat-item"><span class="stat-label">Rencana</span><div class="stat-value" style="color:#0c5460;">${taskCountByStatus.rencana || 0}</div></div>
               <div class="stat-item"><span class="stat-label">Kendala</span><div class="stat-value" style="color:#dc3545;">${taskCountByStatus.kendala || 0}</div></div>
-              <div class="stat-item"><span class="stat-label">Total Pemasukan</span><div class="stat-value" style="color:#16a34a;">${formatRupiah(totalIncome)}</div></div>
-              <div class="stat-item"><span class="stat-label">Total Pengeluaran</span><div class="stat-value" style="color:#b45309;">${formatRupiah(totalPengeluaran)}</div></div>
-              <div class="stat-item"><span class="stat-label">Sisa Kas</span><div class="stat-value" style="color:${sisaKasColor};">${formatRupiah(sisaKas)}</div></div>
             </div>
             <div class="progress-section-list">
         `;
@@ -2701,13 +2445,12 @@
       const momModal = document.getElementById('momModal');
       const editWorkspaceModal = document.getElementById('editWorkspaceModal');
 
-      function closeAllModals() {
+      function closeAllModals() { 
         meetingModal.classList.remove('active');
         sectionModal.classList.remove('active');
         taskModal.classList.remove('active');
         momModal.classList.remove('active');
         editWorkspaceModal?.classList.remove('active');
-        document.getElementById('incomeModal')?.classList.remove('active');
       }
 
       document.getElementById('newMeetingBtn').addEventListener('click', () => {
@@ -3215,28 +2958,6 @@
               tbodyTasks.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--color-text-light); font-style:italic;">Belum ada tugas/action items.</td></tr>';
           }
 
-          const tbodyIncome = document.querySelector('#mom-income-table tbody');
-          tbodyIncome.innerHTML = '';
-          let totalMomIncome = 0;
-          if (meeting.incomeItems && meeting.incomeItems.length > 0) {
-            meeting.incomeItems.forEach(item => {
-              totalMomIncome += Number(item.amount) || 0;
-              tbodyIncome.innerHTML += `<tr>
-                <td>${escapeHtml(item.name)}</td>
-                <td>${formatDate(item.date)}</td>
-                <td style="color:#16a34a; font-weight:600;">${formatRupiah(item.amount)}</td>
-                <td>${escapeHtml(item.notes) || '-'}</td>
-              </tr>`;
-            });
-            tbodyIncome.innerHTML += `<tr style="background:var(--color-bg-light); font-weight:700;">
-              <td colspan="2">TOTAL PEMASUKAN</td>
-              <td style="color:#16a34a;">${formatRupiah(totalMomIncome)}</td>
-              <td></td>
-            </tr>`;
-          } else {
-            tbodyIncome.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--color-text-light); font-style:italic;">Belum ada data pemasukan.</td></tr>';
-          }
-
           const tbodyRab = document.querySelector('#mom-rab-table tbody');
           tbodyRab.innerHTML = '';
           let totalEst = 0;
@@ -3386,54 +3107,12 @@
               yPos += 15;
           }
 
-          // TABLE: PEMASUKAN
-          if (yPos > 240) { doc.addPage(); yPos = 20; }
-
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(11);
-          doc.text("D. LAPORAN PEMASUKAN", 14, yPos);
-          yPos += 5;
-
-          const incomeData = [];
-          let totalPdfIncome = 0;
-          if (meeting && meeting.incomeItems && meeting.incomeItems.length > 0) {
-            meeting.incomeItems.forEach(item => {
-              const amt = Number(item.amount) || 0;
-              incomeData.push([item.name, formatDate(item.date), formatRupiah(amt), item.notes || '-']);
-              totalPdfIncome += amt;
-            });
-          }
-
-          if (incomeData.length > 0) {
-            incomeData.push(['TOTAL PEMASUKAN', '', formatRupiah(totalPdfIncome), '']);
-            doc.autoTable({
-              startY: yPos,
-              head: [['Sumber Pemasukan', 'Tanggal', 'Jumlah', 'Keterangan']],
-              body: incomeData,
-              theme: 'grid',
-              styles: { fontSize: 9, font: 'helvetica' },
-              headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] },
-              didParseCell: function(data) {
-                if (data.row.index === incomeData.length - 1) {
-                  data.cell.styles.fontStyle = 'bold';
-                  data.cell.styles.fillColor = [240, 253, 244];
-                }
-              }
-            });
-            yPos = doc.lastAutoTable.finalY + 15;
-          } else {
-            doc.setFont("helvetica", "italic");
-            doc.setFontSize(10);
-            doc.text("Belum ada data pemasukan.", 14, yPos + 5);
-            yPos += 15;
-          }
-
           // TABLE 2: RAB PER SEKSI DENGAN RINCIAN
           if (yPos > 240) { doc.addPage(); yPos = 20; }
-
+          
           doc.setFont("helvetica", "bold");
           doc.setFontSize(11);
-          doc.text("E. LAPORAN ANGGARAN (RAB & REALISASI)", 14, yPos);
+          doc.text("D. LAPORAN ANGGARAN (RAB & REALISASI)", 14, yPos);
           yPos += 5;
 
           const rabData = [];
@@ -3550,21 +3229,6 @@
         const wsRab = XLSX.utils.aoa_to_sheet(dataRab);
         XLSX.utils.book_append_sheet(wb, wsRab, 'RAB & Realisasi');
 
-        // Sheet 3: Pemasukan
-        const dataIncome = [];
-        dataIncome.push(['No', 'Sumber Pemasukan', 'Tanggal', 'Jumlah (Rp)', 'Keterangan']);
-        let totalExcelIncome = 0;
-        if (meeting.incomeItems && meeting.incomeItems.length > 0) {
-          meeting.incomeItems.forEach((item, index) => {
-            const amt = Number(item.amount) || 0;
-            dataIncome.push([index + 1, item.name, formatDate(item.date), amt, item.notes || '']);
-            totalExcelIncome += amt;
-          });
-        }
-        dataIncome.push(['', 'TOTAL PEMASUKAN', '', totalExcelIncome, '']);
-        const wsIncome = XLSX.utils.aoa_to_sheet(dataIncome);
-        XLSX.utils.book_append_sheet(wb, wsIncome, 'Pemasukan');
-
         XLSX.writeFile(wb, `notula_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
       }
 
@@ -3611,6 +3275,103 @@
       });
 
     })();
+
+    /* ================= MULAI: LOGIKA PEMASUKAN RAB ================= */
+    document.addEventListener('DOMContentLoaded', () => {
+      const formPemasukan = document.getElementById('form-pemasukan-rab');
+      const tbodyPemasukan = document.getElementById('tbody-pemasukan-rab');
+      const totalPemasukanEl = document.getElementById('total-pemasukan-rab');
+      const pemasukanModal = document.getElementById('pemasukanModal');
+      const closePemasukanBtn = document.getElementById('closePemasukanBtn');
+
+      // Menutup Modal
+      closePemasukanBtn.addEventListener('click', () => {
+          pemasukanModal.classList.remove('active');
+      });
+
+      // LocalStorage Khusus Pemasukan
+      let dataPemasukan = JSON.parse(localStorage.getItem('notula_pemasukan_rab_data')) || [];
+
+      function formatRupiah(angka) {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+      }
+
+      function renderTabelPemasukan() {
+        if (!tbodyPemasukan) return;
+        tbodyPemasukan.innerHTML = '';
+        let total = 0;
+
+        if (dataPemasukan.length === 0) {
+            tbodyPemasukan.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #94a3b8; font-style: italic;">Belum ada data pemasukan yang dicatat.</td></tr>';
+        } else {
+            dataPemasukan.forEach((item, index) => {
+              total += Number(item.nominal);
+              const tr = document.createElement('tr');
+              tr.style.borderBottom = '1px solid #f1f5f9';
+              tr.innerHTML = `
+                <td style="padding: 12px 16px;">${item.sumber}</td>
+                <td style="padding: 12px 16px;">${item.tanggal}</td>
+                <td style="padding: 12px 16px; color: #64748b;">${item.keterangan || '-'}</td>
+                <td style="padding: 12px 16px; font-weight: 600; color: #16a34a;">${formatRupiah(item.nominal)}</td>
+                <td style="padding: 12px 16px; text-align: center;">
+                  <button onclick="hapusPemasukan(${index})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600;">Hapus</button>
+                </td>
+              `;
+              tbodyPemasukan.appendChild(tr);
+            });
+        }
+        if (totalPemasukanEl) totalPemasukanEl.textContent = formatRupiah(total);
+      }
+
+      if (formPemasukan) {
+          formPemasukan.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const sumber = document.getElementById('pem-sumber').value;
+            const tanggal = document.getElementById('pem-tanggal').value;
+            const nominal = document.getElementById('pem-nominal').value;
+            const keterangan = document.getElementById('pem-keterangan').value;
+
+            dataPemasukan.push({ sumber, tanggal, nominal, keterangan });
+            localStorage.setItem('notula_pemasukan_rab_data', JSON.stringify(dataPemasukan));
+
+            formPemasukan.reset();
+            renderTabelPemasukan();
+          });
+      }
+
+      window.hapusPemasukan = function(index) {
+        if(confirm('Yakin ingin menghapus data pemasukan ini?')) {
+          dataPemasukan.splice(index, 1);
+          localStorage.setItem('notula_pemasukan_rab_data', JSON.stringify(dataPemasukan));
+          renderTabelPemasukan();
+        }
+      }
+
+      renderTabelPemasukan();
+      
+      // [AUTO-PLACEMENT TOMBOL] Menyuntikkan tombol ke menu Header secara otomatis
+      setTimeout(() => {
+          const headerActions = document.querySelector('.header-actions');
+          if (headerActions) {
+              const btnPemasukan = document.createElement('button');
+              btnPemasukan.className = 'btn-header';
+              btnPemasukan.innerHTML = '<i class="fas fa-hand-holding-usd"></i> Pemasukan';
+              btnPemasukan.style.background = '#f0fdf4'; // Warna hijau muda
+              btnPemasukan.style.borderColor = '#16a34a';
+              btnPemasukan.style.color = '#166534';
+              btnPemasukan.style.fontWeight = '600';
+              
+              // Memasukkan tombol tepat sebelum tombol MoM
+              headerActions.insertBefore(btnPemasukan, headerActions.firstChild);
+
+              // Event buka Modal
+              btnPemasukan.addEventListener('click', () => {
+                  pemasukanModal.classList.add('active');
+              });
+          }
+      }, 1000); // Jeda 1 detik agar memastikan header sudah dirender
+    });
+    /* ================= SELESAI: LOGIKA PEMASUKAN RAB ================= */
   </script>
 </body>
 </html>
