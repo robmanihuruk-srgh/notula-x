@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+<!DOCTYPE html>                    
+  
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -556,8 +557,8 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Tanggal</label>
-          <input type="date" id="meetingDateInput">
+          <label>Unit</label>
+          <input type="text" id="meetingDateInput">
         </div>
         <div class="form-group">
           <label>Tempat (Grup)</label>
@@ -725,7 +726,7 @@
           <thead>
               <tr>
                   <th>Sumber Pemasukan</th>
-                  <th>Tanggal</th>
+                  <th>Unit</th>
                   <th>Jumlah (Rp)</th>
                   <th>Keterangan</th>
               </tr>
@@ -769,8 +770,8 @@
           <input type="number" id="incomeAmountInput" placeholder="5000000" min="0">
         </div>
         <div class="form-group">
-          <label>Tanggal <span style="color:#dc3545;">*</span></label>
-          <input type="date" id="incomeDateInput">
+          <label>Unit <span style="color:#dc3545;">*</span></label>
+          <input type="text" id="incomeDateInput" placeholder="Contoh: Unit 1 / Unit 2">
         </div>
       </div>
       <div class="form-group">
@@ -1139,7 +1140,7 @@
                 <tr>
                   <th style="width:30px;">No</th>
                   <th>Sumber Pemasukan</th>
-                  <th style="width:130px;">Tanggal</th>
+                  <th style="width:130px;">Unit</th>
                   <th style="width:150px; text-align:right;">Jumlah (Rp)</th>
                   <th>Keterangan</th>
                   ${canEdit ? '<th style="width:80px;">Aksi</th>' : ''}
@@ -1152,7 +1153,7 @@
               <tr>
                 <td>${index + 1}</td>
                 <td style="font-weight:500;">${escapeHtml(item.name)}</td>
-                <td>${formatDate(item.date)}</td>
+                <td>${escapeHtml(item.date)}</td>
                 <td style="text-align:right; color:#16a34a; font-weight:600;">${formatRupiah(item.amount)}</td>
                 <td style="color:var(--color-text-light); font-size:0.85rem;">${escapeHtml(item.notes) || '-'}</td>
                 ${canEdit ? `
@@ -1264,7 +1265,7 @@
 
         if (!name) return alert('Sumber pemasukan harus diisi');
         if (amount <= 0) return alert('Jumlah pemasukan harus lebih dari 0');
-        if (!date) return alert('Tanggal pemasukan harus diisi');
+        if (!date) return alert('Unit pemasukan harus diisi');
 
         if (!meeting.incomeItems) meeting.incomeItems = [];
 
@@ -2588,7 +2589,7 @@
         const infoIcon = '<i class="fas fa-info-circle stat-info-icon"></i>';
 
         let html = `
-          <div class="dashboard-card" id="dashboardCard" data-stats='${JSON.stringify(statsData).replace(/'/g, "&#39;")}'>
+          <div class="dashboard-card" id="dashboardCard" data-stats='${JSON.stringify(statsData).replace(/'/g, "&#39;")}' >
             <div class="dashboard-title"><i class="fas fa-chart-pie"></i> Dashboard Progress Rapat Ini</div>
             <div class="stats-grid">
               <div class="stat-item" data-stat="total"><span class="stat-label">${infoIcon} Total Tugas</span><div class="stat-value">${totalTasks}</div></div>
@@ -3476,7 +3477,7 @@
               totalMomIncome += Number(item.amount) || 0;
               tbodyIncome.innerHTML += `<tr>
                 <td>${escapeHtml(item.name)}</td>
-                <td>${formatDate(item.date)}</td>
+                <td>${escapeHtml(item.date)}</td>
                 <td style="color:#16a34a; font-weight:600;">${formatRupiah(item.amount)}</td>
                 <td>${escapeHtml(item.notes) || '-'}</td>
               </tr>`;
@@ -3652,7 +3653,7 @@
           if (meeting && meeting.incomeItems && meeting.incomeItems.length > 0) {
             meeting.incomeItems.forEach(item => {
               const amt = Number(item.amount) || 0;
-              incomeData.push([item.name, formatDate(item.date), formatRupiah(amt), item.notes || '-']);
+              incomeData.push([item.name, item.date || '-', formatRupiah(amt), item.notes || '-']);
               totalPdfIncome += amt;
             });
           }
@@ -3661,7 +3662,7 @@
             incomeData.push(['TOTAL PEMASUKAN', '', formatRupiah(totalPdfIncome), '']);
             doc.autoTable({
               startY: yPos,
-              head: [['Sumber Pemasukan', 'Tanggal', 'Jumlah', 'Keterangan']],
+              head: [['Sumber Pemasukan', 'Unit', 'Jumlah', 'Keterangan']],
               body: incomeData,
               theme: 'grid',
               styles: { fontSize: 9, font: 'helvetica' },
@@ -3805,12 +3806,12 @@
 
         // Sheet 3: Pemasukan
         const dataIncome = [];
-        dataIncome.push(['No', 'Sumber Pemasukan', 'Tanggal', 'Jumlah (Rp)', 'Keterangan']);
+        dataIncome.push(['No', 'Sumber Pemasukan', 'Unit', 'Jumlah (Rp)', 'Keterangan']);
         let totalExcelIncome = 0;
         if (meeting.incomeItems && meeting.incomeItems.length > 0) {
           meeting.incomeItems.forEach((item, index) => {
             const amt = Number(item.amount) || 0;
-            dataIncome.push([index + 1, item.name, formatDate(item.date), amt, item.notes || '']);
+            dataIncome.push([index + 1, item.name, item.date || '-', amt, item.notes || '']);
             totalExcelIncome += amt;
           });
         }
@@ -3951,9 +3952,4 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         
         console.log("Notula-X: Fitur Scroll Final berhasil diterapkan secara langsung ke DOM.");
-    }, 1500); // Jeda 1.5 detik sangat aman untuk memastikan elemen HTML sudah utuh
-});
-</script>
-<!-- ======================================================= -->
-</body>
-</html>
+    }, 1500); // Jeda 1.5 detik sangat aman untuk
