@@ -4132,4 +4132,488 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- SELESAI: FITUR KALENDER INTERAKTIF NOTULA                 -->
 <!-- ========================================================= -->
 </body>
+<!-- ========================================================= -->
+<!-- MULAI: FITUR KALENDER INTERAKTIF NOTULA (PLUG & PLAY)     -->
+<!-- ========================================================= -->
+<style>
+    /* CSS Khusus untuk Kalender, diisolasi agar tidak merusak CSS lain */
+    #notula-calendar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #f4f7fa;
+        z-index: 99999; /* Pastikan selalu paling atas */
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    #notula-calendar-header {
+        background: #1a2b4c;
+        color: white;
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    #notula-calendar-header h2 {
+        margin: 0;
+        font-family: 'Playfair Display', serif;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #btn-close-calendar {
+        background: #f9d5b6;
+        color: #1a2b4c;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    #btn-close-calendar:hover {
+        background: #e6c0a0;
+        transform: translateY(-2px);
+    }
+
+    #notula-calendar-body {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        background: white;
+        margin: 20px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    }
+
+    /* Styling FullCalendar untuk menyesuaikan tema Notula */
+    .fc-theme-standard .fc-scrollgrid { border-color: #e0e6ed; }
+    .fc-col-header-cell { background: #f8fafc; padding: 10px 0; }
+    .fc-day-today { background: #fff8f1 !important; }
+    .fc-event { border-radius: 6px; border: none; padding: 3px 5px; font-family: 'Inter', sans-serif; font-size: 0.85rem; cursor: pointer; }
+    
+    /* Tombol Pemicu di Header/Sidebar */
+    #btn-trigger-calendar {
+        background: #1a2b4c;
+        color: #f9d5b6;
+        border: 1px solid #f9d5b6;
+        padding: 8px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        transition: all 0.3s;
+        margin-left: 15px;
+    }
+    #btn-trigger-calendar:hover {
+        background: #f9d5b6;
+        color: #1a2b4c;
+    }
+</style>
+
+<div id="notula-calendar-overlay">
+    <div id="notula-calendar-header">
+        <h2>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Jadwal & Tenggat Waktu Notula
+        </h2>
+        <button id="btn-close-calendar">Kembali ke Workspace</button>
+    </div>
+    <div id="notula-calendar-body">
+        <div id="fullcalendar-container"></div>
+    </div>
+</div>
+
+<!-- Load Library FullCalendar secara dinamis -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Suntikkan Tombol Buka Kalender ke Header / Navbar yang sudah ada
+    setTimeout(() => {
+        const headerActions = document.querySelector('.header-actions') || document.querySelector('.top-nav') || document.body;
+        
+        const btnOpenCal = document.createElement('button');
+        btnOpenCal.id = 'btn-trigger-calendar';
+        btnOpenCal.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Kalender`;
+        
+        if(headerActions !== document.body) {
+            // Masukkan di awal (sebelah kiri user info/notifikasi)
+            headerActions.insertBefore(btnOpenCal, headerActions.firstChild);
+        } else {
+            // Fallback jika class header tidak ditemukan
+            btnOpenCal.style.position = 'fixed';
+            btnOpenCal.style.bottom = '20px';
+            btnOpenCal.style.right = '20px';
+            btnOpenCal.style.zIndex = '9999';
+            document.body.appendChild(btnOpenCal);
+        }
+
+        // 2. Logika Menarik Data dari Sistem Notula Anda
+        let calendarApp;
+        const calOverlay = document.getElementById('notula-calendar-overlay');
+        const calContainer = document.getElementById('fullcalendar-container');
+
+        function generateEventsFromNotula() {
+            let events = [];
+            let dataMeetings = window.meetings || []; 
+            
+            if(dataMeetings.length === 0 && localStorage.getItem('notula_meetings')) {
+                try {
+                    dataMeetings = JSON.parse(localStorage.getItem('notula_meetings'));
+                } catch(e) { console.error("Gagal membaca localStorage", e); }
+            }
+
+            dataMeetings.forEach(meeting => {
+                if(meeting.date) {
+                    events.push({
+                        title: 'Rapat: ' + (meeting.title || 'Tanpa Judul'),
+                        start: meeting.date,
+                        backgroundColor: '#1a2b4c',
+                        textColor: '#fff',
+                        extendedProps: { type: 'meeting' }
+                    });
+                }
+
+                if(meeting.sections) {
+                    meeting.sections.forEach(section => {
+                        if(section.tasks) {
+                            section.tasks.forEach(task => {
+                                if(task.deadline) {
+                                    events.push({
+                                        title: 'Tugas: ' + (task.desc || 'Tanpa Nama'),
+                                        start: task.deadline,
+                                        backgroundColor: '#e74c3c', 
+                                        textColor: '#fff',
+                                        extendedProps: { 
+                                            type: 'task',
+                                            pic: task.pic || 'Belum ada PIC',
+                                            status: task.status
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+
+            return events;
+        }
+
+        btnOpenCal.addEventListener('click', function() {
+            calOverlay.style.display = 'flex'; 
+            
+            const eventsData = generateEventsFromNotula();
+
+            if(calendarApp) {
+                calendarApp.destroy(); 
+            }
+
+            calendarApp = new FullCalendar.Calendar(calContainer, {
+                initialView: window.innerWidth < 768 ? 'listMonth' : 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listMonth'
+                },
+                buttonText: {
+                    today: 'Hari Ini',
+                    month: 'Bulan',
+                    week: 'Minggu',
+                    list: 'Daftar'
+                },
+                locale: 'id', 
+                events: eventsData,
+                eventClick: function(info) {
+                    let msg = info.event.title + "\nTanggal: " + info.event.start.toLocaleDateString('id-ID');
+                    if(info.event.extendedProps.type === 'task') {
+                        msg += "\nPIC: " + info.event.extendedProps.pic;
+                    }
+                    alert(msg);
+                }
+            });
+
+            calendarApp.render();
+        });
+
+        document.getElementById('btn-close-calendar').addEventListener('click', function() {
+            calOverlay.style.display = 'none';
+        });
+
+    }, 2000); 
+});
+</script>
+<!-- ========================================================= -->
+<!-- SELESAI: FITUR KALENDER INTERAKTIF NOTULA                 -->
+<!-- ========================================================= -->
+
+
+<!-- ========================================================= -->
+<!-- MULAI: FITUR KOMENTAR BERBALAS (THREADED COMMENTS)        -->
+<!-- ========================================================= -->
+<style>
+    /* CSS Isolasi untuk Threaded Comments agar tidak merusak modal asli */
+    .notula-comments-container {
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 2px dashed #e0e6ed;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .notula-comments-header {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1a2b4c;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .notula-comments-list {
+        max-height: 250px;
+        overflow-y: auto;
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding-right: 5px;
+    }
+
+    /* Scrollbar minimalis untuk daftar komentar */
+    .notula-comments-list::-webkit-scrollbar { width: 6px; }
+    .notula-comments-list::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+
+    .notula-comment-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px;
+        position: relative;
+    }
+
+    .notula-comment-item.my-comment {
+        background: #fff8f1;
+        border-color: #f9d5b6;
+    }
+
+    .notula-comment-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-bottom: 6px;
+        font-weight: 500;
+    }
+
+    .notula-comment-author {
+        color: #1a2b4c;
+        font-weight: 600;
+    }
+
+    .notula-comment-text {
+        font-size: 0.9rem;
+        color: #334155;
+        line-height: 1.4;
+        white-space: pre-wrap; /* Mendukung enter/baris baru */
+    }
+
+    .notula-comment-input-box {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .notula-comment-textarea {
+        width: 100%;
+        min-height: 60px;
+        padding: 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        resize: vertical;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.9rem;
+    }
+
+    .notula-comment-textarea:focus {
+        outline: none;
+        border-color: #1a2b4c;
+        box-shadow: 0 0 0 2px rgba(26, 43, 76, 0.1);
+    }
+
+    .notula-btn-send-comment {
+        align-self: flex-end;
+        background: #1a2b4c;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .notula-btn-send-comment:hover {
+        background: #0f192d;
+    }
+    
+    /* Tombol Tampilkan Komentar (jika defaultnya di-hide) */
+    .notula-toggle-comments {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        margin-top: 15px;
+        width: 100%;
+        text-align: center;
+        transition: 0.2s;
+    }
+    .notula-toggle-comments:hover { background: #e2e8f0; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Current User (Bisa disesuaikan dengan data auth Firebase yang ada di sistem)
+    const currentUserEmail = (window.currentUser && window.currentUser.email) ? window.currentUser.email : 'Anggota Tim';
+
+    // Auto-Detector: Mencari Modal Tugas yang sedang terbuka (Smart Injection)
+    // Berjalan setiap 1 detik untuk mengawasi apabila pengguna membuka modal tugas
+    setInterval(() => {
+        // Cari elemen dengan class 'modal' yang sedang dalam posisi display: block (terbuka)
+        const activeModals = document.querySelectorAll('.modal[style*="display: block"], .modal.show, #taskModal[style*="display: block"]');
+        
+        activeModals.forEach(modal => {
+            // Pastikan ini adalah modal untuk 'Tugas' (biasanya memiliki input teks tugas/PIC)
+            const modalContent = modal.querySelector('.modal-content') || modal;
+            const taskInput = modal.querySelector('input[type="text"], textarea'); 
+            
+            // Jika tidak ada input tugas atau sudah ada sistem komentar, abaikan.
+            if (!taskInput || modal.querySelector('.notula-comments-container')) return;
+
+            // Buat Kontainer Komentar
+            const commentsContainer = document.createElement('div');
+            commentsContainer.className = 'notula-comments-container';
+            
+            // UI Threaded Comments
+            commentsContainer.innerHTML = `
+                <div class="notula-comments-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    Diskusi Tugas
+                </div>
+                <div class="notula-comments-list" id="notula-dynamic-comments-list">
+                    <!-- Komentar akan di-render di sini -->
+                </div>
+                <div class="notula-comment-input-box">
+                    <textarea class="notula-comment-textarea" placeholder="Tulis komentar atau progress... (Contoh: Menunggu approval dari tim desainer)"></textarea>
+                    <button class="notula-btn-send-comment">Kirim Komentar</button>
+                </div>
+            `;
+
+            // Suntikkan ke bagian paling bawah dari isi Modal Tugas
+            modalContent.appendChild(commentsContainer);
+
+            // Inisialisasi Fungsi Komentar untuk Modal ini
+            initThreadedComments(modalContent, taskInput);
+        });
+    }, 1000);
+
+    function initThreadedComments(modalContent, taskInput) {
+        const listContainer = modalContent.querySelector('#notula-dynamic-comments-list');
+        const textarea = modalContent.querySelector('.notula-comment-textarea');
+        const sendBtn = modalContent.querySelector('.notula-btn-send-comment');
+
+        // Fungsi unik untuk mendapatkan ID tugas berdasarkan nama tugasnya
+        // (Ini sangat aman karena tidak mengganggu struktur ID/Database asli)
+        const getTaskId = () => {
+            const taskName = taskInput.value.trim() || 'unnamed-task';
+            // Membersihkan spasi dan karakter unik sebagai key penyimpanan
+            return 'notula_comments_' + taskName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+        };
+
+        // Fungsi Load Komentar
+        const loadComments = () => {
+            const taskId = getTaskId();
+            let comments = [];
+            try {
+                comments = JSON.parse(localStorage.getItem(taskId)) || [];
+            } catch (e) { comments = []; }
+
+            listContainer.innerHTML = '';
+            
+            if (comments.length === 0) {
+                listContainer.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:0.85rem; padding: 10px;">Belum ada diskusi untuk tugas ini.</div>`;
+                return;
+            }
+
+            comments.forEach(c => {
+                const isMine = c.author === currentUserEmail;
+                listContainer.innerHTML += `
+                    <div class="notula-comment-item ${isMine ? 'my-comment' : ''}">
+                        <div class="notula-comment-meta">
+                            <span class="notula-comment-author">${c.author}</span>
+                            <span>${c.date}</span>
+                        </div>
+                        <div class="notula-comment-text">${c.text}</div>
+                    </div>
+                `;
+            });
+            
+            // Auto scroll ke bawah
+            listContainer.scrollTop = listContainer.scrollHeight;
+        };
+
+        // Event Listener untuk tombol Kirim
+        sendBtn.addEventListener('click', () => {
+            const text = textarea.value.trim();
+            if (!text) return;
+
+            const taskId = getTaskId();
+            let comments = [];
+            try {
+                comments = JSON.parse(localStorage.getItem(taskId)) || [];
+            } catch (e) { comments = []; }
+
+            const newComment = {
+                author: currentUserEmail,
+                text: text,
+                date: new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+            };
+
+            comments.push(newComment);
+            localStorage.setItem(taskId, JSON.stringify(comments));
+
+            // Reset input & reload list
+            textarea.value = '';
+            loadComments();
+        });
+
+        // Muat komentar pertama kali saat modal terbuka
+        loadComments();
+
+        // Update komentar secara live jika judul tugas diganti (misal saat mengetik tugas baru)
+        taskInput.addEventListener('change', loadComments);
+    }
+});
+</script>
+<!-- ========================================================= -->
+<!-- SELESAI: FITUR KOMENTAR BERBALAS                          -->
+<!-- ========================================================= -->
 </html>
