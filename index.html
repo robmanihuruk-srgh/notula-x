@@ -3768,11 +3768,15 @@
 
     })();
   </script>
-  <script>
+<!-- ======================================================= -->
+<!-- PLUG & PLAY: FIX FINAL SCROLL GRUP & RAPAT PRIBADI      -->
+<!-- ======================================================= -->
+<script>
 document.addEventListener("DOMContentLoaded", function() {
+    // 1. Suntikkan CSS Dasar (Desain Scrollbar & Batasan Sidebar)
     const scrollStyle = document.createElement('style');
     scrollStyle.innerHTML = `
-        /* 1. Kunci Sidebar agar ukurannya pas 100% layar dan tidak bocor ke bawah */
+        /* Memastikan Sidebar utama tidak pernah melebihi tinggi layar */
         .sidebar {
             height: 100vh !important;
             max-height: 100vh !important;
@@ -3781,60 +3785,61 @@ document.addEventListener("DOMContentLoaded", function() {
             flex-direction: column !important;
         }
 
-        /* 2. Grup Saya - Berikan batas tinggi dan aktifkan scroll */
-        .workspace-section:nth-of-type(1) {
-            max-height: 35vh !important; 
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            padding-right: 5px !important;
-            flex-shrink: 0 !important; /* Cegah Grup Saya menyusut terlalu kecil */
-        }
-
-        /* 3. Pembungkus Rapat Pribadi - Kunci utama Flexbox agar bisa di-scroll */
-        .workspace-section:nth-of-type(2) {
-            flex: 1 !important; /* Ambil semua sisa ruang di bawah Grup Saya */
-            min-height: 0 !important; /* INI KUNCINYA: Memaksa batas bawah berfungsi */
-            display: flex !important;
-            flex-direction: column !important;
-            padding-right: 5px !important;
-            padding-bottom: 15px !important; /* Beri jarak agar item terakhir tidak menempel di dasar */
-        }
-
-        /* 4. Daftar Rapat Pribadi (Isinya) - Area yang benar-benar di-scroll */
-        #privateMeetingList {
-            flex: 1 !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            min-height: 0 !important; /* INI KUNCINYA */
-            padding-right: 5px !important;
-        }
-
-        /* ==================================================== */
-        /* Desain Custom Scrollbar */
-        /* ==================================================== */
-        .workspace-section:nth-of-type(1)::-webkit-scrollbar,
-        #privateMeetingList::-webkit-scrollbar {
-            width: 5px;
-        }
-        .workspace-section:nth-of-type(1)::-webkit-scrollbar-track,
-        #privateMeetingList::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.02);
-            border-radius: 8px;
-        }
-        .workspace-section:nth-of-type(1)::-webkit-scrollbar-thumb,
-        #privateMeetingList::-webkit-scrollbar-thumb {
-            background: rgba(184, 134, 11, 0.4); 
-            border-radius: 8px;
-        }
-        .workspace-section:nth-of-type(1)::-webkit-scrollbar-thumb:hover,
-        #privateMeetingList::-webkit-scrollbar-thumb:hover {
-            background: rgba(184, 134, 11, 0.8);
-        }
+        /* Desain Scrollbar Kustom Elegan (Warna Emas Notula) */
+        #workspaceList::-webkit-scrollbar,
+        #privateMeetingList::-webkit-scrollbar { width: 5px; }
+        #workspaceList::-webkit-scrollbar-track,
+        #privateMeetingList::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.03); border-radius: 8px; }
+        #workspaceList::-webkit-scrollbar-thumb,
+        #privateMeetingList::-webkit-scrollbar-thumb { background: rgba(184, 134, 11, 0.4); border-radius: 8px; }
+        #workspaceList::-webkit-scrollbar-thumb:hover,
+        #privateMeetingList::-webkit-scrollbar-thumb:hover { background: rgba(184, 134, 11, 0.8); }
     `;
-    
     document.head.appendChild(scrollStyle);
-    console.log("Notula-X: Perbaikan tata letak Flexbox & Scroll berhasil dimuat.");
+
+    // 2. DOM Manipulation: Memaksa gaya secara dinamis pada elemen target
+    // Menggunakan setTimeout untuk memastikan data list sudah dirender oleh sistem aplikasi
+    setTimeout(() => {
+        const groupList = document.getElementById('workspaceList');
+        const privateList = document.getElementById('privateMeetingList');
+
+        // Target: Grup Saya
+        if (groupList) {
+            groupList.style.maxHeight = '25vh'; 
+            groupList.style.overflowY = 'auto';
+            groupList.style.overflowX = 'hidden';
+            groupList.style.paddingRight = '5px';
+            
+            // Perbaiki Parent (Wadah Grup)
+            if (groupList.parentElement) {
+                groupList.parentElement.style.display = 'flex';
+                groupList.parentElement.style.flexDirection = 'column';
+                groupList.parentElement.style.flexShrink = '0'; // Jangan sampai tergencet
+            }
+        }
+
+        // Target: Rapat Pribadi
+        if (privateList) {
+            privateList.style.flex = '1';
+            privateList.style.maxHeight = '45vh'; // Beri batas visual maksimal
+            privateList.style.overflowY = 'auto';
+            privateList.style.overflowX = 'hidden';
+            privateList.style.paddingRight = '5px';
+            
+            // Perbaiki Parent (Wadah Rapat Pribadi) - KUNCI UTAMA
+            if (privateList.parentElement) {
+                privateList.parentElement.style.display = 'flex';
+                privateList.parentElement.style.flexDirection = 'column';
+                privateList.parentElement.style.flex = '1'; // Memaksa wadah mengisi sisa layar
+                privateList.parentElement.style.minHeight = '0'; // INI KUNCINYA agar list di dalamnya bisa di-scroll
+                privateList.parentElement.style.paddingBottom = '15px';
+            }
+        }
+        
+        console.log("Notula-X: Fitur Scroll Final berhasil diterapkan secara langsung ke DOM.");
+    }, 1500); // Jeda 1.5 detik sangat aman untuk memastikan elemen HTML sudah utuh
 });
 </script>
+<!-- ======================================================= -->
 </body>
 </html>
