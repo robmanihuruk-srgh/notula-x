@@ -4124,10 +4124,8 @@ document.addEventListener('DOMContentLoaded', function() {
         btnOpenCal.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Kalender`;
         
         if(headerActions !== document.body) {
-            // Masukkan di awal (sebelah kiri user info/notifikasi)
             headerActions.insertBefore(btnOpenCal, headerActions.firstChild);
         } else {
-            // Fallback jika class header tidak ditemukan
             btnOpenCal.style.position = 'fixed';
             btnOpenCal.style.bottom = '20px';
             btnOpenCal.style.right = '20px';
@@ -4135,7 +4133,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.appendChild(btnOpenCal);
         }
 
-        // 2. Logika Menarik Data dari Sistem Notula Anda
+        // 2. Logika Menarik Data
         let calendarApp;
         const calOverlay = document.getElementById('notula-calendar-overlay');
         const calContainer = document.getElementById('fullcalendar-container');
@@ -4145,9 +4143,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let dataMeetings = window.meetings || []; 
             
             if(dataMeetings.length === 0 && localStorage.getItem('notula_meetings')) {
-                try {
-                    dataMeetings = JSON.parse(localStorage.getItem('notula_meetings'));
-                } catch(e) { console.error("Gagal membaca localStorage", e); }
+                try { dataMeetings = JSON.parse(localStorage.getItem('notula_meetings')); } catch(e) {}
             }
 
             dataMeetings.forEach(meeting => {
@@ -4171,11 +4167,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         start: task.deadline,
                                         backgroundColor: '#e74c3c', 
                                         textColor: '#fff',
-                                        extendedProps: { 
-                                            type: 'task',
-                                            pic: task.pic || 'Belum ada PIC',
-                                            status: task.status
-                                        }
+                                        extendedProps: { type: 'task', pic: task.pic || 'Belum ada PIC', status: task.status }
                                     });
                                 }
                             });
@@ -4183,18 +4175,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             });
-
             return events;
         }
 
         btnOpenCal.addEventListener('click', function() {
             calOverlay.style.display = 'flex'; 
-            
             const eventsData = generateEventsFromNotula();
-
-            if(calendarApp) {
-                calendarApp.destroy(); 
-            }
+            if(calendarApp) calendarApp.destroy(); 
 
             calendarApp = new FullCalendar.Calendar(calContainer, {
                 initialView: window.innerWidth < 768 ? 'listMonth' : 'dayGridMonth',
@@ -4203,23 +4190,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,listMonth'
                 },
-                buttonText: {
-                    today: 'Hari Ini',
-                    month: 'Bulan',
-                    week: 'Minggu',
-                    list: 'Daftar'
-                },
+                buttonText: { today: 'Hari Ini', month: 'Bulan', week: 'Minggu', list: 'Daftar' },
                 locale: 'id', 
                 events: eventsData,
                 eventClick: function(info) {
                     let msg = info.event.title + "\nTanggal: " + info.event.start.toLocaleDateString('id-ID');
-                    if(info.event.extendedProps.type === 'task') {
-                        msg += "\nPIC: " + info.event.extendedProps.pic;
-                    }
+                    if(info.event.extendedProps.type === 'task') msg += "\nPIC: " + info.event.extendedProps.pic;
                     alert(msg);
                 }
             });
-
             calendarApp.render();
         });
 
@@ -4236,15 +4215,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <!-- ========================================================= -->
-<!-- MULAI: FITUR KOMENTAR BERBALAS (THREADED COMMENTS)        -->
+<!-- MULAI: FITUR KOMENTAR BERBALAS (THREADED COMMENTS) V2.0   -->
 <!-- ========================================================= -->
 <style>
-    /* CSS Isolasi untuk Threaded Comments agar tidak merusak modal asli */
+    /* CSS Isolasi untuk Threaded Comments */
     .notula-comments-container {
         margin-top: 25px;
         padding-top: 20px;
         border-top: 2px dashed #e0e6ed;
         font-family: 'Inter', sans-serif;
+        width: 100%;
+        clear: both;
     }
     
     .notula-comments-header {
@@ -4267,7 +4248,6 @@ document.addEventListener('DOMContentLoaded', function() {
         padding-right: 5px;
     }
 
-    /* Scrollbar minimalis untuk daftar komentar */
     .notula-comments-list::-webkit-scrollbar { width: 6px; }
     .notula-comments-list::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
 
@@ -4293,145 +4273,101 @@ document.addEventListener('DOMContentLoaded', function() {
         font-weight: 500;
     }
 
-    .notula-comment-author {
-        color: #1a2b4c;
-        font-weight: 600;
-    }
+    .notula-comment-author { color: #1a2b4c; font-weight: 600; }
+    .notula-comment-text { font-size: 0.9rem; color: #334155; line-height: 1.4; white-space: pre-wrap; }
 
-    .notula-comment-text {
-        font-size: 0.9rem;
-        color: #334155;
-        line-height: 1.4;
-        white-space: pre-wrap; /* Mendukung enter/baris baru */
-    }
-
-    .notula-comment-input-box {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
+    .notula-comment-input-box { display: flex; flex-direction: column; gap: 10px; }
     .notula-comment-textarea {
-        width: 100%;
-        min-height: 60px;
-        padding: 10px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        resize: vertical;
-        font-family: 'Inter', sans-serif;
-        font-size: 0.9rem;
+        width: 100%; min-height: 60px; padding: 10px; border: 1px solid #cbd5e1;
+        border-radius: 8px; resize: vertical; font-family: 'Inter', sans-serif; font-size: 0.9rem;
     }
-
-    .notula-comment-textarea:focus {
-        outline: none;
-        border-color: #1a2b4c;
-        box-shadow: 0 0 0 2px rgba(26, 43, 76, 0.1);
-    }
-
-    .notula-btn-send-comment {
-        align-self: flex-end;
-        background: #1a2b4c;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-
-    .notula-btn-send-comment:hover {
-        background: #0f192d;
-    }
+    .notula-comment-textarea:focus { outline: none; border-color: #1a2b4c; box-shadow: 0 0 0 2px rgba(26, 43, 76, 0.1); }
     
-    /* Tombol Tampilkan Komentar (jika defaultnya di-hide) */
-    .notula-toggle-comments {
-        background: #f1f5f9;
-        color: #475569;
-        border: 1px solid #cbd5e1;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        cursor: pointer;
-        margin-top: 15px;
-        width: 100%;
-        text-align: center;
-        transition: 0.2s;
+    .notula-btn-send-comment {
+        align-self: flex-end; background: #1a2b4c; color: white; border: none;
+        padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: 0.2s;
     }
-    .notula-toggle-comments:hover { background: #e2e8f0; }
+    .notula-btn-send-comment:hover { background: #0f192d; }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Current User (Bisa disesuaikan dengan data auth Firebase yang ada di sistem)
+    // Current User Fallback
     const currentUserEmail = (window.currentUser && window.currentUser.email) ? window.currentUser.email : 'Anggota Tim';
 
-    // Auto-Detector: Mencari Modal Tugas yang sedang terbuka (Smart Injection)
-    // Berjalan setiap 1 detik untuk mengawasi apabila pengguna membuka modal tugas
+    // AUTO-DETECTOR V2.0 (Jauh lebih peka dan agresif mencari Pop-Up)
     setInterval(() => {
-        // Cari elemen dengan class 'modal' yang sedang dalam posisi display: block (terbuka)
-        const activeModals = document.querySelectorAll('.modal[style*="display: block"], .modal.show, #taskModal[style*="display: block"]');
+        // Cari SEMUA elemen di layar yang mengandung class 'modal' atau id berawalan 'modal'/'task'
+        const allModals = document.querySelectorAll('.modal, [id*="modal"], [id*="Modal"]');
         
-        activeModals.forEach(modal => {
-            // Pastikan ini adalah modal untuk 'Tugas' (biasanya memiliki input teks tugas/PIC)
-            const modalContent = modal.querySelector('.modal-content') || modal;
-            const taskInput = modal.querySelector('input[type="text"], textarea'); 
+        allModals.forEach(modal => {
+            // Cek visibilitas secara nyata (apakah elemen ini dirender di layar?)
+            const isVisible = !!(modal.offsetWidth || modal.offsetHeight || modal.getClientRects().length);
+            const computedStyle = window.getComputedStyle(modal);
             
-            // Jika tidak ada input tugas atau sudah ada sistem komentar, abaikan.
-            if (!taskInput || modal.querySelector('.notula-comments-container')) return;
+            // Jika modal sedang terbuka/terlihat di layar
+            if (isVisible && computedStyle.display !== 'none' && computedStyle.visibility !== 'hidden') {
+                
+                // Cari area dalam modal (biasanya .modal-content)
+                const modalContent = modal.querySelector('.modal-content') || modal.querySelector('.modal-body') || modal;
+                
+                // Cari SEMUA form input (teks) yang ada di modal tersebut
+                const textInputs = modalContent.querySelectorAll('input[type="text"], textarea');
+                
+                // Jika ini bukan modal yang berisi input form (misalnya cuma modal alert), lewati.
+                if (textInputs.length === 0) return;
+                
+                // Cek apakah wadah komentar sudah disuntikkan sebelumnya agar tidak dobel
+                if (modalContent.querySelector('.notula-comments-container')) return;
 
-            // Buat Kontainer Komentar
-            const commentsContainer = document.createElement('div');
-            commentsContainer.className = 'notula-comments-container';
-            
-            // UI Threaded Comments
-            commentsContainer.innerHTML = `
-                <div class="notula-comments-header">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                    Diskusi Tugas
-                </div>
-                <div class="notula-comments-list" id="notula-dynamic-comments-list">
-                    <!-- Komentar akan di-render di sini -->
-                </div>
-                <div class="notula-comment-input-box">
-                    <textarea class="notula-comment-textarea" placeholder="Tulis komentar atau progress... (Contoh: Menunggu approval dari tim desainer)"></textarea>
-                    <button class="notula-btn-send-comment">Kirim Komentar</button>
-                </div>
-            `;
+                console.log("Notula-X: Modal tugas terdeteksi! Menyuntikkan fitur Komentar...");
 
-            // Suntikkan ke bagian paling bawah dari isi Modal Tugas
-            modalContent.appendChild(commentsContainer);
+                // Buat Kontainer Komentar
+                const commentsContainer = document.createElement('div');
+                commentsContainer.className = 'notula-comments-container';
+                
+                commentsContainer.innerHTML = `
+                    <div class="notula-comments-header">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        Diskusi Tugas / Catatan
+                    </div>
+                    <div class="notula-comments-list" id="notula-dynamic-comments-list"></div>
+                    <div class="notula-comment-input-box">
+                        <textarea class="notula-comment-textarea" placeholder="Tulis komentar, update, atau diskusi..."></textarea>
+                        <button type="button" class="notula-btn-send-comment">Kirim Komentar</button>
+                    </div>
+                `;
 
-            // Inisialisasi Fungsi Komentar untuk Modal ini
-            initThreadedComments(modalContent, taskInput);
+                // Pasang di bagian PALING BAWAH dari dalam modal
+                modalContent.appendChild(commentsContainer);
+
+                // Gunakan input pertama (biasanya judul tugas) sebagai "Kunci" penyimpanan
+                const primaryInput = textInputs[0];
+                initThreadedComments(modalContent, primaryInput);
+            }
         });
-    }, 1000);
+    }, 1000); // Mengecek setiap 1 detik
 
-    function initThreadedComments(modalContent, taskInput) {
+    function initThreadedComments(modalContent, primaryInput) {
         const listContainer = modalContent.querySelector('#notula-dynamic-comments-list');
         const textarea = modalContent.querySelector('.notula-comment-textarea');
         const sendBtn = modalContent.querySelector('.notula-btn-send-comment');
 
-        // Fungsi unik untuk mendapatkan ID tugas berdasarkan nama tugasnya
-        // (Ini sangat aman karena tidak mengganggu struktur ID/Database asli)
+        // Fungsi unik pembuat ID penyimpanan
         const getTaskId = () => {
-            const taskName = taskInput.value.trim() || 'unnamed-task';
-            // Membersihkan spasi dan karakter unik sebagai key penyimpanan
-            return 'notula_comments_' + taskName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+            const taskName = primaryInput.value.trim() || 'tugas_baru_belum_bernama';
+            return 'notula_diskusi_' + taskName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
         };
 
-        // Fungsi Load Komentar
         const loadComments = () => {
             const taskId = getTaskId();
             let comments = [];
-            try {
-                comments = JSON.parse(localStorage.getItem(taskId)) || [];
-            } catch (e) { comments = []; }
+            try { comments = JSON.parse(localStorage.getItem(taskId)) || []; } catch (e) { comments = []; }
 
             listContainer.innerHTML = '';
             
             if (comments.length === 0) {
-                listContainer.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:0.85rem; padding: 10px;">Belum ada diskusi untuk tugas ini.</div>`;
+                listContainer.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:0.85rem; padding: 10px;">Belum ada diskusi untuk tugas ini. Mulai percakapan pertama!</div>`;
                 return;
             }
 
@@ -4447,21 +4383,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
             });
-            
-            // Auto scroll ke bawah
             listContainer.scrollTop = listContainer.scrollHeight;
         };
 
-        // Event Listener untuk tombol Kirim
-        sendBtn.addEventListener('click', () => {
+        // Cegah Form Modal Utama ikut tersubmit (karena tombol kita ada di dalam form)
+        sendBtn.addEventListener('click', (e) => {
+            e.preventDefault(); 
+            e.stopPropagation();
+
             const text = textarea.value.trim();
             if (!text) return;
 
             const taskId = getTaskId();
             let comments = [];
-            try {
-                comments = JSON.parse(localStorage.getItem(taskId)) || [];
-            } catch (e) { comments = []; }
+            try { comments = JSON.parse(localStorage.getItem(taskId)) || []; } catch (err) { comments = []; }
 
             const newComment = {
                 author: currentUserEmail,
@@ -4472,21 +4407,24 @@ document.addEventListener('DOMContentLoaded', function() {
             comments.push(newComment);
             localStorage.setItem(taskId, JSON.stringify(comments));
 
-            // Reset input & reload list
             textarea.value = '';
             loadComments();
         });
 
-        // Muat komentar pertama kali saat modal terbuka
+        // Muat saat inisialisasi
         loadComments();
 
-        // Update komentar secara live jika judul tugas diganti (misal saat mengetik tugas baru)
-        taskInput.addEventListener('change', loadComments);
+        // Jika input judul berubah secara real-time, muat komentar yang sesuai
+        primaryInput.addEventListener('keyup', () => {
+            // Beri sedikit jeda (debounce) agar tidak lag saat mengetik
+            clearTimeout(window.notulaCommentTimeout);
+            window.notulaCommentTimeout = setTimeout(loadComments, 500);
+        });
     }
 });
 </script>
 <!-- ========================================================= -->
-<!-- SELESAI: FITUR KOMENTAR BERBALAS                          -->
+<!-- SELESAI: FITUR KOMENTAR BERBALAS V2.0                     -->
 <!-- ========================================================= -->
 </body>
 </html>
