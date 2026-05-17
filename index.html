@@ -3770,63 +3770,70 @@
   </script>
   <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // Membuat elemen style khusus untuk mengelola scroll
     const scrollStyle = document.createElement('style');
     scrollStyle.innerHTML = `
-        /* 1. Mengatur tinggi dan scroll HANYA pada Grup Saya */
+        /* 1. Kunci Sidebar agar ukurannya pas 100% layar dan tidak bocor ke bawah */
+        .sidebar {
+            height: 100vh !important;
+            max-height: 100vh !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        /* 2. Grup Saya - Berikan batas tinggi dan aktifkan scroll */
         .workspace-section:nth-of-type(1) {
-            max-height: 45vh !important; /* Anda bisa mengubah angka 45 ini sesuai selera */
+            max-height: 35vh !important; 
             overflow-y: auto !important;
             overflow-x: hidden !important;
-            padding-right: 8px !important;
-            scrollbar-width: thin; 
+            padding-right: 5px !important;
+            flex-shrink: 0 !important; /* Cegah Grup Saya menyusut terlalu kecil */
         }
 
-        /* 2. Mengembalikan pembungkus Rapat Pribadi ke sistem Flex bawaan agar tidak hilang */
+        /* 3. Pembungkus Rapat Pribadi - Kunci utama Flexbox agar bisa di-scroll */
         .workspace-section:nth-of-type(2) {
-            flex: 1 !important;
-            max-height: none !important;
-            overflow: hidden !important; 
+            flex: 1 !important; /* Ambil semua sisa ruang di bawah Grup Saya */
+            min-height: 0 !important; /* INI KUNCINYA: Memaksa batas bawah berfungsi */
+            display: flex !important;
+            flex-direction: column !important;
+            padding-right: 5px !important;
+            padding-bottom: 15px !important; /* Beri jarak agar item terakhir tidak menempel di dasar */
         }
 
-        /* 3. Menambahkan scroll tepat sasaran pada daftar rapatnya saja */
+        /* 4. Daftar Rapat Pribadi (Isinya) - Area yang benar-benar di-scroll */
         #privateMeetingList {
             flex: 1 !important;
             overflow-y: auto !important;
             overflow-x: hidden !important;
-            padding-right: 8px !important;
-            scrollbar-width: thin; 
+            min-height: 0 !important; /* INI KUNCINYA */
+            padding-right: 5px !important;
         }
 
         /* ==================================================== */
-        /* Desain Custom Scrollbar Elegan (Chrome, Safari, Edge)*/
+        /* Desain Custom Scrollbar */
         /* ==================================================== */
         .workspace-section:nth-of-type(1)::-webkit-scrollbar,
         #privateMeetingList::-webkit-scrollbar {
             width: 5px;
         }
-        
         .workspace-section:nth-of-type(1)::-webkit-scrollbar-track,
         #privateMeetingList::-webkit-scrollbar-track {
             background: rgba(0, 0, 0, 0.02);
             border-radius: 8px;
         }
-        
         .workspace-section:nth-of-type(1)::-webkit-scrollbar-thumb,
         #privateMeetingList::-webkit-scrollbar-thumb {
-            background: rgba(184, 134, 11, 0.4); /* Warna primer emas */
+            background: rgba(184, 134, 11, 0.4); 
             border-radius: 8px;
         }
-        
         .workspace-section:nth-of-type(1)::-webkit-scrollbar-thumb:hover,
         #privateMeetingList::-webkit-scrollbar-thumb:hover {
             background: rgba(184, 134, 11, 0.8);
         }
     `;
     
-    // Menyuntikkan style ke dalam file HTML
     document.head.appendChild(scrollStyle);
-    console.log("Notula-X: Fitur Scroll untuk Grup dan Rapat Pribadi berhasil diperbaiki.");
+    console.log("Notula-X: Perbaikan tata letak Flexbox & Scroll berhasil dimuat.");
 });
 </script>
 </body>
