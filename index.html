@@ -3894,5 +3894,242 @@
 
     })();
   </script>
+  <!-- ========================================================= -->
+<!-- MULAI: FITUR KALENDER INTERAKTIF NOTULA (PLUG & PLAY)     -->
+<!-- ========================================================= -->
+<style>
+    /* CSS Khusus untuk Kalender, diisolasi agar tidak merusak CSS lain */
+    #notula-calendar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #f4f7fa;
+        z-index: 99999; /* Pastikan selalu paling atas */
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    #notula-calendar-header {
+        background: #1a2b4c;
+        color: white;
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    #notula-calendar-header h2 {
+        margin: 0;
+        font-family: 'Playfair Display', serif;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #btn-close-calendar {
+        background: #f9d5b6;
+        color: #1a2b4c;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    #btn-close-calendar:hover {
+        background: #e6c0a0;
+        transform: translateY(-2px);
+    }
+
+    #notula-calendar-body {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        background: white;
+        margin: 20px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    }
+
+    /* Styling FullCalendar untuk menyesuaikan tema Notula */
+    .fc-theme-standard .fc-scrollgrid { border-color: #e0e6ed; }
+    .fc-col-header-cell { background: #f8fafc; padding: 10px 0; }
+    .fc-day-today { background: #fff8f1 !important; }
+    .fc-event { border-radius: 6px; border: none; padding: 3px 5px; font-family: 'Inter', sans-serif; font-size: 0.85rem; cursor: pointer; }
+    
+    /* Tombol Pemicu di Header/Sidebar */
+    #btn-trigger-calendar {
+        background: #1a2b4c;
+        color: #f9d5b6;
+        border: 1px solid #f9d5b6;
+        padding: 8px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        transition: all 0.3s;
+        margin-left: 15px;
+    }
+    #btn-trigger-calendar:hover {
+        background: #f9d5b6;
+        color: #1a2b4c;
+    }
+</style>
+
+<div id="notula-calendar-overlay">
+    <div id="notula-calendar-header">
+        <h2>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Jadwal & Tenggat Waktu Notula
+        </h2>
+        <button id="btn-close-calendar">Kembali ke Workspace</button>
+    </div>
+    <div id="notula-calendar-body">
+        <div id="fullcalendar-container"></div>
+    </div>
+</div>
+
+<!-- Load Library FullCalendar secara dinamis -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Suntikkan Tombol Buka Kalender ke Header / Navbar yang sudah ada
+    setTimeout(() => {
+        const headerActions = document.querySelector('.header-actions') || document.querySelector('.top-nav') || document.body;
+        
+        const btnOpenCal = document.createElement('button');
+        btnOpenCal.id = 'btn-trigger-calendar';
+        btnOpenCal.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Kalender`;
+        
+        if(headerActions !== document.body) {
+            // Masukkan di awal (sebelah kiri user info/notifikasi)
+            headerActions.insertBefore(btnOpenCal, headerActions.firstChild);
+        } else {
+            // Fallback jika class header tidak ditemukan
+            btnOpenCal.style.position = 'fixed';
+            btnOpenCal.style.bottom = '20px';
+            btnOpenCal.style.right = '20px';
+            btnOpenCal.style.zIndex = '9999';
+            document.body.appendChild(btnOpenCal);
+        }
+
+        // 2. Logika Menarik Data dari Sistem Notula Anda
+        let calendarApp;
+        const calOverlay = document.getElementById('notula-calendar-overlay');
+        const calContainer = document.getElementById('fullcalendar-container');
+
+        function generateEventsFromNotula() {
+            let events = [];
+            // Ambil dari variabel global 'meetings' yang biasanya ada di struktur Notula Anda
+            let dataMeetings = window.meetings || []; 
+            
+            // Fallback: Jika tidak ada di memory, coba ambil dari localStorage (jika tersimpan di sana)
+            if(dataMeetings.length === 0 && localStorage.getItem('notula_meetings')) {
+                try {
+                    dataMeetings = JSON.parse(localStorage.getItem('notula_meetings'));
+                } catch(e) { console.error("Gagal membaca localStorage", e); }
+            }
+
+            dataMeetings.forEach(meeting => {
+                // Tambahkan Titik Rapat
+                if(meeting.date) {
+                    events.push({
+                        title: 'Rapat: ' + (meeting.title || 'Tanpa Judul'),
+                        start: meeting.date,
+                        backgroundColor: '#1a2b4c', // Warna Biru Gelap Notula
+                        textColor: '#fff',
+                        extendedProps: { type: 'meeting' }
+                    });
+                }
+
+                // Tambahkan Titik Deadline Tugas
+                if(meeting.sections) {
+                    meeting.sections.forEach(section => {
+                        if(section.tasks) {
+                            section.tasks.forEach(task => {
+                                if(task.deadline) {
+                                    events.push({
+                                        title: 'Tugas: ' + (task.desc || 'Tanpa Nama'),
+                                        start: task.deadline,
+                                        backgroundColor: '#e74c3c', // Warna Merah (Deadline)
+                                        textColor: '#fff',
+                                        extendedProps: { 
+                                            type: 'task',
+                                            pic: task.pic || 'Belum ada PIC',
+                                            status: task.status
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+
+            return events;
+        }
+
+        // 3. Inisialisasi dan Tampilkan Kalender
+        btnOpenCal.addEventListener('click', function() {
+            calOverlay.style.display = 'flex'; // Munculkan layar kalender
+            
+            // Render ulang Kalender setiap dibuka agar data selalu terupdate
+            const eventsData = generateEventsFromNotula();
+
+            if(calendarApp) {
+                calendarApp.destroy(); // Hapus yang lama
+            }
+
+            calendarApp = new FullCalendar.Calendar(calContainer, {
+                initialView: window.innerWidth < 768 ? 'listMonth' : 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listMonth'
+                },
+                buttonText: {
+                    today: 'Hari Ini',
+                    month: 'Bulan',
+                    week: 'Minggu',
+                    list: 'Daftar'
+                },
+                locale: 'id', // Bahasa Indonesia
+                events: eventsData,
+                eventClick: function(info) {
+                    // Fitur Interaktif jika event di-klik
+                    let msg = info.event.title + "\nTanggal: " + info.event.start.toLocaleDateString('id-ID');
+                    if(info.event.extendedProps.type === 'task') {
+                        msg += "\nPIC: " + info.event.extendedProps.pic;
+                    }
+                    alert(msg);
+                }
+            });
+
+            calendarApp.render();
+        });
+
+        // 4. Tombol Tutup
+        document.getElementById('btn-close-calendar').addEventListener('click', function() {
+            calOverlay.style.display = 'none';
+        });
+
+    }, 2000); // Beri jeda 2 detik agar file HTML dan data Anda termuat sepenuhnya dulu
+});
+</script>
+<!-- ========================================================= -->
+<!-- SELESAI: FITUR KALENDER INTERAKTIF NOTULA                 -->
+<!-- ========================================================= -->
 </body>
 </html>
