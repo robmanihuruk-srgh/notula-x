@@ -3896,7 +3896,7 @@
   </script>
 
 <!-- ========================================================= -->
-<!-- MULAI: FITUR KALENDER INTERAKTIF NOTULA (PLUG & PLAY)     -->
+<!-- MULAI: FITUR KALENDER INTERAKTIF NOTULA (SMART SCANNER)   -->
 <!-- ========================================================= -->
 <style>
     /* CSS Khusus untuk Kalender */
@@ -3942,7 +3942,7 @@
     }
     #btn-trigger-calendar:hover { background: #f9d5b6; color: #1a2b4c; }
 
-    /* CUSTOM EVENT MODAL (Pengganti Alert) */
+    /* CUSTOM EVENT MODAL */
     #notula-event-modal {
         display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         background: rgba(0,0,0,0.6); z-index: 100000; justify-content: center; align-items: center;
@@ -3966,7 +3966,7 @@
     <div id="notula-calendar-header">
         <h2>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            Jadwal & Tenggat Waktu Notula
+            Jadwal Tim & Workspace
         </h2>
         <button id="btn-close-calendar">Kembali ke Workspace</button>
     </div>
@@ -3980,7 +3980,7 @@
     <div class="ne-modal-box">
         <h3 class="ne-modal-title" id="ne-title">Judul Tugas</h3>
         <p class="ne-modal-desc" id="ne-date"><strong>Tanggal:</strong> -</p>
-        <p class="ne-modal-desc" id="ne-pic"><strong>PIC:</strong> -</p>
+        <p class="ne-modal-desc" id="ne-pic"><strong>PIC / Anggota Tim:</strong> -</p>
         <button class="ne-modal-close" onclick="document.getElementById('notula-event-modal').style.display='none'">Tutup Informasi</button>
     </div>
 </div>
@@ -4010,39 +4010,78 @@ document.addEventListener('DOMContentLoaded', function() {
         const calOverlay = document.getElementById('notula-calendar-overlay');
         const calContainer = document.getElementById('fullcalendar-container');
 
+        // FUNGSI BARU: PEMINDAI TUGAS CERDAS (SMART SCANNER)
         function generateEventsFromNotula() {
             let events = [];
+            
+            // METODE 1: Pindai Data State/Local
             let dataMeetings = window.meetings || []; 
             if(dataMeetings.length === 0 && localStorage.getItem('notula_meetings')) {
                 try { dataMeetings = JSON.parse(localStorage.getItem('notula_meetings')); } catch(e) {}
             }
 
             dataMeetings.forEach(meeting => {
-                if(meeting.date) {
+                let meetingDate = meeting.date || meeting.tanggal || meeting.meetingDate || meeting.waktu;
+                if(meetingDate) {
                     events.push({
-                        title: 'Rapat: ' + (meeting.title || 'Tanpa Judul'),
-                        start: meeting.date,
+                        title: 'Rapat: ' + (meeting.title || meeting.judul || 'Tanpa Judul'),
+                        start: meetingDate,
                         backgroundColor: '#1a2b4c', textColor: '#fff',
                         extendedProps: { type: 'meeting' }
                     });
                 }
-                if(meeting.sections) {
-                    meeting.sections.forEach(section => {
-                        if(section.tasks) {
-                            section.tasks.forEach(task => {
-                                if(task.deadline) {
-                                    events.push({
-                                        title: 'Tugas: ' + (task.desc || 'Tanpa Nama'),
-                                        start: task.deadline,
-                                        backgroundColor: '#e74c3c', textColor: '#fff',
-                                        extendedProps: { type: 'task', pic: task.pic || 'Belum ada PIC', status: task.status }
-                                    });
+                
+                let sections = meeting.sections || meeting.agenda || [];
+                sections.forEach(section => {
+                    let tasks = section.tasks || section.tugas || [];
+                    tasks.forEach(task => {
+                        // UPDATE: Pindai semua kemungkinan nama variabel tanggal di Notula!
+                        let taskDeadline = task.deadline || task.tenggatWaktu || task.tenggat || task.dueDate || task.date;
+                        
+                        if(taskDeadline) {
+                            events.push({
+                                title: 'Tugas: ' + (task.desc || task.deskripsi || task.nama || 'Tanpa Nama'),
+                                start: taskDeadline,
+                                backgroundColor: '#e74c3c', textColor: '#fff',
+                                extendedProps: { 
+                                    type: 'task', 
+                                    pic: task.pic || task.assignee || task.penanggungJawab || 'Tim', 
+                                    status: task.status 
                                 }
                             });
                         }
                     });
+                });
+            });
+
+            // METODE 2: Pemindai Layar Real-time (Fallback untuk Data Tim/Cloud Firebase)
+            // Jika data dirender langsung ke layar tanpa tersimpan di window.meetings, fitur ini akan menangkapnya.
+            document.querySelectorAll('input[type="date"]').forEach(dateInput => {
+                if(dateInput.value) {
+                    let parentContainer = dateInput.closest('.task-item, .task-row, li, tr, .tugas-box');
+                    if(parentContainer) {
+                        let textInput = parentContainer.querySelector('input[type="text"]');
+                        let taskName = textInput ? textInput.value : 'Tugas (Dari Workspace)';
+                        
+                        let picInput = parentContainer.querySelector('input[placeholder*="PIC"], input[placeholder*="Email"], select');
+                        let picName = picInput ? picInput.value : 'Anggota Tim';
+
+                        // Mencegah duplikasi data jika Metode 1 sudah berhasil
+                        let isDuplicate = events.some(e => e.start === dateInput.value && e.title.includes(taskName));
+                        
+                        if(!isDuplicate && taskName.trim() !== '') {
+                            events.push({
+                                title: 'Tugas Tim: ' + taskName,
+                                start: dateInput.value,
+                                backgroundColor: '#f39c12', /* Warna Oranye untuk tugas hasil tangkapan layar */
+                                textColor: '#fff',
+                                extendedProps: { type: 'task', pic: picName, status: 'Dari Cloud/Tim' }
+                            });
+                        }
+                    }
                 }
             });
+
             return events;
         }
 
@@ -4057,7 +4096,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 buttonText: { today: 'Hari Ini', month: 'Bulan', week: 'Minggu', list: 'Daftar' },
                 locale: 'id', events: eventsData,
                 
-                // EVENT CLICK YANG DIPERBARUI (Menggunakan Custom Modal)
                 eventClick: function(info) {
                     document.getElementById('ne-title').innerText = info.event.title;
                     document.getElementById('ne-date').innerHTML = `<strong>Tanggal:</strong> ${info.event.start.toLocaleDateString('id-ID')}`;
@@ -4065,7 +4103,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const picEl = document.getElementById('ne-pic');
                     if(info.event.extendedProps.type === 'task') {
                         picEl.style.display = 'block';
-                        picEl.innerHTML = `<strong>PIC:</strong> ${info.event.extendedProps.pic}`;
+                        picEl.innerHTML = `<strong>PIC / Anggota:</strong> ${info.event.extendedProps.pic}`;
                     } else {
                         picEl.style.display = 'none';
                     }
@@ -4194,7 +4232,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch(e) { console.log("Firebase tidak terdeteksi, fallback ke local."); }
 
         if (isUsingFirebase) {
-            // Jika Firebase ditemukan, gunakan sistem Real-time Cloud
             dbRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     currentComments = doc.data().comments || [];
@@ -4204,7 +4241,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderComments(currentComments);
             });
         } else {
-            // Fallback (Penyimpanan Darurat Sementara)
             try { currentComments = JSON.parse(localStorage.getItem(taskId)) || []; } catch (e) { currentComments = []; }
             renderComments(currentComments);
         }
@@ -4225,7 +4261,6 @@ document.addEventListener('DOMContentLoaded', function() {
             currentComments.push(newComment);
 
             if (isUsingFirebase) {
-                // Simpan ke Firestore
                 dbRef.set({ comments: currentComments }, { merge: true })
                     .then(() => { textarea.value = ''; })
                     .catch(err => {
@@ -4233,7 +4268,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         alert("Gagal mengirim komentar ke database.");
                     });
             } else {
-                // Simpan Lokal
                 localStorage.setItem(taskId, JSON.stringify(currentComments));
                 textarea.value = '';
                 renderComments(currentComments);
@@ -4243,7 +4277,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <!-- ========================================================= -->
-<!-- SELESAI: FITUR KOMENTAR BERBALAS V3.0                     -->
+<!-- SELESAI: FITUR KOMENTAR BERBALAS V3.1                     -->
 <!-- ========================================================= -->
 
 </body>
