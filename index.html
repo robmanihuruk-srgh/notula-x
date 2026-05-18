@@ -564,8 +564,8 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Unit</label>
-          <input type="text" id="meetingDateInput">
+          <label>Tanggal</label>
+          <input type="date" id="meetingDateInput">
         </div>
         <div class="form-group">
           <label>Tempat (Grup)</label>
@@ -2974,7 +2974,19 @@
       document.getElementById('newMeetingBtn').addEventListener('click', () => {
         document.getElementById('modalMeetingTitle').innerText = 'Rapat Baru';
         document.getElementById('meetingNameInput').value = '';
-        document.getElementById('meetingDateInput').value = '';
+        // Set default date: from last meeting in same workspace, or today
+        let defaultDate = new Date().toISOString().split('T')[0];
+        const wsId = currentWorkspaceId || 'private';
+        let lastMeeting = null;
+        if (wsId !== 'private') {
+          lastMeeting = getLastMeetingInWorkspace(wsId);
+        } else {
+          lastMeeting = getLastPrivateMeeting();
+        }
+        if (lastMeeting && lastMeeting.date) {
+          defaultDate = lastMeeting.date;
+        }
+        document.getElementById('meetingDateInput').value = defaultDate;
         document.getElementById('meetingInfoInput').value = '';
         document.getElementById('meetingAgendaInput').value = '';
         document.getElementById('meetingWorkspaceSelect').value = currentWorkspaceId || 'private';
@@ -2996,6 +3008,25 @@
         document.getElementById('meetingWorkspaceSelect').value = m.workspaceId || 'private';
         document.getElementById('saveMeetingModal').dataset.editId = m.id;
         meetingModal.classList.add('active');
+      });
+
+      // When workspace changes in modal, update date to last meeting's date in that workspace
+      document.getElementById('meetingWorkspaceSelect').addEventListener('change', function() {
+        if (!document.getElementById('saveMeetingModal').dataset.editId) {
+          // Only for new meetings (not edit mode)
+          const selectedWs = this.value;
+          let lastMeeting = null;
+          if (selectedWs !== 'private') {
+            lastMeeting = getLastMeetingInWorkspace(selectedWs);
+          } else {
+            lastMeeting = getLastPrivateMeeting();
+          }
+          if (lastMeeting && lastMeeting.date) {
+            document.getElementById('meetingDateInput').value = lastMeeting.date;
+          } else {
+            document.getElementById('meetingDateInput').value = new Date().toISOString().split('T')[0];
+          }
+        }
       });
 
       document.getElementById('deleteMeetingBtn').addEventListener('click', async () => {
