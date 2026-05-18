@@ -4279,6 +4279,175 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- ========================================================= -->
 <!-- SELESAI: FITUR KOMENTAR BERBALAS V3.1                     -->
 <!-- ========================================================= -->
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
 
+<button id="btn-open-calendar" style="
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 15px 20px;
+    font-size: 1rem;
+    font-family: var(--font-body);
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    cursor: pointer;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: transform 0.2s;
+" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+    <i class="fas fa-calendar-alt"></i> Kalender
+</button>
+
+<div id="calendar-modal" style="
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+">
+    <div style="
+        background: #fff;
+        width: 100%;
+        max-width: 1000px;
+        height: 90vh;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    ">
+        <div style="padding: 15px 20px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: var(--color-bg-light);">
+            <h3 style="margin: 0; color: var(--color-secondary); font-family: var(--font-heading);">📅 Kalender Jadwal & Tugas</h3>
+            <button id="btn-close-calendar" style="background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: #dc3545;">&times;</button>
+        </div>
+        
+        <div style="flex: 1; padding: 20px; overflow: auto; background: #fff;">
+            <div id="notula-calendar"></div>
+        </div>
+        
+        <div style="padding: 15px 20px; border-top: 1px solid var(--color-border); display: flex; gap: 20px; font-size: 0.85rem; font-family: var(--font-body); background: #f8fafc;">
+            <span style="display: flex; align-items: center; gap: 5px;"><div style="width: 12px; height: 12px; background: #b8860b; border-radius: 50%;"></div> Jadwal Rapat</span>
+            <span style="display: flex; align-items: center; gap: 5px;"><div style="width: 12px; height: 12px; background: #dc3545; border-radius: 50%;"></div> Deadline Tugas</span>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnOpen = document.getElementById('btn-open-calendar');
+    const btnClose = document.getElementById('btn-close-calendar');
+    const modal = document.getElementById('calendar-modal');
+    const calendarEl = document.getElementById('notula-calendar');
+    let calendar;
+
+    // Kumpulkan data acara dari database lokal Anda
+    function getCalendarEvents() {
+        let events = [];
+        const allWorkspaces = JSON.parse(localStorage.getItem('notula_workspaces')) || [];
+        const allPrivate = JSON.parse(localStorage.getItem('notula_private_meetings')) || [];
+        
+        // Gabungkan semua meeting untuk dilooping
+        let allMeetings = [];
+        allWorkspaces.forEach(ws => {
+            if(ws.meetings) allMeetings = allMeetings.concat(ws.meetings);
+        });
+        allMeetings = allMeetings.concat(allPrivate);
+
+        allMeetings.forEach(meeting => {
+            // 1. Tambahkan Titik Jadwal Rapat
+            if (meeting.date) {
+                events.push({
+                    title: 'Rapat: ' + meeting.title,
+                    start: meeting.date,
+                    backgroundColor: '#b8860b', // Warna emas/primary Notula
+                    borderColor: '#9b7208',
+                    textColor: '#fff'
+                });
+            }
+
+            // 2. Tambahkan Deadline Tugas
+            if (meeting.sections) {
+                meeting.sections.forEach(section => {
+                    if (section.tasks) {
+                        section.tasks.forEach(task => {
+                            if (task.deadline) {
+                                events.push({
+                                    title: 'Tugas: ' + task.desc,
+                                    start: task.deadline,
+                                    backgroundColor: '#dc3545', // Warna merah untuk deadline
+                                    borderColor: '#b52b3a',
+                                    textColor: '#fff'
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+        return events;
+    }
+
+    // Inisialisasi Kalender
+    function initCalendar() {
+        const isMobile = window.innerWidth <= 768;
+        
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: isMobile ? 'listMonth' : 'dayGridMonth', // Responsif
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,listMonth'
+            },
+            events: getCalendarEvents(),
+            height: '100%',
+            locale: 'id',
+            buttonText: {
+                today: 'Hari Ini',
+                month: 'Bulan',
+                week: 'Minggu',
+                list: 'Daftar'
+            }
+        });
+        calendar.render();
+    }
+
+    // Event Listener Buka/Tutup
+    btnOpen.addEventListener('click', () => {
+        modal.style.display = 'flex';
+        // Kalender perlu di-render ulang setelah modal ditampilkan
+        setTimeout(() => {
+            if (!calendar) {
+                initCalendar();
+            } else {
+                // Update data terbaru jika user baru saja menambah tugas
+                calendar.removeAllEvents();
+                calendar.addEventSource(getCalendarEvents());
+                calendar.render();
+            }
+        }, 100);
+    });
+
+    btnClose.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+
+    // Tutup modal jika klik di luar area
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
+</script>
 </body>
 </html>
