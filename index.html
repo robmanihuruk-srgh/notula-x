@@ -463,6 +463,62 @@
       .income-table th, .income-table td { padding: 8px 10px; }
       .income-header { flex-direction: column; align-items: flex-start; gap: 10px; }
     }
+
+    /* ==== TEAM / TIM MANAGEMENT STYLES ==== */
+    .team-section { padding: 16px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .team-section h3 { font-size: 0.85rem; font-family: var(--font-body); text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-light); margin-bottom: 12px; font-weight: 600; }
+    .team-list { display: flex; flex-direction: column; gap: 6px; }
+    .team-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; background: rgba(255,255,255,0.5); }
+    .team-item:hover { background: #f8fafc; border-color: var(--color-border); }
+    .team-item.active { background: rgba(22, 163, 74, 0.08); border-color: rgba(22, 163, 74, 0.25); border-left: 4px solid #16a34a; }
+    .team-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--color-secondary); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .team-info { flex: 1; min-width: 0; }
+    .team-name { font-weight: 600; font-size: 0.9rem; color: var(--color-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .team-meta { font-size: 0.75rem; color: var(--color-text-light); display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+    .team-meta .role-badge { font-size: 0.7rem; padding: 1px 6px; border-radius: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+    .role-koordinator { background: #fef3c7; color: #92400e; }
+    .role-anggota { background: #e0e7ff; color: #3730a3; }
+    .team-actions-sidebar { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+    .team-item:hover .team-actions-sidebar { opacity: 1; }
+    .team-actions-sidebar button { background: none; border: none; cursor: pointer; font-size: 0.8rem; padding: 4px; border-radius: 4px; color: var(--color-text-light); transition: all 0.1s; }
+    .team-actions-sidebar button:hover { background: #e2e8f0; color: var(--color-secondary); }
+    .team-actions-sidebar button.delete:hover { color: #dc3545; background: #fce4e0; }
+    .btn-new-team { width: 100%; margin-top: 8px; background: var(--color-secondary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 500; font-family: var(--font-body); font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .btn-new-team:hover { background: var(--color-secondary-light); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn-new-team:disabled { opacity: 0.5; pointer-events: none; }
+
+    .team-detail-card { background: #ffffff; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid var(--color-border); box-shadow: 0 4px 20px rgba(0,0,0,0.03); position: relative; overflow: hidden; }
+    .team-detail-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--color-secondary); }
+    .team-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); }
+    .team-detail-header h3 { font-size: 1.2rem; font-weight: 700; color: var(--color-secondary); font-family: var(--font-heading); margin: 0; display: flex; align-items: center; gap: 10px; }
+    .team-members-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .team-member-card { background: #f8fafc; border: 1px solid var(--color-border); border-radius: 10px; padding: 16px; display: flex; align-items: flex-start; gap: 12px; transition: all 0.2s; }
+    .team-member-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); background: #ffffff; }
+    .member-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--color-secondary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 600; flex-shrink: 0; }
+    .member-info { flex: 1; min-width: 0; }
+    .member-name { font-weight: 600; font-size: 0.95rem; color: var(--color-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .member-email { font-size: 0.8rem; color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .member-role-badge { display: inline-block; margin-top: 6px; font-size: 0.7rem; padding: 2px 10px; border-radius: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .team-role-select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.85rem; background: #f8fafc; cursor: pointer; }
+    .team-role-select:focus { outline: none; border-color: var(--color-primary); }
+
+    .team-empty-state { text-align: center; padding: 32px 16px; color: var(--color-text-light); font-size: 0.9rem; }
+    .team-empty-state i { font-size: 2.5rem; margin-bottom: 12px; color: var(--color-border); display: block; }
+
+    .log-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border); }
+    .log-actions button { background: #ffffff; border: 1px solid var(--color-border); padding: 8px 14px; border-radius: 6px; color: var(--color-text); font-weight: 500; font-family: var(--font-body); font-size: 0.85rem; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .log-actions button:hover { background: var(--color-bg-light); border-color: var(--color-primary); color: var(--color-primary); }
+    .log-actions button i { font-size: 0.85rem; }
+
+    .archived-badge { display: inline-block; background: #f0fdf4; color: #15803d; font-size: 0.75rem; padding: 2px 10px; border-radius: 12px; font-weight: 600; margin-left: 8px; border: 1px solid #bbf7d0; }
+
+    @media (max-width: 768px) {
+      .team-members-grid { grid-template-columns: 1fr; }
+      .team-actions-sidebar { opacity: 1; }
+      .team-detail-card { padding: 16px; }
+    }
+
   </style>
 </head>
 <body>
@@ -815,6 +871,12 @@
           <h3>Rapat Pribadi</h3>
           <div id="privateMeetingList" class="meeting-list" style="padding:0;"></div>
         </div>
+
+        <div class="workspace-section" style="border-bottom: none; margin-top: 8px;">
+          <h3><i class="fas fa-users"></i> Tim Saya</h3>
+          <div id="teamList" class="team-list"></div>
+          <button class="btn-new-team" id="newTeamBtn" disabled><i class="fas fa-plus-circle"></i> Buat Tim</button>
+        </div>
     </div>
   </div>
 
@@ -1012,6 +1074,7 @@
 
       function initNotifications(userEmail) {
           if (unsubscribeNotifications) unsubscribeNotifications();
+          if (unsubscribeTeams) unsubscribeTeams();
           unsubscribeNotifications = db.collection('notifications')
               .where('targetEmail', '==', userEmail.toLowerCase())
               .onSnapshot(snap => {
@@ -1579,7 +1642,8 @@
           hideLogin();
           
           await fetchUserRole(user.uid);
-          initNotifications(user.email); // Mulai listener notifikasi
+          initNotifications(user.email);
+          initTeamsListener(); // Mulai listener notifikasi
           
           if (userRole === 'admin') {
             await seedDefaultData();
@@ -1970,6 +2034,7 @@
 
       // ========== RAPAT ==========
       function renderPrivateMeetings() {
+        currentTeamId = null; renderTeamList();
         const container = document.getElementById('privateMeetingList');
         container.innerHTML = '';
         const privateMeetings = meetings.filter(m => !m.workspaceId && m.createdBy === currentUser?.uid);
@@ -2347,6 +2412,7 @@
       }
 
       function renderWorkspaceMeetings(workspaceId) {
+        currentTeamId = null; renderTeamList();
         const workspaceMeetings = meetings.filter(m => m.workspaceId === workspaceId);
         const content = document.getElementById('contentArea');
         if (workspaceMeetings.length === 0) {
@@ -2442,7 +2508,7 @@
         `;
         
         html += renderDashboard(meeting);
-        html += renderLogs(meeting);
+        html += renderLogsWithActions(meeting);
         html += renderIncomeTable(meeting);
 
         html += `
@@ -3884,7 +3950,540 @@
       document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
       document.getElementById('printBtn').addEventListener('click', printMeeting);
 
-      // ========== PWA INSTALL LOGIC & SERVICE WORKER ==========
+      
+      // ========== TEAM / TIM MANAGEMENT ==========
+      let teams = [];
+      let currentTeamId = null;
+      let unsubscribeTeams = null;
+
+      function initTeamsListener() {
+        if (!currentUser) return;
+        if (unsubscribeTeams) unsubscribeTeams();
+
+        unsubscribeTeams = db.collection('teams')
+          .where('createdBy', '==', currentUser.uid)
+          .onSnapshot(snapshot => {
+            teams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderTeamList();
+          });
+      }
+
+      function renderTeamList() {
+        const container = document.getElementById('teamList');
+        const btn = document.getElementById('newTeamBtn');
+        if (!container) return;
+
+        if (btn) {
+          btn.disabled = !currentUser;
+          btn.classList.toggle('disabled', !currentUser);
+        }
+
+        container.innerHTML = '';
+
+        if (teams.length === 0) {
+          container.innerHTML = '<div class="team-empty-state" style="padding: 16px 8px; font-size: 0.8rem;"><i class="fas fa-users" style="font-size: 1.5rem;"></i>Belum ada tim. Klik tombol di atas untuk membuat.</div>';
+          return;
+        }
+
+        teams.forEach(team => {
+          const memberCount = team.members ? team.members.length : 0;
+          const koordinatorCount = team.members ? team.members.filter(m => m.role === 'koordinator').length : 0;
+          const div = document.createElement('div');
+          div.className = `team-item ${currentTeamId === team.id ? 'active' : ''}`;
+          div.dataset.id = team.id;
+          div.innerHTML = `
+            <div class="team-icon"><i class="fas fa-users"></i></div>
+            <div class="team-info">
+              <div class="team-name">${escapeHtml(team.name)}</div>
+              <div class="team-meta">
+                <span><i class="fas fa-user"></i> ${memberCount} anggota</span>
+                ${koordinatorCount > 0 ? `<span class="role-badge role-koordinator">${koordinatorCount} Koordinator</span>` : ''}
+              </div>
+            </div>
+            <div class="team-actions-sidebar">
+              <button onclick="event.stopPropagation(); openTeamMembersModal('${team.id}');" title="Kelola Anggota"><i class="fas fa-user-cog"></i></button>
+              <button onclick="event.stopPropagation(); editTeam('${team.id}');" title="Edit Tim"><i class="fas fa-edit"></i></button>
+              <button class="delete" onclick="event.stopPropagation(); deleteTeam('${team.id}');" title="Hapus Tim"><i class="fas fa-trash"></i></button>
+            </div>
+          `;
+          div.addEventListener('click', () => {
+            currentTeamId = team.id;
+            renderTeamList();
+            renderTeamDetail(team);
+          });
+          container.appendChild(div);
+        });
+      }
+
+      function renderTeamDetail(team) {
+        const content = document.getElementById('contentArea');
+        const headerTitle = document.getElementById('meetingTitle');
+        const headerDate = document.getElementById('meetingDate');
+
+        if (headerTitle) headerTitle.innerText = escapeHtml(team.name);
+        if (headerDate) headerDate.innerHTML = '<i class="fas fa-users"></i> Detail Tim';
+
+        // Reset meeting-related UI
+        currentMeetingId = null;
+        currentWorkspaceId = null;
+        updateExportButtons();
+        updateButtonsByRole();
+
+        let membersHtml = '';
+        if (team.members && team.members.length > 0) {
+          const koordinatorList = team.members.filter(m => m.role === 'koordinator');
+          const anggotaList = team.members.filter(m => m.role === 'anggota');
+
+          membersHtml = `<div class="team-members-grid">`;
+
+          // Koordinators first
+          koordinatorList.forEach(m => {
+            const initial = (m.name || '?').charAt(0).toUpperCase();
+            membersHtml += `
+              <div class="team-member-card">
+                <div class="member-avatar">${escapeHtml(initial)}</div>
+                <div class="member-info">
+                  <div class="member-name">${escapeHtml(m.name || 'Tanpa Nama')}</div>
+                  <div class="member-email">${escapeHtml(m.email || '-')}</div>
+                  <span class="member-role-badge role-koordinator">Koordinator</span>
+                </div>
+              </div>
+            `;
+          });
+
+          // Then regular members
+          anggotaList.forEach(m => {
+            const initial = (m.name || '?').charAt(0).toUpperCase();
+            membersHtml += `
+              <div class="team-member-card">
+                <div class="member-avatar">${escapeHtml(initial)}</div>
+                <div class="member-info">
+                  <div class="member-name">${escapeHtml(m.name || 'Tanpa Nama')}</div>
+                  <div class="member-email">${escapeHtml(m.email || '-')}</div>
+                  <span class="member-role-badge role-anggota">Anggota</span>
+                </div>
+              </div>
+            `;
+          });
+
+          membersHtml += `</div>`;
+        } else {
+          membersHtml = `
+            <div class="team-empty-state">
+              <i class="fas fa-users"></i>
+              Belum ada anggota dalam tim ini.<br>
+              Klik "Kelola Anggota" di sidebar untuk menambahkan anggota.
+            </div>
+          `;
+        }
+
+        content.innerHTML = `
+          <div class="team-detail-card">
+            <div class="team-detail-header">
+              <h3><i class="fas fa-users"></i> ${escapeHtml(team.name)}</h3>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn-header" onclick="openTeamMembersModal('${team.id}')"><i class="fas fa-user-cog"></i> Kelola Anggota</button>
+                <button class="btn-edit-meeting" onclick="editTeam('${team.id}')"><i class="fas fa-pen"></i> Edit Tim</button>
+                <button class="btn-delete-meeting" onclick="deleteTeam('${team.id}')"><i class="fas fa-trash"></i> Hapus Tim</button>
+              </div>
+            </div>
+            ${team.description ? `<p style="color: var(--color-text-light); margin-bottom: 20px; font-size: 0.95rem;"><i class="fas fa-info-circle" style="color: var(--color-primary);"></i> ${escapeHtml(team.description)}</p>` : ''}
+
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 24px;">
+              <div class="stat-item" style="min-width: 120px;">
+                <span class="stat-label"><i class="fas fa-users"></i> Total Anggota</span>
+                <div class="stat-value">${team.members ? team.members.length : 0}</div>
+              </div>
+              <div class="stat-item" style="min-width: 120px;">
+                <span class="stat-label"><i class="fas fa-crown"></i> Koordinator</span>
+                <div class="stat-value" style="color: #92400e;">${team.members ? team.members.filter(m => m.role === 'koordinator').length : 0}</div>
+              </div>
+              <div class="stat-item" style="min-width: 120px;">
+                <span class="stat-label"><i class="fas fa-user"></i> Anggota</span>
+                <div class="stat-value" style="color: #3730a3;">${team.members ? team.members.filter(m => m.role === 'anggota').length : 0}</div>
+              </div>
+            </div>
+
+            <h4 style="font-family: var(--font-heading); color: var(--color-secondary); margin-bottom: 16px; font-size: 1.1rem;"><i class="fas fa-list"></i> Daftar Anggota</h4>
+            ${membersHtml}
+          </div>
+        `;
+      }
+
+      // Team CRUD
+      window.editTeam = (teamId) => {
+        const team = teams.find(t => t.id === teamId);
+        if (!team) return;
+        document.getElementById('teamIdInput').value = team.id;
+        document.getElementById('teamNameInput').value = team.name || '';
+        document.getElementById('teamDescInput').value = team.description || '';
+        document.getElementById('modalTeamTitle').innerHTML = '<i class="fas fa-edit"></i> <span id="teamModalAction">Edit Tim</span>';
+        document.getElementById('teamModal').classList.add('active');
+      };
+
+      window.deleteTeam = async (teamId) => {
+        const team = teams.find(t => t.id === teamId);
+        if (!team) return;
+        if (team.createdBy !== currentUser?.uid && userRole !== 'admin') {
+          alert('Anda tidak memiliki izin untuk menghapus tim ini.');
+          return;
+        }
+        if (!confirm(`Hapus tim "${team.name}" beserta semua datanya?`)) return;
+        try {
+          await db.collection('teams').doc(teamId).delete();
+          if (currentTeamId === teamId) {
+            currentTeamId = null;
+            document.getElementById('contentArea').innerHTML = '<div style="text-align:center; color:var(--color-text-light); margin-top:60px;"><i class="fas fa-arrow-left"></i> Belum ada rapat yang dipilih.</div>';
+            document.getElementById('meetingTitle').innerText = 'Pilih rapat';
+            document.getElementById('meetingDate').innerHTML = '<i class="far fa-calendar-alt"></i>';
+          }
+        } catch (error) {
+          alert('Gagal menghapus tim: ' + error.message);
+        }
+      };
+
+      document.getElementById('newTeamBtn')?.addEventListener('click', () => {
+        document.getElementById('teamIdInput').value = '';
+        document.getElementById('teamNameInput').value = '';
+        document.getElementById('teamDescInput').value = '';
+        document.getElementById('modalTeamTitle').innerHTML = '<i class="fas fa-users-cog"></i> <span id="teamModalAction">Buat Tim Baru</span>';
+        document.getElementById('teamModal').classList.add('active');
+      });
+
+      document.getElementById('cancelTeamModal')?.addEventListener('click', () => {
+        document.getElementById('teamModal').classList.remove('active');
+      });
+
+      document.getElementById('saveTeamModal')?.addEventListener('click', async () => {
+        const id = document.getElementById('teamIdInput').value;
+        const name = document.getElementById('teamNameInput').value.trim();
+        const description = document.getElementById('teamDescInput').value.trim();
+
+        if (!name) return alert('Nama tim harus diisi');
+
+        try {
+          if (id) {
+            // Edit existing
+            await db.collection('teams').doc(id).update({ name, description });
+          } else {
+            // Create new
+            await db.collection('teams').add({
+              name,
+              description,
+              createdBy: currentUser.uid,
+              members: [],
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+          document.getElementById('teamModal').classList.remove('active');
+        } catch (error) {
+          alert('Gagal menyimpan tim: ' + error.message);
+        }
+      });
+
+      // Team Members Management
+      window.openTeamMembersModal = async (teamId) => {
+        const team = teams.find(t => t.id === teamId);
+        if (!team) return;
+
+        document.getElementById('teamMembersModal').dataset.teamId = teamId;
+        document.getElementById('teamMembersModalTitle').innerHTML = `<i class="fas fa-user-friends"></i> Kelola Anggota - ${escapeHtml(team.name)}`;
+        document.getElementById('teamMembersModal').classList.add('active');
+        document.getElementById('teamMemberNameInput').value = '';
+        document.getElementById('teamMemberEmailInput').value = '';
+        document.getElementById('teamMemberRoleInput').value = 'anggota';
+
+        renderTeamMemberList(team);
+      };
+
+      function renderTeamMemberList(team) {
+        const listDiv = document.getElementById('teamMemberList');
+        if (!team.members || team.members.length === 0) {
+          listDiv.innerHTML = '<div class="team-empty-state"><i class="fas fa-users"></i>Belum ada anggota dalam tim ini.</div>';
+          return;
+        }
+
+        listDiv.innerHTML = '';
+
+        // Sort: koordinators first, then alphabetically by name
+        const sorted = [...team.members].sort((a, b) => {
+          if (a.role === 'koordinator' && b.role !== 'koordinator') return -1;
+          if (a.role !== 'koordinator' && b.role === 'koordinator') return 1;
+          return (a.name || '').localeCompare(b.name || '');
+        });
+
+        sorted.forEach((m, index) => {
+          const item = document.createElement('div');
+          item.className = 'member-item';
+          item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--color-border);';
+
+          const roleClass = m.role === 'koordinator' ? 'role-koordinator' : 'role-anggota';
+          const roleLabel = m.role === 'koordinator' ? 'Koordinator' : 'Anggota';
+
+          item.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="member-avatar" style="width: 32px; height: 32px; font-size: 0.85rem;">${(m.name || '?').charAt(0).toUpperCase()}</div>
+              <div>
+                <div style="font-weight: 600; color: var(--color-secondary);">${escapeHtml(m.name || 'Tanpa Nama')}</div>
+                <div style="font-size: 0.8rem; color: var(--color-text-light);">${escapeHtml(m.email || '-')}</div>
+                <span class="member-role-badge ${roleClass}" style="margin-top: 4px;">${roleLabel}</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button onclick="changeTeamMemberRole('${team.id}', ${index}, '${m.role === 'koordinator' ? 'anggota' : 'koordinator'}')" 
+                style="background: #f8fafc; border: 1px solid var(--color-border); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; color: var(--color-text);"
+                title="Ubah jadi ${m.role === 'koordinator' ? 'Anggota' : 'Koordinator'}">
+                <i class="fas fa-exchange-alt"></i> ${m.role === 'koordinator' ? 'Jadikan Anggota' : 'Jadikan Koordinator'}
+              </button>
+              <button onclick="removeTeamMember('${team.id}', '${m.email || m.name}')" 
+                style="background: #fee2e2; border: 1px solid #fca5a5; color: #dc2626; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          `;
+          listDiv.appendChild(item);
+        });
+      }
+
+      window.changeTeamMemberRole = async (teamId, memberIndex, newRole) => {
+        const team = teams.find(t => t.id === teamId);
+        if (!team || !team.members || !team.members[memberIndex]) return;
+
+        // Create updated members array
+        const updatedMembers = [...team.members];
+        updatedMembers[memberIndex] = { ...updatedMembers[memberIndex], role: newRole };
+
+        try {
+          await db.collection('teams').doc(teamId).update({ members: updatedMembers });
+          // Update local data
+          team.members = updatedMembers;
+          renderTeamMemberList(team);
+          renderTeamList();
+          if (currentTeamId === teamId) renderTeamDetail(team);
+        } catch (error) {
+          alert('Gagal mengubah role: ' + error.message);
+        }
+      };
+
+      window.removeTeamMember = async (teamId, identifier) => {
+        if (!confirm('Hapus anggota ini dari tim?')) return;
+        const team = teams.find(t => t.id === teamId);
+        if (!team || !team.members) return;
+
+        const updatedMembers = team.members.filter(m => m.email !== identifier && m.name !== identifier);
+
+        try {
+          await db.collection('teams').doc(teamId).update({ members: updatedMembers });
+          team.members = updatedMembers;
+          renderTeamMemberList(team);
+          renderTeamList();
+          if (currentTeamId === teamId) renderTeamDetail(team);
+        } catch (error) {
+          alert('Gagal menghapus anggota: ' + error.message);
+        }
+      };
+
+      document.getElementById('addTeamMemberBtn')?.addEventListener('click', async () => {
+        const teamId = document.getElementById('teamMembersModal').dataset.teamId;
+        const team = teams.find(t => t.id === teamId);
+        if (!team) return;
+
+        const name = document.getElementById('teamMemberNameInput').value.trim();
+        const email = document.getElementById('teamMemberEmailInput').value.trim().toLowerCase();
+        const role = document.getElementById('teamMemberRoleInput').value;
+
+        if (!name) return alert('Nama anggota harus diisi');
+
+        const newMember = { name, email: email || '', role };
+        const updatedMembers = [...(team.members || []), newMember];
+
+        try {
+          await db.collection('teams').doc(teamId).update({ members: updatedMembers });
+          document.getElementById('teamMemberNameInput').value = '';
+          document.getElementById('teamMemberEmailInput').value = '';
+          document.getElementById('teamMemberRoleInput').value = 'anggota';
+          team.members = updatedMembers;
+          renderTeamMemberList(team);
+          renderTeamList();
+          if (currentTeamId === teamId) renderTeamDetail(team);
+        } catch (error) {
+          alert('Gagal menambahkan anggota: ' + error.message);
+        }
+      });
+
+      document.getElementById('closeTeamMembersModal')?.addEventListener('click', () => {
+        document.getElementById('teamMembersModal').classList.remove('active');
+      });
+
+
+      // ========== LOG EXPORT & ARCHIVE ==========
+
+      async function exportLogToExcel(meetingId) {
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (!meeting) return;
+
+        const logs = meeting.logs || [];
+        const archivedLogs = meeting.archivedLogs || [];
+
+        if (logs.length === 0 && archivedLogs.length === 0) {
+          alert('Tidak ada riwayat aktivitas untuk diekspor.');
+          return;
+        }
+
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Current Logs (Aktif)
+        const currentData = [['No', 'Waktu', 'User', 'Aktivitas', 'Tipe']];
+        const sortedLogs = [...logs].sort((a, b) => new Date(b.time) - new Date(a.time));
+        sortedLogs.forEach((log, index) => {
+          const time = new Date(log.time).toLocaleString('id-ID');
+          currentData.push([index + 1, time, log.user, log.msg, 'Aktif']);
+        });
+        const wsCurrent = XLSX.utils.aoa_to_sheet(currentData);
+        XLSX.utils.book_append_sheet(wb, wsCurrent, 'Log Aktif');
+
+        // Sheet 2: Archived Logs (if any)
+        if (archivedLogs.length > 0) {
+          const archiveData = [['No', 'Waktu', 'User', 'Aktivitas', 'Tanggal Archive']];
+          const sortedArchive = [...archivedLogs].sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
+          sortedArchive.forEach((log, index) => {
+            const time = new Date(log.time).toLocaleString('id-ID');
+            const archivedAt = new Date(log.archivedAt).toLocaleString('id-ID');
+            archiveData.push([index + 1, time, log.user, log.msg, archivedAt]);
+          });
+          const wsArchive = XLSX.utils.aoa_to_sheet(archiveData);
+          XLSX.utils.book_append_sheet(wb, wsArchive, 'Log Terarsip');
+        }
+
+        // Sheet 3: Summary
+        const summaryData = [
+          ['Ringkasan Riwayat Aktivitas'],
+          [''],
+          ['Judul Rapat', meeting.title],
+          ['Tanggal Rapat', formatDate(meeting.date)],
+          ['Total Log Aktif', logs.length],
+          ['Total Log Terarsip', archivedLogs.length],
+          ['Total Keseluruhan', logs.length + archivedLogs.length],
+          [''],
+          ['Diekspor pada', new Date().toLocaleString('id-ID')],
+          ['Diekspor oleh', currentUser?.email || '-']
+        ];
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan');
+
+        XLSX.writeFile(wb, `riwayat_aktivitas_${meeting.title.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
+      }
+
+      async function archiveLogs(meetingId) {
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (!meeting) return;
+
+        const logs = meeting.logs || [];
+        if (logs.length === 0) {
+          alert('Tidak ada riwayat aktivitas untuk diarsipkan.');
+          return;
+        }
+
+        if (!confirm(`Arsipkan ${logs.length} riwayat aktivitas? Log akan disimpan di arsip dan tidak lagi ditampilkan di layar.`)) return;
+
+        const archivedAt = new Date().toISOString();
+        const logsToArchive = logs.map(log => ({
+          ...log,
+          archivedAt: archivedAt
+        }));
+
+        // Get existing archived logs and append new ones
+        const existingArchived = meeting.archivedLogs || [];
+        const updatedArchived = [...existingArchived, ...logsToArchive];
+
+        try {
+          await db.collection('meetings').doc(meetingId).update({
+            logs: [],  // Clear current logs
+            archivedLogs: updatedArchived
+          });
+          alert(`${logs.length} riwayat aktivitas berhasil diarsipkan. Log tetap tersimpan dan bisa diekspor kapan saja.`);
+        } catch (error) {
+          alert('Gagal mengarsipkan log: ' + error.message);
+        }
+      }
+
+      // Updated renderLogs function with export and archive buttons
+      function renderLogsWithActions(meeting) {
+        const logs = meeting.logs || [];
+        const archivedCount = meeting.archivedLogs ? meeting.archivedLogs.length : 0;
+
+        if (logs.length === 0 && archivedCount === 0) return '';
+
+        const sortedLogs = [...logs].sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 5);
+
+        let html = `<div class="log-card">
+          <h4><i class="fas fa-history"></i> Riwayat Aktivitas Terakhir ${archivedCount > 0 ? `<span class="archived-badge"><i class="fas fa-archive"></i> ${archivedCount} terarsip</span>` : ''}</h4>
+          <ul class="log-list">`;
+
+        if (sortedLogs.length === 0) {
+          html += `<li style="color: var(--color-text-light); font-style: italic; text-align: center; padding: 12px;">Semua log telah diarsipkan. Log terarsip tetap tersimpan dan bisa diekspor.</li>`;
+        } else {
+          sortedLogs.forEach(log => {
+            const time = new Date(log.time).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+            const shortEmail = log.user.split('@')[0];
+            html += `<li><span class="log-time">${time}</span> <strong>${escapeHtml(shortEmail)}</strong> ${escapeHtml(log.msg)}</li>`;
+          });
+        }
+
+        html += `</ul>`;
+
+        // Add action buttons
+        const canEdit = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
+        html += `
+          <div class="log-actions">
+            <button onclick="exportLogToExcel('${meeting.id}')" title="Export semua riwayat ke Excel"><i class="fas fa-file-excel"></i> Export Excel</button>
+            ${canEdit && logs.length > 0 ? `<button onclick="archiveLogs('${meeting.id}')" title="Arsipkan riwayat aktif"><i class="fas fa-archive"></i> Arsipkan Log</button>` : ''}
+            ${archivedCount > 0 ? `<button onclick="restoreArchivedLogs('${meeting.id}')" title="Kembalikan log dari arsip"><i class="fas fa-undo"></i> Kembalikan dari Arsip</button>` : ''}
+          </div>
+        `;
+
+        html += `</div>`;
+        return html;
+      }
+
+      async function restoreArchivedLogs(meetingId) {
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (!meeting) return;
+
+        const archivedLogs = meeting.archivedLogs || [];
+        if (archivedLogs.length === 0) {
+          alert('Tidak ada log terarsip untuk dikembalikan.');
+          return;
+        }
+
+        if (!confirm(`Kembalikan ${archivedLogs.length} log dari arsip ke log aktif?`)) return;
+
+        // Remove archivedAt field and add back to logs
+        const logsToRestore = archivedLogs.map(log => {
+          const { archivedAt, ...rest } = log;
+          return rest;
+        });
+
+        const currentLogs = meeting.logs || [];
+        const updatedLogs = [...currentLogs, ...logsToRestore];
+
+        try {
+          await db.collection('meetings').doc(meetingId).update({
+            logs: updatedLogs,
+            archivedLogs: []
+          });
+          alert(`${archivedLogs.length} log berhasil dikembalikan dari arsip.`);
+        } catch (error) {
+          alert('Gagal mengembalikan log: ' + error.message);
+        }
+      }
+
+      // Make functions globally accessible
+      window.exportLogToExcel = exportLogToExcel;
+      window.archiveLogs = archiveLogs;
+      window.restoreArchivedLogs = restoreArchivedLogs;
+
+// ========== PWA INSTALL LOGIC & SERVICE WORKER ==========
       let deferredPrompt;
       const installContainer = document.getElementById('install-pwa-container');
       const btnInstallPWA = document.getElementById('btnInstallPWA');
@@ -4243,3 +4842,51 @@
 <!-- ========================================================= -->
 </body>
 </html>
+
+
+  <!-- MODAL TIM / TEAM MANAGEMENT -->
+  <div class="modal" id="teamModal">
+    <div class="modal-content">
+      <h3 id="modalTeamTitle"><i class="fas fa-users-cog"></i> <span id="teamModalAction">Buat Tim Baru</span></h3>
+      <input type="hidden" id="teamIdInput">
+      <div class="form-group">
+        <label>Nama Tim <span style="color:#dc3545;">*</span></label>
+        <input type="text" id="teamNameInput" placeholder="Contoh: Seksi Acara, Seksi Konsumsi, dsb.">
+      </div>
+      <div class="form-group">
+        <label>Deskripsi (opsional)</label>
+        <textarea id="teamDescInput" rows="2" placeholder="Deskripsi tim..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelTeamModal">Batal</button>
+        <button class="btn-primary" id="saveTeamModal">Simpan Tim</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KELOLA ANGGOTA TIM -->
+  <div class="modal" id="teamMembersModal">
+    <div class="modal-content" style="width: 600px; max-width: 95%;">
+      <h3 id="teamMembersModalTitle"><i class="fas fa-user-friends"></i> Kelola Anggota Tim</h3>
+      <div class="form-group">
+        <label>Tambah Anggota</label>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <input type="text" id="teamMemberNameInput" placeholder="Nama Lengkap" style="flex:1; min-width: 150px;">
+          <input type="email" id="teamMemberEmailInput" placeholder="Email" style="flex:1; min-width: 150px;">
+          <select id="teamMemberRoleInput" class="team-role-select">
+            <option value="anggota">Anggota</option>
+            <option value="koordinator">Koordinator</option>
+          </select>
+          <button class="btn-primary" id="addTeamMemberBtn"><i class="fas fa-plus"></i> Tambah</button>
+        </div>
+      </div>
+      <div class="member-list" id="teamMemberList" style="max-height: 300px;">
+        <div class="team-empty-state"><i class="fas fa-users"></i>Belum ada anggota dalam tim ini.</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="closeTeamMembersModal">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+
