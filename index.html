@@ -3957,16 +3957,21 @@
       let unsubscribeTeams = null;
 
       function initTeamsListener() {
-        if (!currentUser) return;
-        if (unsubscribeTeams) unsubscribeTeams();
+  if (!currentUser) return;
+  if (unsubscribeTeams) unsubscribeTeams();
 
-        unsubscribeTeams = db.collection('teams')
-          .where('createdBy', '==', currentUser.uid)
-          .onSnapshot(snapshot => {
-            teams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderTeamList();
-          });
+  unsubscribeTeams = db.collection('teams')
+    .where('createdBy', '==', currentUser.uid)
+    .onSnapshot(snapshot => {
+      teams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderTeamList();
+    }, error => {
+      console.error('Error Teams Listener:', error);
+      if (error.code === 'permission-denied') {
+        console.warn('Akses ditolak: Periksa Firestore Security Rules untuk koleksi teams');
       }
+    });
+}
 
       function renderTeamList() {
         const container = document.getElementById('teamList');
@@ -4155,31 +4160,34 @@
       });
 
       document.getElementById('saveTeamModal')?.addEventListener('click', async () => {
-        const id = document.getElementById('teamIdInput').value;
-        const name = document.getElementById('teamNameInput').value.trim();
-        const description = document.getElementById('teamDescInput').value.trim();
+  const id = document.getElementById('teamIdInput').value;
+  const name = document.getElementById('teamNameInput').value.trim();
+  const description = document.getElementById('teamDescInput').value.trim();
 
-        if (!name) return alert('Nama tim harus diisi');
+  if (!name) return alert('Nama tim harus diisi');
 
-        try {
-          if (id) {
-            // Edit existing
-            await db.collection('teams').doc(id).update({ name, description });
-          } else {
-            // Create new
-            await db.collection('teams').add({
-              name,
-              description,
-              createdBy: currentUser.uid,
-              members: [],
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-          }
-          document.getElementById('teamModal').classList.remove('active');
-        } catch (error) {
-          alert('Gagal menyimpan tim: ' + error.message);
-        }
+  try {
+    if (id) {
+      // Edit existing
+      await db.collection('teams').doc(id).update({ name, description });
+      console.log('Tim berhasil diupdate:', id);
+    } else {
+      // Create new
+      const docRef = await db.collection('teams').add({
+        name,
+        description,
+        createdBy: currentUser.uid,
+        members: [],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      console.log('Tim baru dibuat dengan ID:', docRef.id);
+    }
+    document.getElementById('teamModal').classList.remove('active');
+  } catch (error) {
+    console.error('Gagal menyimpan tim:', error);
+    alert('Gagal menyimpan tim: ' + error.message);
+  }
+});
 
       // Team Members Management
       window.openTeamMembersModal = async (teamId) => {
