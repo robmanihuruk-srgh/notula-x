@@ -518,6 +518,14 @@
     .team-role-select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.85rem; background: #f8fafc; cursor: pointer; }
     .team-role-select:focus { outline: none; border-color: var(--color-primary); }
 
+    /* === SELECTED TEAM CHIPS (TIM TERPILIH) === */
+    .selected-teams-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-height: 0; }
+    .selected-team-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--color-secondary); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; font-family: var(--font-body); animation: chipIn 0.2s ease; }
+    .selected-team-chip button { background: rgba(255,255,255,0.2); border: none; color: white; cursor: pointer; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; transition: all 0.2s; padding: 0; }
+    .selected-team-chip button:hover { background: rgba(255,255,255,0.35); color: #fff; }
+    .selected-teams-empty { color: var(--color-text-light); font-size: 0.85rem; font-style: italic; }
+    @keyframes chipIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
     .team-empty-state { text-align: center; padding: 32px 16px; color: var(--color-text-light); font-size: 0.9rem; }
     .team-empty-state i { font-size: 2.5rem; margin-bottom: 12px; color: var(--color-border); display: block; }
 
@@ -611,15 +619,22 @@
 
   <div class="modal" id="manageMembersModal">
     <div class="modal-content">
-      <h3><i class="fas fa-user-friends"></i> Kelola Anggota</h3>
+      <h3><i class="fas fa-user-friends"></i> Kelola Anggota Grup</h3>
       <div class="form-group">
-        <label>Tambah Anggota (email)</label>
+        <label><i class="fas fa-user-plus"></i> Tambah Anggota Baru (email)</label>
         <div style="display: flex; gap: 12px;">
           <input type="email" id="memberEmailInput" placeholder="email@contoh.com" style="flex:1;">
-          <button class="btn-primary" id="addMemberBtn">Tambah</button>
+          <button class="btn-primary" id="addMemberBtn"><i class="fas fa-plus"></i> Tambah</button>
         </div>
+        <p style="font-size: 0.8rem; color: var(--color-text-light); margin-top: 4px;"><i class="fas fa-info-circle"></i> Pengguna harus sudah pernah login ke Notula minimal sekali agar dapat ditemukan.</p>
       </div>
-      <div class="member-list" id="memberList"></div>
+      <div class="form-group" style="margin-top: 20px;">
+        <label style="display: flex; justify-content: space-between; align-items: center;">
+          <span><i class="fas fa-users"></i> Anggota yang Diberi Akses</span>
+          <span style="font-size: 0.75rem; color: var(--color-text-light); font-weight: normal; text-transform: none;" id="memberCountBadge">0 anggota</span>
+        </label>
+        <div class="member-list" id="memberList"></div>
+      </div>
       <div class="modal-actions">
         <button class="btn-secondary" id="closeMembersModal">Tutup</button>
       </div>
@@ -646,10 +661,15 @@
         </div>
       <div class="form-group">
           <label>Tim yang Ditugaskan (opsional)</label>
-          <select id="meetingTeamSelect" multiple style="min-height: 80px;">
+          <select id="meetingTeamSelect">
             <option value="">-- Pilih Tim --</option>
           </select>
-          <p style="font-size: 0.8rem; color: var(--color-text-light); margin-top: 4px;"><i class="fas fa-info-circle"></i> Tahan Ctrl/Cmd untuk memilih multiple tim. Tim yang dipilih akan terlihat oleh anggota rapat.</p>
+          <p style="font-size: 0.8rem; color: var(--color-text-light); margin-top: 4px;"><i class="fas fa-info-circle"></i> Pilih satu tim kemudian klik Tambah. Ulangi untuk menambahkan tim lain. Tim yang ditambahkan akan muncul di bawah.</p>
+          <div id="selectedTeamsContainer" class="selected-teams-container"></div>
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button type="button" class="btn-primary" id="addTeamToMeetingBtn" style="padding: 6px 14px; font-size: 0.85rem;"><i class="fas fa-plus"></i> Tambah Tim ke Rapat</button>
+            <button type="button" class="btn-secondary" id="clearAllTeamsBtn" style="padding: 6px 14px; font-size: 0.85rem;"><i class="fas fa-trash-alt"></i> Hapus Semua Tim</button>
+          </div>
         </div>
       </div>
       <div class="form-group">
@@ -1064,7 +1084,8 @@
       let selectedWorkspaceIds = new Set();
       let currentRabItems = [];
       let selectedTeamIds = [];
-      let currentIncomeId = null; 
+      let currentIncomeId = null;
+      let modalSelectedTeamIds = []; // Tim yang dipilih di modal meeting (sementara) 
 
       // ========== LOGIKA NOTIFIKASI ==========
       const notifBtn = document.getElementById('notifBtn');
@@ -1886,50 +1907,6 @@
         return html;
       }
 
-      function renderAssignedTeams(meeting) {
-        if (!meeting.assignedTeamIds || meeting.assignedTeamIds.length === 0) return '';
-
-        let html = `<div class="team-detail-card" style="margin-bottom: 24px;">
-          <div class="team-detail-header" style="margin-bottom: 20px;">
-            <h3><i class="fas fa-users"></i> Tim yang Ditugaskan</h3>
-          </div>
-          <div class="team-members-grid">`;
-
-        meeting.assignedTeamIds.forEach(teamId => {
-          const team = teams.find(t => t.id === teamId);
-          if (!team) return;
-
-          html += `<div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: 10px; padding: 16px; margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
-              <h4 style="margin: 0; color: var(--color-secondary); font-family: var(--font-heading);"><i class="fas fa-user-friends" style="color: var(--color-primary); margin-right: 8px;"></i>${escapeHtml(team.name)}</h4>
-              <span style="font-size: 0.75rem; background: var(--color-bg-light); padding: 2px 10px; border-radius: 12px; color: var(--color-text-light);">${team.members?.length || 0} anggota</span>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 8px;">`;
-
-          if (team.members && team.members.length > 0) {
-            team.members.forEach(member => {
-              const roleClass = member.role === 'koordinator' ? 'role-koordinator' : 'role-anggota';
-              const roleLabel = member.role === 'koordinator' ? 'Koordinator' : 'Anggota';
-              html += `<div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: white; border-radius: 8px; border: 1px solid var(--color-border);">
-                <div class="member-avatar" style="width: 32px; height: 32px; font-size: 0.85rem;">${(member.name || '?').charAt(0).toUpperCase()}</div>
-                <div style="flex: 1; min-width: 0;">
-                  <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-secondary);">${escapeHtml(member.name || 'Tanpa Nama')}</div>
-                  <div style="font-size: 0.8rem; color: var(--color-text-light);">${escapeHtml(member.email || '-')}</div>
-                </div>
-                <span class="member-role-badge ${roleClass}" style="font-size: 0.7rem;">${roleLabel}</span>
-              </div>`;
-            });
-          } else {
-            html += `<div style="text-align: center; color: var(--color-text-light); font-size: 0.85rem; padding: 12px;"><i class="fas fa-info-circle"></i> Belum ada anggota dalam tim ini.</div>`;
-          }
-
-          html += `</div></div>`;
-        });
-
-        html += `</div></div>`;
-        return html;
-      }
-
       function renderLogs(meeting) {
         const logs = meeting.logs || [];
         if (logs.length === 0) return '';
@@ -2101,36 +2078,63 @@
         if (!workspace) return;
         
         const memberListDiv = document.getElementById('memberList');
-        memberListDiv.innerHTML = '<div style="text-align:center; color:var(--color-text-light);"><i class="fas fa-spinner fa-spin"></i> Memuat...</div>';
+        const countBadge = document.getElementById('memberCountBadge');
+        memberListDiv.innerHTML = '<div style="text-align:center; color:var(--color-text-light); padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Memuat anggota...</div>';
         
         document.getElementById('manageMembersModal').dataset.workspaceId = workspaceId;
         document.getElementById('manageMembersModal').classList.add('active');
 
         memberListDiv.innerHTML = '';
+        const isOwner = workspace.createdBy === currentUser?.uid;
+        let memberCount = 0;
+        
         for (const uid of workspace.members) {
           try {
             const userDoc = await db.collection('users').doc(uid).get();
             const email = userDoc.exists ? userDoc.data().email || uid : uid;
             const item = document.createElement('div');
             item.className = 'member-item';
+            item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--color-border); background: white; border-radius: 8px; margin-bottom: 6px; border: 1px solid var(--color-border); transition: all 0.2s;';
+            item.onmouseover = () => { item.style.background = '#f8fafc'; };
+            item.onmouseout = () => { item.style.background = 'white'; };
             
-            const isOwner = workspace.createdBy === currentUser?.uid;
             const isSelf = uid === currentUser?.uid;
-            const btnHtml = (isOwner && !isSelf) ? `<button class="btn-danger" onclick="removeMember('${workspaceId}', '${uid}')" style="padding:4px 10px; font-size:0.85rem;">Hapus</button>` : '';
+            const isCreator = uid === workspace.createdBy;
+            const roleBadge = isCreator 
+              ? '<span style="font-size: 0.7rem; background: #fef3c7; color: #92400e; padding: 2px 10px; border-radius: 12px; font-weight: 600; margin-left: 8px;"><i class="fas fa-crown"></i> Pemilik</span>' 
+              : '<span style="font-size: 0.7rem; background: #e0e7ff; color: #3730a3; padding: 2px 10px; border-radius: 12px; font-weight: 600; margin-left: 8px;">Anggota</span>';
+            const selfBadge = isSelf ? ' <strong style="color: var(--color-primary);">(Anda)</strong>' : '';
+            const btnHtml = (isOwner && !isSelf) 
+              ? `<button class="btn-danger" onclick="removeMember('${workspaceId}', '${uid}')" style="padding: 5px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-user-minus"></i> Hapus Akses</button>` 
+              : '';
             
-            item.innerHTML = `<span><i class="fas fa-user-circle" style="color:var(--color-primary); margin-right:8px;"></i> ${escapeHtml(email)}</span>${btnHtml}`;
+            item.innerHTML = `
+              <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                <div class="member-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; flex-shrink: 0;">${(email || '?').charAt(0).toUpperCase()}</div>
+                <div style="min-width: 0;">
+                  <div style="font-weight: 600; color: var(--color-secondary); font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(email)}${selfBadge}</div>
+                  <div style="margin-top: 4px;">${roleBadge}</div>
+                </div>
+              </div>
+              ${btnHtml}
+            `;
             memberListDiv.appendChild(item);
+            memberCount++;
           } catch (e) { console.error(e); }
+        }
+        
+        if (countBadge) countBadge.innerText = memberCount + ' anggota';
+        
+        if (workspace.members.length === 0) {
+          memberListDiv.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--color-text-light); font-size: 0.9rem;"><i class="fas fa-users" style="font-size: 1.5rem; margin-bottom: 8px; display: block;"></i>Belum ada anggota dalam grup ini.</div>';
         }
       };
 
       window.removeMember = async (workspaceId, uid) => {
-        if (!confirm('Hapus anggota ini dari grup?')) return;
+        if (!confirm('Yakin ingin menghapus akses anggota ini dari grup?\n\nAnggota tidak akan bisa lagi melihat rapat dalam grup ini.')) return;
         try {
           const workspaceRef = db.collection('workspaces').doc(workspaceId);
           await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayRemove(uid) });
-          
-          alert('Anggota berhasil dihapus!');
           
           const workspace = workspaces.find(w => w.id === workspaceId);
           if (workspace) workspace.members = workspace.members.filter(id => id !== uid);
@@ -2727,15 +2731,11 @@
             </div>
           </div>
         `;
-        
-            // === TIM YANG DITUGASKAN ===
-    html += renderAssignedTeams(meeting);
 
         // === TIM YANG DITUGASKAN ===
-    html += renderAssignedTeams(meeting);
+        html += renderAssignedTeams(meeting);
 
-    html += renderDashboard(meeting);
-        html += renderLogsWithActions(meeting);
+        html += renderDashboard(meeting);
         html += renderIncomeTable(meeting);
 
         html += `
@@ -3265,7 +3265,9 @@
       }
 
       document.getElementById('newMeetingBtn').addEventListener('click', () => {
+        modalSelectedTeamIds = []; // Reset selected teams for new meeting
         updateMeetingTeamSelect();
+        renderSelectedTeamChips();
         document.getElementById('modalMeetingTitle').innerText = 'Rapat Baru';
         document.getElementById('meetingNameInput').value = '';
         // Set default date: from last meeting in same workspace, or today
@@ -3301,18 +3303,18 @@
         document.getElementById('meetingAgendaInput').value = m.agenda || '';
         document.getElementById('meetingWorkspaceSelect').value = m.workspaceId || 'private';
 
-        // Populate team selection
+        // Populate team selection using chips
+        modalSelectedTeamIds = m.assignedTeamIds ? [...m.assignedTeamIds] : [];
         updateMeetingTeamSelect();
-        const teamSelect = document.getElementById('meetingTeamSelect');
-        if (teamSelect && m.assignedTeamIds) {
-          Array.from(teamSelect.options).forEach(opt => {
-            opt.selected = m.assignedTeamIds.includes(opt.value);
-          });
-        }
+        renderSelectedTeamChips();
 
         document.getElementById('saveMeetingModal').dataset.editId = m.id;
         meetingModal.classList.add('active');
       });
+
+      // Add/remove team buttons in meeting modal
+      document.getElementById('addTeamToMeetingBtn')?.addEventListener('click', addTeamToMeeting);
+      document.getElementById('clearAllTeamsBtn')?.addEventListener('click', clearAllTeamsFromMeeting);
 
       // When workspace changes in modal, update date to last meeting's date in that workspace
       document.getElementById('meetingWorkspaceSelect').addEventListener('change', function() {
@@ -3338,7 +3340,10 @@
         await deleteMeeting(currentMeetingId);
       });
 
-      document.getElementById('cancelMeetingModal').addEventListener('click', closeAllModals);
+      document.getElementById('cancelMeetingModal').addEventListener('click', () => {
+        modalSelectedTeamIds = []; // Reset selected teams on cancel
+        closeAllModals();
+      });
 
       document.getElementById('saveMeetingModal').addEventListener('click', async () => {
         const title = document.getElementById('meetingNameInput').value.trim();
@@ -3347,9 +3352,8 @@
         const agenda = document.getElementById('meetingAgendaInput').value.trim();
         const workspaceSelectVal = document.getElementById('meetingWorkspaceSelect').value;
 
-        // Capture selected teams
-        const teamSelect = document.getElementById('meetingTeamSelect');
-        selectedTeamIds = teamSelect ? Array.from(teamSelect.selectedOptions).map(o => o.value).filter(v => v) : [];
+        // Use modalSelectedTeamIds from chips instead of reading from select
+        selectedTeamIds = [...modalSelectedTeamIds];
         const workspaceId = workspaceSelectVal === 'private' ? null : workspaceSelectVal;
         if (!title || !date) return alert('Judul dan tanggal harus diisi');
 
@@ -3428,6 +3432,7 @@
         }
         
         await saveMeeting(meetingData);
+        modalSelectedTeamIds = []; // Reset after save
         closeAllModals();
       });
 
@@ -3833,22 +3838,82 @@
       function updateMeetingTeamSelect() {
         const select = document.getElementById('meetingTeamSelect');
         if (!select) return;
-        // Save current selection
-        const currentSelection = Array.from(select.selectedOptions).map(o => o.value);
+        // Save current selection for single select
+        const currentSelection = select.value;
 
         select.innerHTML = '<option value="">-- Pilih Tim --</option>';
         teams.forEach(t => {
           // Only show teams where current user is creator or koordinator
           const isCreator = t.createdBy === currentUser?.uid;
           const isKoordinator = t.members?.some(m => m.email === currentUser?.email && m.role === 'koordinator');
-          if (isCreator || isKoordinator) {
+          // Also filter out teams already selected in modalSelectedTeamIds
+          const isAlreadySelected = modalSelectedTeamIds.includes(t.id);
+          if ((isCreator || isKoordinator) && !isAlreadySelected) {
             const option = document.createElement('option');
             option.value = t.id;
             option.text = escapeHtml(t.name);
-            if (currentSelection.includes(t.id)) option.selected = true;
+            if (currentSelection === t.id) option.selected = true;
             select.appendChild(option);
           }
         });
+      }
+
+      // Render chips for selected teams in meeting modal
+      function renderSelectedTeamChips() {
+        const container = document.getElementById('selectedTeamsContainer');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (modalSelectedTeamIds.length === 0) {
+          container.innerHTML = '<span class="selected-teams-empty"><i class="fas fa-info-circle"></i> Belum ada tim yang ditugaskan pada rapat ini.</span>';
+          return;
+        }
+
+        modalSelectedTeamIds.forEach(teamId => {
+          const team = teams.find(t => t.id === teamId);
+          if (!team) return;
+          const chip = document.createElement('div');
+          chip.className = 'selected-team-chip';
+          chip.innerHTML = `
+            <i class="fas fa-user-friends"></i>
+            ${escapeHtml(team.name)}
+            <button type="button" onclick="removeTeamFromMeeting('${teamId}')" title="Hapus tim dari rapat">
+              <i class="fas fa-times"></i>
+            </button>
+          `;
+          container.appendChild(chip);
+        });
+      }
+
+      window.removeTeamFromMeeting = function(teamId) {
+        modalSelectedTeamIds = modalSelectedTeamIds.filter(id => id !== teamId);
+        renderSelectedTeamChips();
+        updateMeetingTeamSelect(); // Refresh select options
+      };
+
+      function addTeamToMeeting() {
+        const select = document.getElementById('meetingTeamSelect');
+        const teamId = select.value;
+        if (!teamId) {
+          alert('Silakan pilih tim terlebih dahulu.');
+          return;
+        }
+        if (modalSelectedTeamIds.includes(teamId)) {
+          alert('Tim ini sudah ditambahkan.');
+          return;
+        }
+        modalSelectedTeamIds.push(teamId);
+        select.value = ''; // Reset select
+        renderSelectedTeamChips();
+        updateMeetingTeamSelect(); // Refresh select options to hide added team
+      }
+
+      function clearAllTeamsFromMeeting() {
+        if (modalSelectedTeamIds.length === 0) return;
+        if (!confirm('Hapus semua tim yang ditugaskan dari rapat ini?')) return;
+        modalSelectedTeamIds = [];
+        renderSelectedTeamChips();
+        updateMeetingTeamSelect();
       }
 
       // ========== MOM NATIVE LOGIC ==========
