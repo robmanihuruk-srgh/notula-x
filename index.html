@@ -2076,43 +2076,65 @@
       window.openManageMembers = async (workspaceId) => {
         const workspace = workspaces.find(w => w.id === workspaceId);
         if (!workspace) return;
-        
+
         const memberListDiv = document.getElementById('memberList');
         const countBadge = document.getElementById('memberCountBadge');
-        memberListDiv.innerHTML = '<div style="text-align:center; color:var(--color-text-light); padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Memuat anggota...</div>';
-        
+
         document.getElementById('manageMembersModal').dataset.workspaceId = workspaceId;
         document.getElementById('manageMembersModal').classList.add('active');
 
-        memberListDiv.innerHTML = '';
+        memberListDiv.innerHTML = '<div style="text-align:center; color:var(--color-text-light); padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Memuat anggota...</div>';
+
         const isOwner = workspace.createdBy === currentUser?.uid;
         let memberCount = 0;
-        
-        for (const uid of workspace.members) {
+
+        // Sort members: owner first, then others
+        const sortedMembers = [...workspace.members].sort((a, b) => {
+          const aIsOwner = a === workspace.createdBy;
+          const bIsOwner = b === workspace.createdBy;
+          if (aIsOwner && !bIsOwner) return -1;
+          if (!aIsOwner && bIsOwner) return 1;
+          return 0;
+        });
+
+        memberListDiv.innerHTML = '';
+
+        for (const uid of sortedMembers) {
           try {
-            const userDoc = await db.collection('users').doc(uid).get();
-            const email = userDoc.exists ? userDoc.data().email || uid : uid;
+            let email = uid;
+            let displayName = '';
+            try {
+              const userDoc = await db.collection('users').doc(uid).get();
+              if (userDoc.exists) {
+                email = userDoc.data().email || uid;
+                displayName = userDoc.data().displayName || '';
+              }
+            } catch (userErr) {
+              console.warn('Could not fetch user doc for', uid, userErr.message);
+            }
+
             const item = document.createElement('div');
             item.className = 'member-item';
             item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--color-border); background: white; border-radius: 8px; margin-bottom: 6px; border: 1px solid var(--color-border); transition: all 0.2s;';
             item.onmouseover = () => { item.style.background = '#f8fafc'; };
             item.onmouseout = () => { item.style.background = 'white'; };
-            
+
             const isSelf = uid === currentUser?.uid;
             const isCreator = uid === workspace.createdBy;
             const roleBadge = isCreator 
-              ? '<span style="font-size: 0.7rem; background: #fef3c7; color: #92400e; padding: 2px 10px; border-radius: 12px; font-weight: 600; margin-left: 8px;"><i class="fas fa-crown"></i> Pemilik</span>' 
-              : '<span style="font-size: 0.7rem; background: #e0e7ff; color: #3730a3; padding: 2px 10px; border-radius: 12px; font-weight: 600; margin-left: 8px;">Anggota</span>';
+              ? '<span style="font-size: 0.7rem; background: #fef3c7; color: #92400e; padding: 2px 10px; border-radius: 12px; font-weight: 600; margin-left: 8px;"><i class="fas fa-crown"></i> Pemilik Grup</span>' 
+              : '<span style="font-size: 0.7rem; background: #e0e7ff; color: #3730a3; padding: 2px 10px; border-radius: 12px; font-weight: 600; margin-left: 8px;"><i class="fas fa-user"></i> Anggota</span>';
             const selfBadge = isSelf ? ' <strong style="color: var(--color-primary);">(Anda)</strong>' : '';
+            const displayLabel = displayName ? `${escapeHtml(displayName)} <span style="font-size:0.8rem; color:var(--color-text-light);">(${escapeHtml(email)})</span>` : escapeHtml(email);
             const btnHtml = (isOwner && !isSelf) 
-              ? `<button class="btn-danger" onclick="removeMember('${workspaceId}', '${uid}')" style="padding: 5px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-user-minus"></i> Hapus Akses</button>` 
+              ? `<button class="btn-danger" onclick="removeMember('${workspaceId}', '${uid}')" style="padding: 5px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #dc3545; background: #fff; color: #dc3545; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dc3545';this.style.color='white';" onmouseout="this.style.background='#fff';this.style.color='#dc3545';"><i class="fas fa-user-minus"></i> Hapus</button>` 
               : '';
-            
+
             item.innerHTML = `
               <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-                <div class="member-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; flex-shrink: 0;">${(email || '?').charAt(0).toUpperCase()}</div>
+                <div class="member-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; flex-shrink: 0; background: ${isCreator ? 'var(--color-primary)' : 'var(--color-secondary)'};">${(email || '?').charAt(0).toUpperCase()}</div>
                 <div style="min-width: 0;">
-                  <div style="font-weight: 600; color: var(--color-secondary); font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(email)}${selfBadge}</div>
+                  <div style="font-weight: 600; color: var(--color-secondary); font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayLabel}${selfBadge}</div>
                   <div style="margin-top: 4px;">${roleBadge}</div>
                 </div>
               </div>
@@ -2120,11 +2142,20 @@
             `;
             memberListDiv.appendChild(item);
             memberCount++;
-          } catch (e) { console.error(e); }
+          } catch (e) { 
+            console.error('Error rendering member', uid, e);
+            // Render fallback item even if there's an error
+            const fallbackItem = document.createElement('div');
+            fallbackItem.className = 'member-item';
+            fallbackItem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--color-border); background: white; border-radius: 8px; margin-bottom: 6px; border: 1px solid var(--color-border); color: var(--color-text-light); font-size: 0.85rem;';
+            fallbackItem.innerHTML = `<i class="fas fa-exclamation-circle"></i> Tidak dapat memuat data pengguna (${uid.substring(0, 8)}...)`;
+            memberListDiv.appendChild(fallbackItem);
+            memberCount++;
+          }
         }
-        
+
         if (countBadge) countBadge.innerText = memberCount + ' anggota';
-        
+
         if (workspace.members.length === 0) {
           memberListDiv.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--color-text-light); font-size: 0.9rem;"><i class="fas fa-users" style="font-size: 1.5rem; margin-bottom: 8px; display: block;"></i>Belum ada anggota dalam grup ini.</div>';
         }
@@ -3427,7 +3458,7 @@
           if (existing) {
              meetingData.sections = existing.sections;
              meetingData.incomeItems = existing.incomeItems || [];
-             meetingData.assignedTeamIds = selectedTeamIds.length > 0 ? selectedTeamIds : (existing.assignedTeamIds || []);
+             meetingData.assignedTeamIds = selectedTeamIds;
           }
         }
         
@@ -4342,21 +4373,91 @@
       let unsubscribeTeams = null;
 
       function initTeamsListener() {
-  if (!currentUser) return;
-  if (unsubscribeTeams) unsubscribeTeams();
+        if (!currentUser) return;
+        if (unsubscribeTeams) unsubscribeTeams();
 
-  unsubscribeTeams = db.collection('teams')
-    .where('createdBy', '==', currentUser.uid)
-    .onSnapshot(snapshot => {
-      teams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      renderTeamList();
-    }, error => {
-      console.error('Error Teams Listener:', error);
-      if (error.code === 'permission-denied') {
-        console.warn('Akses ditolak: Periksa Firestore Security Rules untuk koleksi teams');
+        let teamsCreated = [];
+        let teamsMember = [];
+        let gotCreated = false;
+        let gotMember = false;
+
+        // Query 1: Teams created by current user
+        const unsub1 = db.collection('teams')
+          .where('createdBy', '==', currentUser.uid)
+          .onSnapshot(snapshot => {
+            teamsCreated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            gotCreated = true;
+            mergeAndRenderTeams();
+          }, error => {
+            console.error('Error Teams Listener (created):', error);
+            gotCreated = true;
+            mergeAndRenderTeams();
+          });
+
+        // Query 2: Teams where current user is a member (via memberEmails array)
+        const unsub2 = db.collection('teams')
+          .where('memberEmails', 'array-contains', currentUser.email)
+          .onSnapshot(snapshot => {
+            teamsMember = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            gotMember = true;
+            mergeAndRenderTeams();
+          }, error => {
+            console.error('Error Teams Listener (member):', error);
+            gotMember = true;
+            mergeAndRenderTeams();
+          });
+
+        function mergeAndRenderTeams() {
+          if (!gotCreated) return;
+          const teamMap = new Map();
+          teamsCreated.forEach(t => teamMap.set(t.id, t));
+          if (gotMember) {
+            teamsMember.forEach(t => teamMap.set(t.id, t));
+          }
+          teams = Array.from(teamMap.values());
+          teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          renderTeamList();
+          if (document.getElementById('meetingModal').classList.contains('active')) {
+            updateMeetingTeamSelect();
+            renderSelectedTeamChips();
+          }
+        }
+
+        unsubscribeTeams = () => {
+          unsub1();
+          unsub2();
+        };
+
+        // One-time migration: populate memberEmails for existing teams
+        migrateTeamMemberEmails();
       }
-    });
-}
+
+      // Migrate existing teams to include memberEmails field
+      async function migrateTeamMemberEmails() {
+        try {
+          const snapshot = await db.collection('teams')
+            .where('createdBy', '==', currentUser.uid)
+            .get();
+          const batch = db.batch();
+          let needsBatch = false;
+
+          snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            if (!data.memberEmails && data.members) {
+              const emails = data.members.map(m => m.email).filter(Boolean);
+              batch.update(doc.ref, { memberEmails: emails });
+              needsBatch = true;
+            }
+          });
+
+          if (needsBatch) {
+            await batch.commit();
+            console.log('Migrated memberEmails for existing teams');
+          }
+        } catch (e) {
+          console.log('Migration check failed:', e.message);
+        }
+      }
 
       function renderTeamList() {
         const container = document.getElementById('teamList');
@@ -4563,6 +4664,7 @@
         description,
         createdBy: currentUser.uid,
         members: [],
+        memberEmails: [],
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       console.log('Tim baru dibuat dengan ID:', docRef.id);
@@ -4647,9 +4749,10 @@
         updatedMembers[memberIndex] = { ...updatedMembers[memberIndex], role: newRole };
 
         try {
-          await db.collection('teams').doc(teamId).update({ members: updatedMembers });
+          await db.collection('teams').doc(teamId).update({ members: updatedMembers, memberEmails: updatedMembers.map(m => m.email).filter(Boolean) });
           // Update local data
           team.members = updatedMembers;
+          team.memberEmails = updatedMembers.map(m => m.email).filter(Boolean);
           renderTeamMemberList(team);
           renderTeamList();
           if (currentTeamId === teamId) renderTeamDetail(team);
@@ -4664,9 +4767,10 @@
         if (!team || !team.members) return;
 
         const updatedMembers = team.members.filter(m => m.email !== identifier && m.name !== identifier);
+        const updatedMemberEmails = updatedMembers.map(m => m.email).filter(Boolean);
 
         try {
-          await db.collection('teams').doc(teamId).update({ members: updatedMembers });
+          await db.collection('teams').doc(teamId).update({ members: updatedMembers, memberEmails: updatedMemberEmails });
           team.members = updatedMembers;
           renderTeamMemberList(team);
           renderTeamList();
@@ -4689,9 +4793,10 @@
 
         const newMember = { name, email: email || '', role };
         const updatedMembers = [...(team.members || []), newMember];
+        const updatedMemberEmails = [...(team.memberEmails || []), ...(email ? [email] : [])];
 
         try {
-          await db.collection('teams').doc(teamId).update({ members: updatedMembers });
+          await db.collection('teams').doc(teamId).update({ members: updatedMembers, memberEmails: updatedMemberEmails });
           document.getElementById('teamMemberNameInput').value = '';
           document.getElementById('teamMemberEmailInput').value = '';
           document.getElementById('teamMemberRoleInput').value = 'anggota';
