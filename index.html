@@ -1710,6 +1710,9 @@
           document.getElementById('userInfo').style.display = 'flex';
           document.getElementById('notifWrapper').style.display = 'flex'; // Tampilkan notifikasi
           hideLogin();
+          // Simpan email->UID mapping ke RTDB untuk pencarian anggota
+          await saveUserEmailToRtdb(user);
+
           
           await fetchUserRole(user.uid);
           initNotifications(user.email);
@@ -2139,40 +2142,87 @@
       };
 
       document.getElementById('addMemberBtn').addEventListener('click', async () => {
-        const email = document.getElementById('memberEmailInput').value.trim().toLowerCase();
-        if (!email) return;
-        
-        if (email === currentUser.email.toLowerCase()) {
-           alert('Anda sudah berada di dalam grup ini sebagai pembuat.');
-           return;
-        }
+        const btn = document.getElementById('addMemberBtn');
+        const originalText = btn.innerText;
 
-        const usersRef = db.collection('users');
-        const snapshot = await usersRef.where('email', '==', email).get();
-        if (snapshot.empty) {
-          alert('Email tidak ditemukan di sistem. Pastikan pengguna tersebut telah login minimal sekali di Notula.');
-          return;
-        }
-        
-        const uid = snapshot.docs[0].id;
-        const workspaceId = document.getElementById('manageMembersModal').dataset.workspaceId;
-        const workspaceRef = db.collection('workspaces').doc(workspaceId);
-        
         try {
+          btn.disabled = true;
+          btn.innerText = 'Menambahkan...';
+
+          const email = document.getElementById('memberEmailInput').value.trim().toLowerCase();
+          if (!email) {
+            btn.disabled = false;
+            btn.innerText = originalText;
+            return;
+          }
+
+          if (!currentUser || !currentUser.email) {
+            alert('Sesi login tidak valid. Silakan login ulang.');
+            btn.disabled = false;
+            btn.innerText = originalText;
+            return;
+          }
+
+          if (email === currentUser.email.toLowerCase()) {
+            alert('Anda sudah berada di dalam grup ini sebagai pembuat.');
+            btn.disabled = false;
+            btn.innerText = originalText;
+            return;
+          }
+
+          const workspaceId = document.getElementById('manageMembersModal').dataset.workspaceId;
+          if (!workspaceId) {
+            alert('ID grup tidak ditemukan. Tutup dan buka ulang dialog ini.');
+            btn.disabled = false;
+            btn.innerText = originalText;
+            return;
+          }
+
+          // Cari pengguna berdasarkan email (RTDB dulu, lalu Firestore)
+          const userLookup = await lookupUserByEmail(email);
+
+          if (!userLookup) {
+            btn.disabled = false;
+            btn.innerText = originalText;
+
+            alert(`Email "${email}" tidak ditemukan di sistem.\n\n` +
+              `Pastikan:\n` +
+              `1. Email yang dimasukkan sudah benar.\n` +
+              `2. Pengguna tersebut sudah pernah login ke Notula minimal sekali.\n\n` +
+              `Jika masih gagal, minta pengguna tersebut login terlebih dahulu, ` +
+              `lalu coba tambahkan kembali.`);
+            return;
+          }
+
+          const uid = userLookup.uid;
+          console.log(`User ditemukan via ${userLookup.method}:`, uid);
+
+          // Cek apakah sudah menjadi anggota
+          const workspace = workspaces.find(w => w.id === workspaceId);
+          if (workspace && workspace.members.includes(uid)) {
+            alert('Pengguna ini sudah menjadi anggota grup.');
+            btn.disabled = false;
+            btn.innerText = originalText;
+            return;
+          }
+
+          const workspaceRef = db.collection('workspaces').doc(workspaceId);
           await workspaceRef.update({ members: firebase.firestore.FieldValue.arrayUnion(uid) });
+
           document.getElementById('memberEmailInput').value = '';
           alert('Anggota berhasil ditambahkan ke grup!');
-          
-          const workspace = workspaces.find(w => w.id === workspaceId);
-          if (workspace && !workspace.members.includes(uid)) workspace.members.push(uid);
-          
-          openManageMembers(workspaceId); 
-        } catch (error) {
-          alert('Gagal menambahkan anggota: ' + error.message);
-        }
-      });
 
-      document.getElementById('closeMembersModal').addEventListener('click', () => {
+          if (workspace && !workspace.members.includes(uid)) workspace.members.push(uid);
+
+          openManageMembers(workspaceId);
+        } catch (error) {
+          console.error('Error adding member:', error);
+          alert('Gagal menambahkan anggota: ' + (error.message || 'Terjadi kesalahan tidak dikenal'));
+        } finally {
+          btn.disabled = false;
+          btn.innerText = originalText;
+        }
+      });document.getElementById('closeMembersModal').addEventListener('click', () => {
         document.getElementById('manageMembersModal').classList.remove('active');
       });
 
@@ -3713,6 +3763,53 @@
       }
 
       // ========== FUNGSI UTILITY ==========
+      function sanitizeEmailForRtdb(email) {
+        // RTDB keys can't contain certain characters like . $ # [ ] /
+        return email.toLowerCase().replace(/\./g, ',').replace(/\$/g, '_').replace(/#/g, '-').replace(/\[/g, '(').replace(/\]/g, ')');
+      }
+
+      async function saveUserEmailToRtdb(user) {
+        if (!user || !user.email) return;
+        try {
+          const safeEmail = sanitizeEmailForRtdb(user.email);
+          await rtdb.ref('user_emails/' + safeEmail).set({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || '',
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+          });
+        } catch (e) {
+          console.log('Gagal menyimpan email ke RTDB:', e.message);
+        }
+      }
+
+      async function lookupUserByEmail(email) {
+        // METHOD 1: Try RTDB lookup first (bypasses Firestore rules)
+        try {
+          const safeEmail = sanitizeEmailForRtdb(email);
+          const snapshot = await rtdb.ref('user_emails/' + safeEmail).once('value');
+          const data = snapshot.val();
+          if (data && data.uid) {
+            return { uid: data.uid, method: 'rtdb' };
+          }
+        } catch (rtdbErr) {
+          console.log('RTDB lookup failed:', rtdbErr.message);
+        }
+
+        // METHOD 2: Try Firestore as fallback
+        try {
+          const usersRef = db.collection('users');
+          const snapshot = await usersRef.where('email', '==', email).limit(1).get();
+          if (!snapshot.empty) {
+            return { uid: snapshot.docs[0].id, method: 'firestore' };
+          }
+        } catch (fsErr) {
+          console.log('Firestore lookup failed:', fsErr.message);
+        }
+
+        return null;
+      }
+
       function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
       function formatDate(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }); }
       function translateStatus(st) { const map = { selesai:'Selesai', berlangsung:'Berlangsung', rencana:'Rencana', kendala:'Kendala' }; return map[st] || st; }
