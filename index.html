@@ -2101,16 +2101,20 @@
 
         for (const uid of sortedMembers) {
           try {
-            let email = uid;
+            // Gunakan lookupEmailByUid untuk mendapatkan email dari UID
+            let email = await lookupEmailByUid(uid);
             let displayName = '';
-            try {
-              const userDoc = await db.collection('users').doc(uid).get();
-              if (userDoc.exists) {
-                email = userDoc.data().email || uid;
-                displayName = userDoc.data().displayName || '';
+
+            // Coba ambil displayName dari Firestore jika email berhasil di-resolve
+            if (email !== uid) {
+              try {
+                const userDoc = await db.collection('users').doc(uid).get();
+                if (userDoc.exists) {
+                  displayName = userDoc.data().displayName || '';
+                }
+              } catch (userErr) {
+                console.warn('Could not fetch user doc for', uid, userErr.message);
               }
-            } catch (userErr) {
-              console.warn('Could not fetch user doc for', uid, userErr.message);
             }
 
             const item = document.createElement('div');
@@ -3845,6 +3849,56 @@
 
         return null;
       }
+      // ========== LOOKUP EMAIL BY UID (REVERSE LOOKUP) ==========
+      // Cache untuk menyimpan hasil lookup UID -> Email
+      const uidEmailCache = new Map();
+
+      async function lookupEmailByUid(uid) {
+        // Cek cache dulu
+        if (uidEmailCache.has(uid)) {
+          return uidEmailCache.get(uid);
+        }
+
+        // METHOD 1: Coba ambil dari Firestore users collection
+        try {
+          const userDoc = await db.collection('users').doc(uid).get();
+          if (userDoc.exists && userDoc.data().email) {
+            const email = userDoc.data().email;
+            uidEmailCache.set(uid, email);
+            return email;
+          }
+        } catch (e) {
+          console.log('Firestore lookup by UID failed:', e.message);
+        }
+
+        // METHOD 2: Coba cari di RTDB user_emails (reverse lookup - scan semua)
+        try {
+          const snapshot = await rtdb.ref('user_emails').once('value');
+          const allUsers = snapshot.val();
+          if (allUsers) {
+            for (const safeEmail in allUsers) {
+              if (allUsers[safeEmail].uid === uid && allUsers[safeEmail].email) {
+                const email = allUsers[safeEmail].email;
+                uidEmailCache.set(uid, email);
+                return email;
+              }
+            }
+          }
+        } catch (e) {
+          console.log('RTDB reverse lookup failed:', e.message);
+        }
+
+        // METHOD 3: Jika UID terlihat seperti email (fallback untuk data lama)
+        if (uid && uid.includes('@')) {
+          uidEmailCache.set(uid, uid);
+          return uid;
+        }
+
+        // Jika semua gagal, return UID as-is
+        uidEmailCache.set(uid, uid);
+        return uid;
+      }
+
 
       function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
       function formatDate(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }); }
@@ -4378,8 +4432,10 @@
 
         let teamsCreated = [];
         let teamsMember = [];
+        let teamsByUid = [];
         let gotCreated = false;
         let gotMember = false;
+        let gotByUid = false;
 
         // Query 1: Teams created by current user
         const unsub1 = db.collection('teams')
@@ -4394,7 +4450,7 @@
             mergeAndRenderTeams();
           });
 
-        // Query 2: Teams where current user is a member (via memberEmails array)
+        // Query 2: Teams where current user email is in memberEmails array
         const unsub2 = db.collection('teams')
           .where('memberEmails', 'array-contains', currentUser.email)
           .onSnapshot(snapshot => {
@@ -4407,12 +4463,38 @@
             mergeAndRenderTeams();
           });
 
+        // Query 3: Ambil semua teams dan filter client-side berdasarkan members array
+        const unsub3 = db.collection('teams')
+          .onSnapshot(snapshot => {
+            teamsByUid = snapshot.docs
+              .map(doc => ({ id: doc.id, ...doc.data() }))
+              .filter(team => {
+                if (!team.members) return false;
+                return team.members.some(m => {
+                  // Check by email
+                  if (m.email && m.email.toLowerCase() === currentUser.email.toLowerCase()) return true;
+                  // Check by UID
+                  if (m.uid && m.uid === currentUser.uid) return true;
+                  return false;
+                });
+              });
+            gotByUid = true;
+            mergeAndRenderTeams();
+          }, error => {
+            console.error('Error Teams Listener (byUid):', error);
+            gotByUid = true;
+            mergeAndRenderTeams();
+          });
+
         function mergeAndRenderTeams() {
           if (!gotCreated) return;
           const teamMap = new Map();
           teamsCreated.forEach(t => teamMap.set(t.id, t));
           if (gotMember) {
             teamsMember.forEach(t => teamMap.set(t.id, t));
+          }
+          if (gotByUid) {
+            teamsByUid.forEach(t => teamMap.set(t.id, t));
           }
           teams = Array.from(teamMap.values());
           teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -4426,6 +4508,7 @@
         unsubscribeTeams = () => {
           unsub1();
           unsub2();
+          unsub3();
         };
 
         // One-time migration: populate memberEmails for existing teams
@@ -4772,6 +4855,7 @@
         try {
           await db.collection('teams').doc(teamId).update({ members: updatedMembers, memberEmails: updatedMemberEmails });
           team.members = updatedMembers;
+          team.memberEmails = updatedMemberEmails;
           renderTeamMemberList(team);
           renderTeamList();
           if (currentTeamId === teamId) renderTeamDetail(team);
@@ -4791,16 +4875,33 @@
 
         if (!name) return alert('Nama anggota harus diisi');
 
-        const newMember = { name, email: email || '', role };
+        // Cari UID untuk email ini jika ada
+        let memberUid = '';
+        if (email) {
+          const userLookup = await lookupUserByEmail(email);
+          if (userLookup) {
+            memberUid = userLookup.uid;
+          }
+        }
+
+        const newMember = { name, email: email || '', role, uid: memberUid };
         const updatedMembers = [...(team.members || []), newMember];
-        const updatedMemberEmails = [...(team.memberEmails || []), ...(email ? [email] : [])];
+
+        // Update memberEmails: gabungkan email lama + email baru (unik, tidak duplikat)
+        const existingEmails = new Set(team.memberEmails || []);
+        if (email) existingEmails.add(email);
+        const updatedMemberEmails = Array.from(existingEmails);
 
         try {
-          await db.collection('teams').doc(teamId).update({ members: updatedMembers, memberEmails: updatedMemberEmails });
+          await db.collection('teams').doc(teamId).update({ 
+            members: updatedMembers, 
+            memberEmails: updatedMemberEmails 
+          });
           document.getElementById('teamMemberNameInput').value = '';
           document.getElementById('teamMemberEmailInput').value = '';
           document.getElementById('teamMemberRoleInput').value = 'anggota';
           team.members = updatedMembers;
+          team.memberEmails = updatedMemberEmails;
           renderTeamMemberList(team);
           renderTeamList();
           if (currentTeamId === teamId) renderTeamDetail(team);
@@ -5338,131 +5439,5 @@
 <!-- ========================================================= -->
 <!-- SELESAI: FITUR KALENDER INTERAKTIF NOTULA v2.0 (FIXED)    -->
 <!-- ========================================================= -->
-<script>
-(function() {
-    console.log("[Notula Auto-Patch] Menjalankan perbaikan Tim & Sidebar...");
-
-    // 1. PERBAIKAN TAMPILAN: MENGUBAH UID MENJADI EMAIL DI UI
-    // Menggunakan MutationObserver untuk mengawasi elemen yang ditambahkan ke layar
-    // dan secara otomatis mengubah UID (28 karakter) kembali menjadi Email.
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.addedNodes && mutation.addedNodes.length > 0) {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) { // Jika node adalah elemen HTML
-                        // Cari teks yang menyerupai Firebase UID (28 karakter alfanumerik)
-                        const uidRegex = /\b[a-zA-Z0-9]{28}\b/g;
-                        
-                        // Fungsi rekursif untuk mencari dan mengganti teks di dalam elemen
-                        const replaceUIDs = (element) => {
-                            if (element.hasChildNodes()) {
-                                element.childNodes.forEach(replaceUIDs);
-                            } else if (element.nodeType === 3) { // Text node
-                                if (uidRegex.test(element.nodeValue)) {
-                                    // Ambil email asli berdasarkan UID dari Firebase Auth/Database
-                                    // Sebagai fallback darurat, jika formatnya jelas UID, kita render ulang
-                                    // Untuk saat pendaftaran, kita paksa input email yang masuk tidak dikonversi
-                                    let matchedUID = element.nodeValue.match(uidRegex)[0];
-                                    
-                                    // Ambil email dari database users
-                                    if(window.db) {
-                                        window.db.collection('users').doc(matchedUID).get().then(doc => {
-                                            if(doc.exists && doc.data().email) {
-                                                element.nodeValue = element.nodeValue.replace(matchedUID, doc.data().email);
-                                            }
-                                        }).catch(e => console.log("Gagal mereplace UID", e));
-                                    }
-                                }
-                            }
-                        };
-                        replaceUIDs(node);
-                    }
-                });
-            }
-        });
-    });
-
-    // Mulai mengawasi perubahan di dalam body
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    // 2. PERBAIKAN PENYIMPANAN: SIMPAN EMAIL, BUKAN UID
-    // Membajak fungsi asli agar setiap kali user menambahkan anggota tim,
-    // yang masuk ke database adalah Email-nya secara langsung.
-    const originalAddEvent = window.addEventListener;
-    document.addEventListener('click', function(e) {
-        // Jika tombol yang diklik adalah tombol tambah anggota tim
-        if (e.target && (e.target.id === 'btn-add-team-member' || e.target.innerText.includes('Tambah Anggota Tim'))) {
-            let emailInput = document.querySelector('input[type="email"], #team-member-email');
-            if (emailInput && emailInput.value) {
-                // Paksa simpan sebagai email
-                e.target.setAttribute('data-force-email', emailInput.value);
-            }
-        }
-    }, true);
-
-    // 3. PERBAIKAN SIDEBAR: MENAMPILKAN RAPAT/TIM KEPADA ANGGOTA YANG DIUNDANG
-    // Menunggu hingga Firebase Authentication siap
-    setTimeout(() => {
-        if (window.firebase && firebase.auth) {
-            firebase.auth().onAuthStateChanged((user) => {
-                if (user && window.db) {
-                    const userEmail = user.email;
-                    
-                    // Tarik daftar rapat di mana user terdaftar sebagai tim/anggota
-                    // (Mencari di dalam array 'teams' atau 'members')
-                    db.collection('meetings')
-                      .where('members', 'array-contains', userEmail)
-                      .onSnapshot((snapshot) => {
-                          snapshot.docChanges().forEach((change) => {
-                              if (change.type === "added" || change.type === "modified") {
-                                  let meetingData = change.doc.data();
-                                  meetingData.id = change.doc.id;
-                                  
-                                  // Jangan duplikat jika user adalah owner (karena owner sudah diload oleh fungsi bawaan)
-                                  if (meetingData.owner !== user.uid && meetingData.owner !== userEmail) {
-                                      injectToSidebar(meetingData, 'Grup Saya');
-                                  }
-                              }
-                          });
-                      });
-                }
-            });
-        }
-    }, 2000);
-
-    // Fungsi bantuan untuk menyuntikkan rapat/grup ke Sidebar secara visual
-    function injectToSidebar(data, categoryName) {
-        // Cari container sidebar berdasarkan nama kategorinya
-        let sidebarLists = document.querySelectorAll('.sidebar-list, .group-list, #meeting-list');
-        let targetList = sidebarLists[0]; // Fallback
-        
-        sidebarLists.forEach(list => {
-            if (list.parentElement.innerText.includes(categoryName) || list.id.includes('group')) {
-                targetList = list;
-            }
-        });
-
-        if (targetList) {
-            // Cek apakah sudah ada agar tidak duplikat
-            if (!document.getElementById('sidebar-item-' + data.id)) {
-                let li = document.createElement('li');
-                li.id = 'sidebar-item-' + data.id;
-                li.className = 'sidebar-item injected-team-item';
-                li.innerHTML = `<i class="fas fa-users" style="margin-right: 8px; color: #4CAF50;"></i> ${data.title || data.name || 'Tim Gabungan'}`;
-                
-                // Tambahkan event klik untuk membuka rapat tersebut
-                li.onclick = function() {
-                    if (typeof window.openMeeting === 'function') window.openMeeting(data.id);
-                    else if (typeof window.selectWorkspace === 'function') window.selectWorkspace(data.id);
-                    else console.log("Akses tim dibuka:", data.id);
-                };
-                
-                targetList.appendChild(li);
-            }
-        }
-    }
-
-})();
-</script>
 </body>
 </html>
