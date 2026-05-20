@@ -921,27 +921,6 @@
     </div>
   </div>
 
-  <!-- MODAL KELOLA AKSES EDIT RAPAT -->
-  <div class="modal" id="meetingAccessModal">
-    <div class="modal-content" style="width: 560px; max-width: 95%;">
-      <h3><i class="fas fa-user-shield"></i> Kelola Akses Edit Rapat</h3>
-      <p style="color: var(--color-text-light); font-size: 0.9rem; margin-bottom: 16px;">Tambahkan email pengguna yang boleh mengedit rapat, seksi, dan tugas di rapat ini.</p>
-      <div class="form-group">
-        <label>Tambah Akses (Email)</label>
-        <div style="display: flex; gap: 12px;">
-          <input type="email" id="meetingAccessEmailInput" placeholder="email@contoh.com" style="flex:1;">
-          <button class="btn-primary" id="addMeetingAccessBtn"><i class="fas fa-plus"></i> Tambah</button>
-        </div>
-      </div>
-      <div class="member-list" id="meetingAccessList" style="max-height: 250px;">
-        <div class="team-empty-state" style="padding: 16px;"><i class="fas fa-lock-open"></i>Belum ada akses tambahan. Hanya pembuat rapat dan admin yang bisa mengedit.</div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="closeMeetingAccessModal">Tutup</button>
-      </div>
-    </div>
-  </div>
-
 <div class="sidebar">
     <div class="sidebar-header">
       <h1><img src="pic_ (2).jpg" alt="Logo" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);"> Notula</h1>
@@ -962,11 +941,6 @@
           <div id="privateMeetingList" class="meeting-list" style="padding:0;"></div>
         </div>
 
-        <div class="workspace-section" style="border-bottom: none;">
-          <h3><i class="fas fa-tasks"></i> Rapat Tim Saya</h3>
-          <div id="teamMeetingList" class="meeting-list" style="padding:0;"></div>
-        </div>
-
         <div class="workspace-section" style="border-bottom: none; margin-top: 8px;">
           <h3><i class="fas fa-users"></i> Tim Saya</h3>
           <div id="teamList" class="team-list"></div>
@@ -984,7 +958,6 @@
       <div class="header-actions">
         <!-- TOMBOL MOM DENGAN LABEL KONSISTEN: DOKUMEN MOM -->
         <button class="btn-header" id="btn-open-mom" disabled style="background: rgba(184, 134, 11, 0.05); border-color: var(--color-primary); color: var(--color-primary); font-weight: 600;"><i class="fas fa-file-signature"></i> Dokumen MoM</button>
-        <button class="btn-header" id="btn-meeting-access" disabled style="display: none;"><i class="fas fa-user-shield"></i> Kelola Akses</button>
         
         <select id="fontSwitcher" class="btn-header font-switcher-select" style="padding-top: 6px; padding-bottom: 6px; border-radius: 20px;">
           <option value="gsm">A Gaya Klasik</option>
@@ -1762,8 +1735,7 @@
             meetings.sort((a, b) => (a.date < b.date ? 1 : -1));
 
             renderPrivateMeetings();
-            renderTeamMeetings();
-
+            
             if (currentMeetingId) {
               const meeting = meetings.find(m => m.id === currentMeetingId);
               if (meeting) {
@@ -1831,25 +1803,16 @@
         if (userRole === 'admin') return true;
         if (meeting.createdBy === currentUser?.uid) return true;
 
-        // Koordinator tim yang ditugaskan ke rapat dapat mengedit seksi/tugas
-        if (isUserKoordinatorOfAssignedTeam(meeting)) return true;
-
-        // User dengan akses edit khusus (via Kelola Akses) dapat mengedit
-        if (hasMeetingEditAccess(meeting)) {
-          if (!isMeetingLatest(meeting)) return false;
-          if (!section) return true; // User dengan akses edit bisa tambah seksi baru
-          if (!section.assignedEmails) return true;
-          const emails = section.assignedEmails.split(',').map(e => e.trim().toLowerCase());
-          return emails.includes(currentUser?.email?.toLowerCase());
-        }
-
-        // Anggota tim yang ditugaskan dapat mengedit jika rapat adalah rapat terbaru
-        if (isUserMemberOfAssignedTeam(meeting)) {
-          if (!isMeetingLatest(meeting)) return false;
-          if (!section) return false;
-          if (!section.assignedEmails) return true;
-          const emails = section.assignedEmails.split(',').map(e => e.trim().toLowerCase());
-          return emails.includes(currentUser?.email?.toLowerCase());
+        // Koordinator of assigned teams can edit
+        if (meeting.assignedTeamIds && meeting.assignedTeamIds.length > 0) {
+          const isKoordinatorOfAssignedTeam = meeting.assignedTeamIds.some(teamId => {
+            const team = teams.find(t => t.id === teamId);
+            if (!team || !team.members) return false;
+            return team.members.some(m => 
+              m.email === currentUser?.email && m.role === 'koordinator'
+            );
+          });
+          if (isKoordinatorOfAssignedTeam) return true;
         }
 
         if (!isMeetingLatest(meeting)) return false; 
@@ -1874,6 +1837,50 @@
         } catch (e) {
           console.error("Gagal menyimpan log: ", e);
         }
+      }
+
+      function renderAssignedTeams(meeting) {
+        if (!meeting.assignedTeamIds || meeting.assignedTeamIds.length === 0) return '';
+
+        let html = `<div class="team-detail-card" style="margin-bottom: 24px;">
+          <div class="team-detail-header" style="margin-bottom: 20px;">
+            <h3><i class="fas fa-users"></i> Tim yang Ditugaskan</h3>
+          </div>
+          <div class="team-members-grid">`;
+
+        meeting.assignedTeamIds.forEach(teamId => {
+          const team = teams.find(t => t.id === teamId);
+          if (!team) return;
+
+          html += `<div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: 10px; padding: 16px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
+              <h4 style="margin: 0; color: var(--color-secondary); font-family: var(--font-heading);"><i class="fas fa-user-friends" style="color: var(--color-primary); margin-right: 8px;"></i>${escapeHtml(team.name)}</h4>
+              <span style="font-size: 0.75rem; background: var(--color-bg-light); padding: 2px 10px; border-radius: 12px; color: var(--color-text-light);">${team.members?.length || 0} anggota</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">`;
+
+          if (team.members && team.members.length > 0) {
+            team.members.forEach(member => {
+              const roleClass = member.role === 'koordinator' ? 'role-koordinator' : 'role-anggota';
+              const roleLabel = member.role === 'koordinator' ? 'Koordinator' : 'Anggota';
+              html += `<div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: white; border-radius: 8px; border: 1px solid var(--color-border);">
+                <div class="member-avatar" style="width: 32px; height: 32px; font-size: 0.85rem;">${(member.name || '?').charAt(0).toUpperCase()}</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-secondary);">${escapeHtml(member.name || 'Tanpa Nama')}</div>
+                  <div style="font-size: 0.8rem; color: var(--color-text-light);">${escapeHtml(member.email || '-')}</div>
+                </div>
+                <span class="member-role-badge ${roleClass}" style="font-size: 0.7rem;">${roleLabel}</span>
+              </div>`;
+            });
+          } else {
+            html += `<div style="text-align: center; color: var(--color-text-light); font-size: 0.85rem; padding: 12px;"><i class="fas fa-info-circle"></i> Belum ada anggota dalam tim ini.</div>`;
+          }
+
+          html += `</div></div>`;
+        });
+
+        html += `</div></div>`;
+        return html;
       }
 
       function renderAssignedTeams(meeting) {
@@ -2046,15 +2053,9 @@
           div.addEventListener('click', (e) => {
             if (e.target !== checkbox && e.target !== manageBtn && e.target !== deleteBtn && e.target !== editBtn && !e.target.closest('.workspace-actions')) {
               currentWorkspaceId = w.id;
-              currentTeamId = null;
               currentMeetingId = null;
               renderWorkspaceList();
               renderWorkspaceMeetings(w.id);
-              renderPrivateMeetings();
-              renderTeamMeetings();
-              renderTeamList();
-              document.getElementById('detailPanel').classList.remove('active');
-              document.getElementById('detailPanel').innerHTML = '<div class="empty-state"><i class="fas fa-hand-pointer"></i><p>Pilih rapat untuk melihat detail</p></div>';
             }
           });
           container.appendChild(div);
@@ -2203,74 +2204,6 @@
       });
 
       // ========== RAPAT ==========
-      function renderTeamMeetings() {
-        const container = document.getElementById('teamMeetingList');
-        if (!container) return;
-        container.innerHTML = '';
-
-        // Tampilkan rapat yang assignedTeamIds-nya mencakup tim yang user ikuti
-        const userEmail = currentUser?.email?.toLowerCase();
-        const teamMeetings = meetings.filter(m => {
-          if (!m.assignedTeamIds || m.assignedTeamIds.length === 0) return false;
-          // Pastikan rapat ini belum ditampilkan di grup (workspace) atau pribadi
-          const alreadyVisible = m.workspaceId && workspaces.some(w => w.id === m.workspaceId && w.members?.includes(currentUser?.uid));
-          if (alreadyVisible) return false;
-          const isPrivateCreator = !m.workspaceId && m.createdBy === currentUser?.uid;
-          if (isPrivateCreator) return false;
-          // Cek apakah user adalah anggota dari salah satu tim yang ditugaskan
-          return m.assignedTeamIds.some(teamId => {
-            const team = teams.find(t => t.id === teamId);
-            if (!team || !team.members) return false;
-            return team.members.some(member => member.email.toLowerCase() === userEmail);
-          });
-        });
-
-        if (teamMeetings.length === 0) {
-          container.innerHTML = '<div style="text-align:center; color:var(--color-text-light); padding: 12px 4px; font-size: 0.8rem;"><i class="fas fa-info-circle" style="margin-right:4px;"></i>Belum ada rapat tim yang ditugaskan.</div>';
-          return;
-        }
-
-        teamMeetings.forEach(m => {
-          const div = document.createElement('div');
-          div.className = `meeting-item ${m.id === currentMeetingId ? 'active' : ''}`;
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.className = 'meeting-checkbox';
-          checkbox.checked = selectedMeetingIds.has(m.id);
-          if (userRole !== 'admin') {
-            checkbox.disabled = true;
-            checkbox.style.display = 'none';
-          }
-          checkbox.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (checkbox.checked) selectedMeetingIds.add(m.id);
-            else selectedMeetingIds.delete(m.id);
-            updateDeleteSelectedButton();
-          });
-
-          const content = document.createElement('div');
-          content.className = 'meeting-content';
-          content.innerHTML = `
-            <div class="meeting-title">${escapeHtml(m.title)}</div>
-            <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
-          `;
-
-          div.appendChild(checkbox);
-          div.appendChild(content);
-          div.addEventListener('click', (e) => {
-            if (e.target !== checkbox) {
-              currentWorkspaceId = m.workspaceId || null;
-              currentMeetingId = m.id;
-              renderTeamMeetings();
-              renderPrivateMeetings();
-              renderWorkspaceList();
-              renderDetail(m);
-            }
-          });
-          container.appendChild(div);
-        });
-      }
-
       function renderPrivateMeetings() {
         currentTeamId = null; renderTeamList();
         const container = document.getElementById('privateMeetingList');
@@ -2715,9 +2648,7 @@
         headerTitle.innerText = meeting.title;
         headerDate.innerHTML = `<i class="far fa-calendar-alt"></i> ${formatDate(meeting.date)}`;
         
-        const isKoordinator = isUserKoordinatorOfAssignedTeam(meeting);
-        const hasEditAccess = hasMeetingEditAccess(meeting);
-        const canEditMeeting = userRole === 'admin' || meeting.createdBy === currentUser?.uid || isKoordinator || hasEditAccess;
+        const canEditMeeting = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
         const isLatest = isMeetingLatest(meeting);
         const showGlobalReadOnly = !canEditMeeting && !isLatest;
 
@@ -2750,7 +2681,10 @@
             // === TIM YANG DITUGASKAN ===
     html += renderAssignedTeams(meeting);
 
-        html += renderDashboard(meeting);
+        // === TIM YANG DITUGASKAN ===
+    html += renderAssignedTeams(meeting);
+
+    html += renderDashboard(meeting);
         html += renderLogsWithActions(meeting);
         html += renderIncomeTable(meeting);
 
@@ -3742,7 +3676,6 @@
         const isAdmin = userRole === 'admin';
         const meeting = meetings.find(m => m.id === currentMeetingId);
         const isCreator = meeting && meeting.createdBy === currentUser?.uid;
-        const isKoordinator = meeting && isUserKoordinatorOfAssignedTeam(meeting);
 
         const adminBtns = [
           document.getElementById('deleteSelectedBtn'),
@@ -3760,7 +3693,7 @@
             newWorkspaceBtn.classList.toggle('disabled', !currentUser);
         }
 
-        const canEditMeeting = isAdmin || isCreator || isKoordinator;
+        const canEditMeeting = isAdmin || isCreator;
         const meetingBtns = [
           document.getElementById('editMeetingBtn'),
           document.getElementById('deleteMeetingBtn')
@@ -3771,21 +3704,9 @@
           btn.classList.toggle('disabled', !canEditMeeting);
         });
 
-        // Tombol Kelola Akses - tampilkan untuk admin, pembuat rapat, atau koordinator tim
-        const meetingAccessBtn = document.getElementById('btn-meeting-access');
-        if (meetingAccessBtn && meeting) {
-          const canManageAccess = isAdmin || isCreator || isKoordinator;
-          meetingAccessBtn.style.display = canManageAccess ? 'inline-flex' : 'none';
-          meetingAccessBtn.disabled = false;
-          meetingAccessBtn.onclick = () => openMeetingAccessModal(meeting.id);
-        } else if (meetingAccessBtn) {
-          meetingAccessBtn.style.display = 'none';
-          meetingAccessBtn.disabled = true;
-        }
-
         const addSectionBtn = document.getElementById('addSectionBtn');
         if (addSectionBtn) {
-            const canAdd = isAdmin || isCreator || isKoordinator || (meeting && hasMeetingEditAccess(meeting));
+            const canAdd = isAdmin || isCreator; // Hanya Admin / Pembuat Rapat
             addSectionBtn.disabled = !canAdd;
             addSectionBtn.classList.toggle('disabled', !canAdd);
         }
@@ -3820,11 +3741,10 @@
 
         select.innerHTML = '<option value="">-- Pilih Tim --</option>';
         teams.forEach(t => {
-          // Tampilkan semua tim yang dilihat user (pembuat, koordinator, atau anggota)
+          // Only show teams where current user is creator or koordinator
           const isCreator = t.createdBy === currentUser?.uid;
           const isKoordinator = t.members?.some(m => m.email === currentUser?.email && m.role === 'koordinator');
-          const isMember = t.members?.some(m => m.email === currentUser?.email);
-          if (isCreator || isKoordinator || isMember) {
+          if (isCreator || isKoordinator) {
             const option = document.createElement('option');
             option.value = t.id;
             option.text = escapeHtml(t.name);
@@ -4260,52 +4180,21 @@
       let unsubscribeTeams = null;
 
       function initTeamsListener() {
-        if (!currentUser) return;
-        if (unsubscribeTeams) unsubscribeTeams();
+  if (!currentUser) return;
+  if (unsubscribeTeams) unsubscribeTeams();
 
-        // Gabungkan tim yang dibuat user DAN tim di mana user adalah anggota (dari memberEmails)
-        const userEmail = currentUser.email.toLowerCase();
-        const userUid = currentUser.uid;
-
-        unsubscribeTeams = db.collection('teams')
-          .where('memberEmails', 'array-contains', userEmail)
-          .onSnapshot(snapshot => {
-            teams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderTeamList();
-            updateMeetingTeamSelect();
-          }, error => {
-            console.error('Error Teams Listener:', error);
-            if (error.code === 'permission-denied') {
-              console.warn('Akses ditolak: Periksa Firestore Security Rules untuk koleksi teams');
-            }
-          });
+  unsubscribeTeams = db.collection('teams')
+    .where('createdBy', '==', currentUser.uid)
+    .onSnapshot(snapshot => {
+      teams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderTeamList();
+    }, error => {
+      console.error('Error Teams Listener:', error);
+      if (error.code === 'permission-denied') {
+        console.warn('Akses ditolak: Periksa Firestore Security Rules untuk koleksi teams');
       }
-
-      // Fungsi helper untuk cek apakah user adalah koordinator dari salah satu tim yang ditugaskan ke rapat
-      function isUserKoordinatorOfAssignedTeam(meeting) {
-        if (!meeting || !meeting.assignedTeamIds || meeting.assignedTeamIds.length === 0) return false;
-        const userEmail = currentUser?.email?.toLowerCase();
-        if (!userEmail) return false;
-        return meeting.assignedTeamIds.some(teamId => {
-          const team = teams.find(t => t.id === teamId);
-          if (!team || !team.members) return false;
-          return team.members.some(m =>
-            m.email.toLowerCase() === userEmail && m.role === 'koordinator'
-          );
-        });
-      }
-
-      // Fungsi helper untuk cek apakah user adalah anggota dari salah satu tim yang ditugaskan ke rapat
-      function isUserMemberOfAssignedTeam(meeting) {
-        if (!meeting || !meeting.assignedTeamIds || meeting.assignedTeamIds.length === 0) return false;
-        const userEmail = currentUser?.email?.toLowerCase();
-        if (!userEmail) return false;
-        return meeting.assignedTeamIds.some(teamId => {
-          const team = teams.find(t => t.id === teamId);
-          if (!team || !team.members) return false;
-          return team.members.some(m => m.email.toLowerCase() === userEmail);
-        });
-      }
+    });
+}
 
       function renderTeamList() {
         const container = document.getElementById('teamList');
@@ -4327,9 +4216,6 @@
         teams.forEach(team => {
           const memberCount = team.members ? team.members.length : 0;
           const koordinatorCount = team.members ? team.members.filter(m => m.role === 'koordinator').length : 0;
-          const isCreator = team.createdBy === currentUser?.uid;
-          const isKoordinator = team.members?.some(m => m.email === currentUser?.email && m.role === 'koordinator');
-          const canManage = isCreator || isKoordinator || userRole === 'admin';
           const div = document.createElement('div');
           div.className = `team-item ${currentTeamId === team.id ? 'active' : ''}`;
           div.dataset.id = team.id;
@@ -4340,15 +4226,13 @@
               <div class="team-meta">
                 <span><i class="fas fa-user"></i> ${memberCount} anggota</span>
                 ${koordinatorCount > 0 ? `<span class="role-badge role-koordinator">${koordinatorCount} Koordinator</span>` : ''}
-                ${!canManage ? `<span class="role-badge role-anggota"><i class="fas fa-eye"></i> Anggota</span>` : ''}
               </div>
             </div>
-            ${canManage ? `
             <div class="team-actions-sidebar">
               <button onclick="event.stopPropagation(); openTeamMembersModal('${team.id}');" title="Kelola Anggota"><i class="fas fa-user-cog"></i></button>
               <button onclick="event.stopPropagation(); editTeam('${team.id}');" title="Edit Tim"><i class="fas fa-edit"></i></button>
               <button class="delete" onclick="event.stopPropagation(); deleteTeam('${team.id}');" title="Hapus Tim"><i class="fas fa-trash"></i></button>
-            </div>` : ''}
+            </div>
           `;
           div.addEventListener('click', () => {
             currentTeamId = team.id;
@@ -4421,20 +4305,14 @@
           `;
         }
 
-        const isTeamCreator = team.createdBy === currentUser?.uid;
-        const isTeamKoordinator = team.members?.some(m => m.email === currentUser?.email && m.role === 'koordinator');
-        const canManageTeam = isTeamCreator || isTeamKoordinator || userRole === 'admin';
-
         content.innerHTML = `
           <div class="team-detail-card">
             <div class="team-detail-header">
-              <h3><i class="fas fa-users"></i> ${escapeHtml(team.name)} ${!canManageTeam ? '<span class="role-badge role-anggota" style="margin-left:8px;"><i class="fas fa-eye"></i> Mode Lihat</span>' : ''}</h3>
+              <h3><i class="fas fa-users"></i> ${escapeHtml(team.name)}</h3>
               <div style="display: flex; gap: 10px;">
-                ${canManageTeam ? `
                 <button class="btn-header" onclick="openTeamMembersModal('${team.id}')"><i class="fas fa-user-cog"></i> Kelola Anggota</button>
                 <button class="btn-edit-meeting" onclick="editTeam('${team.id}')"><i class="fas fa-pen"></i> Edit Tim</button>
                 <button class="btn-delete-meeting" onclick="deleteTeam('${team.id}')"><i class="fas fa-trash"></i> Hapus Tim</button>
-                ` : ''}
               </div>
             </div>
             ${team.description ? `<p style="color: var(--color-text-light); margin-bottom: 20px; font-size: 0.95rem;"><i class="fas fa-info-circle" style="color: var(--color-primary);"></i> ${escapeHtml(team.description)}</p>` : ''}
@@ -4464,12 +4342,6 @@
       window.editTeam = (teamId) => {
         const team = teams.find(t => t.id === teamId);
         if (!team) return;
-        const isTeamCreator = team.createdBy === currentUser?.uid;
-        const isTeamKoordinator = team.members?.some(m => m.email === currentUser?.email && m.role === 'koordinator');
-        if (!isTeamCreator && !isTeamKoordinator && userRole !== 'admin') {
-          alert('Anda tidak memiliki izin untuk mengedit tim ini.');
-          return;
-        }
         document.getElementById('teamIdInput').value = team.id;
         document.getElementById('teamNameInput').value = team.name || '';
         document.getElementById('teamDescInput').value = team.description || '';
@@ -4511,46 +4383,39 @@
       });
 
       document.getElementById('saveTeamModal')?.addEventListener('click', async () => {
-        const id = document.getElementById('teamIdInput').value;
-        const name = document.getElementById('teamNameInput').value.trim();
-        const description = document.getElementById('teamDescInput').value.trim();
+  const id = document.getElementById('teamIdInput').value;
+  const name = document.getElementById('teamNameInput').value.trim();
+  const description = document.getElementById('teamDescInput').value.trim();
 
-        if (!name) return alert('Nama tim harus diisi');
+  if (!name) return alert('Nama tim harus diisi');
 
-        try {
-          if (id) {
-            // Edit existing - tetap update name dan description saja
-            await db.collection('teams').doc(id).update({ name, description });
-            console.log('Tim berhasil diupdate:', id);
-          } else {
-            // Create new - tambahkan memberEmails array kosong
-            const docRef = await db.collection('teams').add({
-              name,
-              description,
-              createdBy: currentUser.uid,
-              members: [],
-              memberEmails: [],
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            console.log('Tim baru dibuat dengan ID:', docRef.id);
-          }
-          document.getElementById('teamModal').classList.remove('active');
-        } catch (error) {
-          console.error('Gagal menyimpan tim:', error);
-          alert('Gagal menyimpan tim: ' + error.message);
-        }
+  try {
+    if (id) {
+      // Edit existing
+      await db.collection('teams').doc(id).update({ name, description });
+      console.log('Tim berhasil diupdate:', id);
+    } else {
+      // Create new
+      const docRef = await db.collection('teams').add({
+        name,
+        description,
+        createdBy: currentUser.uid,
+        members: [],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      console.log('Tim baru dibuat dengan ID:', docRef.id);
+    }
+    document.getElementById('teamModal').classList.remove('active');
+  } catch (error) {
+    console.error('Gagal menyimpan tim:', error);
+    alert('Gagal menyimpan tim: ' + error.message);
+  }
+});
 
       // Team Members Management
       window.openTeamMembersModal = async (teamId) => {
         const team = teams.find(t => t.id === teamId);
         if (!team) return;
-
-        // Cek izin: hanya pembuat tim, koordinator, atau admin yang bisa mengelola anggota
-        const isTeamCreator = team.createdBy === currentUser?.uid;
-        const isTeamKoordinator = team.members?.some(m => m.email === currentUser?.email && m.role === 'koordinator');
-        const canManageMembers = isTeamCreator || isTeamKoordinator || userRole === 'admin';
-        if (!canManageMembers) return alert('Akses ditolak: Hanya pembuat tim, koordinator, atau admin yang dapat mengelola anggota.');
 
         document.getElementById('teamMembersModal').dataset.teamId = teamId;
         document.getElementById('teamMembersModalTitle').innerHTML = `<i class="fas fa-user-friends"></i> Kelola Anggota - ${escapeHtml(team.name)}`;
@@ -4558,11 +4423,6 @@
         document.getElementById('teamMemberNameInput').value = '';
         document.getElementById('teamMemberEmailInput').value = '';
         document.getElementById('teamMemberRoleInput').value = 'anggota';
-
-        // Sinkronisasi memberEmails untuk tim lama yang belum punya field ini
-        if (!team.memberEmails || team.memberEmails.length === 0) {
-          await syncTeamMemberEmails(teamId);
-        }
 
         renderTeamMemberList(team);
       };
@@ -4576,10 +4436,6 @@
 
         listDiv.innerHTML = '';
 
-        // Cek izin manajemen
-        const isTeamCreator = team.createdBy === currentUser?.uid;
-        const canManageMembers = isTeamCreator || userRole === 'admin';
-
         // Sort: koordinators first, then alphabetically by name
         const sorted = [...team.members].sort((a, b) => {
           if (a.role === 'koordinator' && b.role !== 'koordinator') return -1;
@@ -4588,7 +4444,6 @@
         });
 
         sorted.forEach((m, index) => {
-          const originalIndex = team.members.indexOf(m);
           const item = document.createElement('div');
           item.className = 'member-item';
           item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--color-border);';
@@ -4605,18 +4460,17 @@
                 <span class="member-role-badge ${roleClass}" style="margin-top: 4px;">${roleLabel}</span>
               </div>
             </div>
-            ${canManageMembers ? `
             <div style="display: flex; gap: 6px;">
-              <button onclick="changeTeamMemberRole('${team.id}', ${originalIndex}, '${m.role === 'koordinator' ? 'anggota' : 'koordinator'}')"
+              <button onclick="changeTeamMemberRole('${team.id}', ${index}, '${m.role === 'koordinator' ? 'anggota' : 'koordinator'}')" 
                 style="background: #f8fafc; border: 1px solid var(--color-border); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; color: var(--color-text);"
                 title="Ubah jadi ${m.role === 'koordinator' ? 'Anggota' : 'Koordinator'}">
                 <i class="fas fa-exchange-alt"></i> ${m.role === 'koordinator' ? 'Jadikan Anggota' : 'Jadikan Koordinator'}
               </button>
-              <button onclick="removeTeamMember('${team.id}', '${m.email || m.name}')"
+              <button onclick="removeTeamMember('${team.id}', '${m.email || m.name}')" 
                 style="background: #fee2e2; border: 1px solid #fca5a5; color: #dc2626; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
                 <i class="fas fa-trash"></i>
               </button>
-            </div>` : ''}
+            </div>
           `;
           listDiv.appendChild(item);
         });
@@ -4642,37 +4496,16 @@
         }
       };
 
-      // Fungsi untuk sinkronisasi memberEmails dari members array (untuk tim lama)
-      async function syncTeamMemberEmails(teamId) {
-        const team = teams.find(t => t.id === teamId);
-        if (!team || !team.members) return;
-        const memberEmails = team.members.map(m => m.email?.toLowerCase()).filter(e => e);
-        const uniqueEmails = [...new Set(memberEmails)];
-        try {
-          await db.collection('teams').doc(teamId).update({ memberEmails: uniqueEmails });
-          team.memberEmails = uniqueEmails;
-        } catch (e) {
-          console.warn('Gagal sinkronisasi memberEmails:', e);
-        }
-      }
-
       window.removeTeamMember = async (teamId, identifier) => {
         if (!confirm('Hapus anggota ini dari tim?')) return;
         const team = teams.find(t => t.id === teamId);
         if (!team || !team.members) return;
 
-        const removedMember = team.members.find(m => m.email === identifier || m.name === identifier);
         const updatedMembers = team.members.filter(m => m.email !== identifier && m.name !== identifier);
-        // Update memberEmails array
-        const updatedMemberEmails = (team.memberEmails || []).filter(e => e !== (removedMember?.email || identifier));
 
         try {
-          await db.collection('teams').doc(teamId).update({
-            members: updatedMembers,
-            memberEmails: updatedMemberEmails
-          });
+          await db.collection('teams').doc(teamId).update({ members: updatedMembers });
           team.members = updatedMembers;
-          team.memberEmails = updatedMemberEmails;
           renderTeamMemberList(team);
           renderTeamList();
           if (currentTeamId === teamId) renderTeamDetail(team);
@@ -4694,22 +4527,13 @@
 
         const newMember = { name, email: email || '', role };
         const updatedMembers = [...(team.members || []), newMember];
-        // Update memberEmails array flat untuk query Firestore
-        const updatedMemberEmails = [...(team.memberEmails || [])];
-        if (email && !updatedMemberEmails.includes(email)) {
-          updatedMemberEmails.push(email);
-        }
 
         try {
-          await db.collection('teams').doc(teamId).update({
-            members: updatedMembers,
-            memberEmails: updatedMemberEmails
-          });
+          await db.collection('teams').doc(teamId).update({ members: updatedMembers });
           document.getElementById('teamMemberNameInput').value = '';
           document.getElementById('teamMemberEmailInput').value = '';
           document.getElementById('teamMemberRoleInput').value = 'anggota';
           team.members = updatedMembers;
-          team.memberEmails = updatedMemberEmails;
           renderTeamMemberList(team);
           renderTeamList();
           if (currentTeamId === teamId) renderTeamDetail(team);
@@ -4721,102 +4545,6 @@
       document.getElementById('closeTeamMembersModal')?.addEventListener('click', () => {
         document.getElementById('teamMembersModal').classList.remove('active');
       });
-
-      // ========== MEETING ACCESS MANAGEMENT ==========
-      let currentMeetingAccessEmails = [];
-
-      function openMeetingAccessModal(meetingId) {
-        const meeting = meetings.find(m => m.id === meetingId);
-        if (!meeting) return;
-
-        // Cek izin: hanya admin, pembuat rapat, atau koordinator tim yang bisa membuka
-        const canManageAccess = userRole === 'admin' || meeting.createdBy === currentUser?.uid || isUserKoordinatorOfAssignedTeam(meeting);
-        if (!canManageAccess) return alert('Akses ditolak: Hanya pembuat rapat, admin, atau koordinator tim yang dapat mengelola akses.');
-
-        currentMeetingAccessEmails = meeting.editAccessEmails || [];
-        document.getElementById('meetingAccessModal').dataset.meetingId = meetingId;
-        document.getElementById('meetingAccessModal').classList.add('active');
-        renderMeetingAccessList(meetingId);
-      }
-
-      function renderMeetingAccessList(meetingId) {
-        const listDiv = document.getElementById('meetingAccessList');
-        if (!currentMeetingAccessEmails || currentMeetingAccessEmails.length === 0) {
-          listDiv.innerHTML = '<div class="team-empty-state" style="padding: 16px;"><i class="fas fa-lock-open"></i>Belum ada akses tambahan. Hanya pembuat rapat dan admin yang bisa mengedit.</div>';
-          return;
-        }
-
-        const meeting = meetings.find(m => m.id === meetingId);
-        const isOwnerOrAdmin = userRole === 'admin' || meeting?.createdBy === currentUser?.uid;
-
-        listDiv.innerHTML = '';
-        currentMeetingAccessEmails.forEach((email, index) => {
-          const item = document.createElement('div');
-          item.className = 'member-item';
-          item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--color-border);';
-          item.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <i class="fas fa-user-circle" style="color:var(--color-primary); font-size: 1.2rem;"></i>
-              <span style="font-weight: 500; color: var(--color-secondary);">${escapeHtml(email)}</span>
-            </div>
-            ${isOwnerOrAdmin ? `<button onclick="removeMeetingAccess(${index})" style="background: #fee2e2; border: 1px solid #fca5a5; color: #dc2626; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"><i class="fas fa-trash"></i></button>` : ''}
-          `;
-          listDiv.appendChild(item);
-        });
-      }
-
-      window.removeMeetingAccess = async (index) => {
-        const meetingId = document.getElementById('meetingAccessModal').dataset.meetingId;
-        currentMeetingAccessEmails.splice(index, 1);
-        try {
-          await db.collection('meetings').doc(meetingId).update({
-            editAccessEmails: currentMeetingAccessEmails
-          });
-          renderMeetingAccessList(meetingId);
-        } catch (error) {
-          alert('Gagal menghapus akses: ' + error.message);
-        }
-      };
-
-      document.getElementById('addMeetingAccessBtn')?.addEventListener('click', async () => {
-        const meetingId = document.getElementById('meetingAccessModal').dataset.meetingId;
-        const emailInput = document.getElementById('meetingAccessEmailInput');
-        const email = emailInput.value.trim().toLowerCase();
-
-        if (!email) return alert('Email harus diisi');
-        if (!email.includes('@')) return alert('Format email tidak valid');
-
-        if (currentMeetingAccessEmails.includes(email)) {
-          alert('Email ini sudah memiliki akses.');
-          return;
-        }
-
-        currentMeetingAccessEmails.push(email);
-        try {
-          await db.collection('meetings').doc(meetingId).update({
-            editAccessEmails: currentMeetingAccessEmails
-          });
-          emailInput.value = '';
-          renderMeetingAccessList(meetingId);
-        } catch (error) {
-          alert('Gagal menambahkan akses: ' + error.message);
-        }
-      });
-
-      document.getElementById('closeMeetingAccessModal')?.addEventListener('click', () => {
-        document.getElementById('meetingAccessModal').classList.remove('active');
-      });
-
-      // Fungsi helper untuk cek apakah user memiliki akses edit via editAccessEmails
-      function hasMeetingEditAccess(meeting) {
-        if (!meeting || !meeting.editAccessEmails || meeting.editAccessEmails.length === 0) return false;
-        const userEmail = currentUser?.email?.toLowerCase();
-        if (!userEmail) return false;
-        return meeting.editAccessEmails.some(e => e.toLowerCase() === userEmail);
-      }
-
-      // Expose function globally
-      window.openMeetingAccessModal = openMeetingAccessModal;
 
 
       // ========== LOG EXPORT & ARCHIVE ==========
