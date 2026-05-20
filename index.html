@@ -3850,11 +3850,9 @@
         return null;
       }
       // ========== LOOKUP EMAIL BY UID (REVERSE LOOKUP) ==========
-      // Cache untuk menyimpan hasil lookup UID -> Email
       const uidEmailCache = new Map();
 
       async function lookupEmailByUid(uid) {
-        // Cek cache dulu
         if (uidEmailCache.has(uid)) {
           return uidEmailCache.get(uid);
         }
@@ -3871,7 +3869,7 @@
           console.log('Firestore lookup by UID failed:', e.message);
         }
 
-        // METHOD 2: Coba cari di RTDB user_emails (reverse lookup - scan semua)
+        // METHOD 2: Coba cari di RTDB user_emails (reverse lookup)
         try {
           const snapshot = await rtdb.ref('user_emails').once('value');
           const allUsers = snapshot.val();
@@ -3888,7 +3886,7 @@
           console.log('RTDB reverse lookup failed:', e.message);
         }
 
-        // METHOD 3: Jika UID terlihat seperti email (fallback untuk data lama)
+        // METHOD 3: Jika UID terlihat seperti email (fallback)
         if (uid && uid.includes('@')) {
           uidEmailCache.set(uid, uid);
           return uid;
@@ -4426,160 +4424,70 @@
       let currentTeamId = null;
       let unsubscribeTeams = null;
 
-      function initTeamsListener() {
+            function initTeamsListener() {
         if (!currentUser) return;
         if (unsubscribeTeams) unsubscribeTeams();
-
-        let teamsCreated = [];
-        let teamsMember = [];
-        let teamsByUid = [];
-        let teamsFromMeetings = [];
-        let gotCreated = false;
-        let gotMember = false;
-        let gotByUid = false;
-        let gotFromMeetings = false;
-
-        const userEmailLower = (currentUser.email || '').toLowerCase();
 
         // Query 1: Teams created by current user
         const unsub1 = db.collection('teams')
           .where('createdBy', '==', currentUser.uid)
           .onSnapshot(snapshot => {
-            teamsCreated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            gotCreated = true;
-            mergeAndRenderTeams();
-          }, error => {
-            console.error('Error Teams Listener (created):', error);
-            gotCreated = true;
-            mergeAndRenderTeams();
-          });
+            const teamsCreated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Query 2: Teams where current user email is in memberEmails array
-        const unsub2 = db.collection('teams')
-          .where('memberEmails', 'array-contains', userEmailLower)
-          .onSnapshot(snapshot => {
-            teamsMember = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            gotMember = true;
-            mergeAndRenderTeams();
-          }, error => {
-            console.error('Error Teams Listener (member):', error);
-            gotMember = true;
-            mergeAndRenderTeams();
-          });
+            // Query 2: Get ALL teams and filter client-side by membership
+            // This is more reliable than array-contains which requires index and exact match
+            db.collection('teams').get().then(allTeamsSnap => {
+              const userEmailLower = (currentUser.email || '').toLowerCase();
+              const teamsMember = allTeamsSnap.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .filter(team => {
+                  // Skip teams already in teamsCreated
+                  if (teamsCreated.find(t => t.id === team.id)) return false;
 
-        // Query 3: Fallback - get all teams and filter client-side
-        const unsub3 = db.collection('teams')
-          .onSnapshot(snapshot => {
-            teamsByUid = snapshot.docs
-              .map(doc => ({ id: doc.id, ...doc.data() }))
-              .filter(team => {
-                if (!team.members) return false;
-                return team.members.some(m => {
-                  if (m.email && m.email.toLowerCase() === userEmailLower) return true;
-                  if (m.uid && m.uid === currentUser.uid) return true;
+                  // Check if user is in members array (by email or UID)
+                  if (team.members && Array.isArray(team.members)) {
+                    return team.members.some(m => {
+                      if (m.email && m.email.toLowerCase() === userEmailLower) return true;
+                      if (m.uid && m.uid === currentUser.uid) return true;
+                      return false;
+                    });
+                  }
+
+                  // Also check memberEmails array as fallback
+                  if (team.memberEmails && Array.isArray(team.memberEmails)) {
+                    return team.memberEmails.some(e => e.toLowerCase() === userEmailLower);
+                  }
+
                   return false;
                 });
-              });
-            gotByUid = true;
-            mergeAndRenderTeams();
-          }, error => {
-            console.error('Error Teams Listener (byUid):', error);
-            gotByUid = true;
-            mergeAndRenderTeams();
-          });
 
-        // Query 4: Get teams from meetings the user can access
-        const unsub4 = db.collection('meetings')
-          .onSnapshot(snapshot => {
-            const userMeetings = snapshot.docs
-              .map(doc => ({ id: doc.id, ...doc.data() }))
-              .filter(m => {
-                if (m.createdBy === currentUser.uid) return true;
-                if (m.workspaceId) {
-                  const ws = workspaces.find(w => w.id === m.workspaceId);
-                  if (ws && ws.members && ws.members.includes(currentUser.uid)) return true;
-                }
-                if (m.assignedTeamIds && m.assignedTeamIds.length > 0) return true;
-                return false;
-              });
-
-            const assignedTeamIds = new Set();
-            userMeetings.forEach(m => {
-              if (m.assignedTeamIds) {
-                m.assignedTeamIds.forEach(tid => assignedTeamIds.add(tid));
+              // Merge and render
+              const teamMap = new Map();
+              teamsCreated.forEach(t => teamMap.set(t.id, t));
+              teamsMember.forEach(t => teamMap.set(t.id, t));
+              teams = Array.from(teamMap.values());
+              teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+              renderTeamList();
+              if (document.getElementById('meetingModal').classList.contains('active')) {
+                updateMeetingTeamSelect();
+                renderSelectedTeamChips();
               }
+            }).catch(err => {
+              console.error('Error fetching all teams:', err);
+              // Fallback: just show created teams
+              teams = teamsCreated;
+              teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+              renderTeamList();
             });
-
-            // Fetch teams by ID from the teams collection
-            if (assignedTeamIds.size > 0) {
-              const teamIds = Array.from(assignedTeamIds);
-              const batchSize = 10; // Firestore 'in' query limit
-              const fetchPromises = [];
-
-              for (let i = 0; i < teamIds.length; i += batchSize) {
-                const batch = teamIds.slice(i, i + batchSize);
-                fetchPromises.push(
-                  db.collection('teams')
-                    .where(firebase.firestore.FieldPath.documentId(), 'in', batch)
-                    .get()
-                    .then(snap => snap.docs.map(doc => ({ id: doc.id, ...doc.data() })))
-                    .catch(err => {
-                      console.error('Error fetching teams batch:', err);
-                      return [];
-                    })
-                );
-              }
-
-              Promise.all(fetchPromises)
-                .then(results => {
-                  teamsFromMeetings = results.flat();
-                  gotFromMeetings = true;
-                  mergeAndRenderTeams();
-                })
-                .catch(err => {
-                  console.error('Error fetching teams from meetings:', err);
-                  gotFromMeetings = true;
-                  mergeAndRenderTeams();
-                });
-            } else {
-              gotFromMeetings = true;
-              mergeAndRenderTeams();
-            }
           }, error => {
-            console.error('Error Teams Listener (fromMeetings):', error);
-            gotFromMeetings = true;
-            mergeAndRenderTeams();
+            console.error('Error Teams Listener (created):', error);
           });
-
-        function mergeAndRenderTeams() {
-          if (!gotCreated) return;
-          const teamMap = new Map();
-          teamsCreated.forEach(t => teamMap.set(t.id, t));
-          if (gotMember) {
-            teamsMember.forEach(t => teamMap.set(t.id, t));
-          }
-          if (gotByUid) {
-            teamsByUid.forEach(t => teamMap.set(t.id, t));
-          }
-          if (gotFromMeetings) {
-            teamsFromMeetings.forEach(t => teamMap.set(t.id, t));
-          }
-          teams = Array.from(teamMap.values());
-          teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-          renderTeamList();
-          if (document.getElementById('meetingModal').classList.contains('active')) {
-            updateMeetingTeamSelect();
-            renderSelectedTeamChips();
-          }
-        }
 
         unsubscribeTeams = () => {
           unsub1();
-          unsub2();
-          unsub3();
-          unsub4();
         };
 
+        // One-time migration: populate memberEmails for existing teams
         migrateTeamMemberEmails();
       }
 
@@ -4594,17 +4502,17 @@
 
           snapshot.docs.forEach(doc => {
             const data = doc.data();
-            if (data.members) {
-              // Pastikan semua email anggota lowercase
+            if (data.members && Array.isArray(data.members)) {
+              // Normalize all emails to lowercase
               const updatedMembers = data.members.map(m => ({
                 ...m,
                 email: m.email ? m.email.toLowerCase() : m.email
               }));
 
-              // Buat memberEmails dari members (lowercase, unik)
+              // Build memberEmails from members (lowercase, unique)
               const emails = [...new Set(updatedMembers.map(m => m.email).filter(Boolean))];
 
-              // Cek apakah perlu update
+              // Check if update needed
               const currentEmails = data.memberEmails || [];
               const needsUpdate = 
                 !data.memberEmails || 
@@ -4629,7 +4537,6 @@
           console.log('Migration check failed:', e.message);
         }
       }
-
       function renderTeamList() {
         const container = document.getElementById('teamList');
         const btn = document.getElementById('newTeamBtn');
@@ -4641,46 +4548,6 @@
         }
 
         container.innerHTML = '';
-
-        // Fallback: Jika teams array kosong, coba ambil dari meetings yang visible
-        if (teams.length === 0 && meetings.length > 0) {
-          const userEmailLower = (currentUser.email || '').toLowerCase();
-          const visibleTeamIds = new Set();
-
-          meetings.forEach(m => {
-            // Cek apakah user bisa akses meeting ini
-            const canAccess = 
-              m.createdBy === currentUser.uid ||
-              (m.workspaceId && workspaces.find(w => w.id === m.workspaceId)?.members?.includes(currentUser.uid));
-
-            if (canAccess && m.assignedTeamIds) {
-              m.assignedTeamIds.forEach(tid => visibleTeamIds.add(tid));
-            }
-          });
-
-          // Jika ada teamIds dari meetings, tampilkan placeholder yang akan diisi saat data teams tersedia
-          if (visibleTeamIds.size > 0) {
-            container.innerHTML = '<div style="padding: 16px; color: var(--color-text-light); font-size: 0.85rem; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Memuat tim...</div>';
-
-            // Fetch teams dari Firestore langsung
-            db.collection('teams').where(firebase.firestore.FieldPath.documentId(), 'in', Array.from(visibleTeamIds).slice(0, 10))
-              .get()
-              .then(snapshot => {
-                const fetchedTeams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (fetchedTeams.length > 0) {
-                  teams = fetchedTeams;
-                  renderTeamList();
-                } else {
-                  container.innerHTML = '<div class="team-empty-state" style="padding: 16px 8px; font-size: 0.8rem;"><i class="fas fa-users" style="font-size: 1.5rem;"></i>Belum ada tim. Klik tombol di atas untuk membuat.</div>';
-                }
-              })
-              .catch(err => {
-                console.error('Error fetching teams from meetings:', err);
-                container.innerHTML = '<div class="team-empty-state" style="padding: 16px 8px; font-size: 0.8rem;"><i class="fas fa-users" style="font-size: 1.5rem;"></i>Belum ada tim. Klik tombol di atas untuk membuat.</div>';
-              });
-            return;
-          }
-        }
 
         if (teams.length === 0) {
           container.innerHTML = '<div class="team-empty-state" style="padding: 16px 8px; font-size: 0.8rem;"><i class="fas fa-users" style="font-size: 1.5rem;"></i>Belum ada tim. Klik tombol di atas untuk membuat.</div>';
@@ -4983,7 +4850,6 @@
         try {
           await db.collection('teams').doc(teamId).update({ members: updatedMembers, memberEmails: updatedMemberEmails });
           team.members = updatedMembers;
-          team.memberEmails = updatedMemberEmails;
           renderTeamMemberList(team);
           renderTeamList();
           if (currentTeamId === teamId) renderTeamDetail(team);
@@ -5003,7 +4869,7 @@
 
         if (!name) return alert('Nama anggota harus diisi');
 
-        // Cari UID untuk email ini jika ada
+        // Cari UID untuk email ini jika user sudah pernah login
         let memberUid = '';
         if (email) {
           const userLookup = await lookupUserByEmail(email);
@@ -5015,8 +4881,8 @@
         const newMember = { name, email: email || '', role, uid: memberUid };
         const updatedMembers = [...(team.members || []), newMember];
 
-        // Update memberEmails: gabungkan email lama + email baru (unik, tidak duplikat)
-        const existingEmails = new Set(team.memberEmails || []);
+        // Update memberEmails: gabungkan email lama + email baru (unik, tidak duplikat, lowercase)
+        const existingEmails = new Set((team.memberEmails || []).map(e => e.toLowerCase()));
         if (email) existingEmails.add(email);
         const updatedMemberEmails = Array.from(existingEmails);
 
