@@ -3814,7 +3814,7 @@
           const safeEmail = sanitizeEmailForRtdb(user.email);
           await rtdb.ref('user_emails/' + safeEmail).set({
             uid: user.uid,
-            email: user.email,
+            email: user.email.toLowerCase(),
             displayName: user.displayName || '',
             updatedAt: firebase.database.ServerValue.TIMESTAMP
           });
@@ -4433,9 +4433,13 @@
         let teamsCreated = [];
         let teamsMember = [];
         let teamsByUid = [];
+        let teamsFromMeetings = [];
         let gotCreated = false;
         let gotMember = false;
         let gotByUid = false;
+        let gotFromMeetings = false;
+
+        const userEmailLower = (currentUser.email || '').toLowerCase();
 
         // Query 1: Teams created by current user
         const unsub1 = db.collection('teams')
@@ -4452,7 +4456,7 @@
 
         // Query 2: Teams where current user email is in memberEmails array
         const unsub2 = db.collection('teams')
-          .where('memberEmails', 'array-contains', currentUser.email)
+          .where('memberEmails', 'array-contains', userEmailLower)
           .onSnapshot(snapshot => {
             teamsMember = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             gotMember = true;
@@ -4463,7 +4467,7 @@
             mergeAndRenderTeams();
           });
 
-        // Query 3: Ambil semua teams dan filter client-side berdasarkan members array
+        // Query 3: Fallback - get all teams and filter client-side
         const unsub3 = db.collection('teams')
           .onSnapshot(snapshot => {
             teamsByUid = snapshot.docs
@@ -4471,9 +4475,7 @@
               .filter(team => {
                 if (!team.members) return false;
                 return team.members.some(m => {
-                  // Check by email
-                  if (m.email && m.email.toLowerCase() === currentUser.email.toLowerCase()) return true;
-                  // Check by UID
+                  if (m.email && m.email.toLowerCase() === userEmailLower) return true;
                   if (m.uid && m.uid === currentUser.uid) return true;
                   return false;
                 });
@@ -4486,6 +4488,69 @@
             mergeAndRenderTeams();
           });
 
+        // Query 4: Get teams from meetings the user can access
+        const unsub4 = db.collection('meetings')
+          .onSnapshot(snapshot => {
+            const userMeetings = snapshot.docs
+              .map(doc => ({ id: doc.id, ...doc.data() }))
+              .filter(m => {
+                if (m.createdBy === currentUser.uid) return true;
+                if (m.workspaceId) {
+                  const ws = workspaces.find(w => w.id === m.workspaceId);
+                  if (ws && ws.members && ws.members.includes(currentUser.uid)) return true;
+                }
+                if (m.assignedTeamIds && m.assignedTeamIds.length > 0) return true;
+                return false;
+              });
+
+            const assignedTeamIds = new Set();
+            userMeetings.forEach(m => {
+              if (m.assignedTeamIds) {
+                m.assignedTeamIds.forEach(tid => assignedTeamIds.add(tid));
+              }
+            });
+
+            // Fetch teams by ID from the teams collection
+            if (assignedTeamIds.size > 0) {
+              const teamIds = Array.from(assignedTeamIds);
+              const batchSize = 10; // Firestore 'in' query limit
+              const fetchPromises = [];
+
+              for (let i = 0; i < teamIds.length; i += batchSize) {
+                const batch = teamIds.slice(i, i + batchSize);
+                fetchPromises.push(
+                  db.collection('teams')
+                    .where(firebase.firestore.FieldPath.documentId(), 'in', batch)
+                    .get()
+                    .then(snap => snap.docs.map(doc => ({ id: doc.id, ...doc.data() })))
+                    .catch(err => {
+                      console.error('Error fetching teams batch:', err);
+                      return [];
+                    })
+                );
+              }
+
+              Promise.all(fetchPromises)
+                .then(results => {
+                  teamsFromMeetings = results.flat();
+                  gotFromMeetings = true;
+                  mergeAndRenderTeams();
+                })
+                .catch(err => {
+                  console.error('Error fetching teams from meetings:', err);
+                  gotFromMeetings = true;
+                  mergeAndRenderTeams();
+                });
+            } else {
+              gotFromMeetings = true;
+              mergeAndRenderTeams();
+            }
+          }, error => {
+            console.error('Error Teams Listener (fromMeetings):', error);
+            gotFromMeetings = true;
+            mergeAndRenderTeams();
+          });
+
         function mergeAndRenderTeams() {
           if (!gotCreated) return;
           const teamMap = new Map();
@@ -4495,6 +4560,9 @@
           }
           if (gotByUid) {
             teamsByUid.forEach(t => teamMap.set(t.id, t));
+          }
+          if (gotFromMeetings) {
+            teamsFromMeetings.forEach(t => teamMap.set(t.id, t));
           }
           teams = Array.from(teamMap.values());
           teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -4509,13 +4577,13 @@
           unsub1();
           unsub2();
           unsub3();
+          unsub4();
         };
 
-        // One-time migration: populate memberEmails for existing teams
         migrateTeamMemberEmails();
       }
 
-      // Migrate existing teams to include memberEmails field
+      // Migrate existing teams to include memberEmails field (lowercase)
       async function migrateTeamMemberEmails() {
         try {
           const snapshot = await db.collection('teams')
@@ -4526,10 +4594,30 @@
 
           snapshot.docs.forEach(doc => {
             const data = doc.data();
-            if (!data.memberEmails && data.members) {
-              const emails = data.members.map(m => m.email).filter(Boolean);
-              batch.update(doc.ref, { memberEmails: emails });
-              needsBatch = true;
+            if (data.members) {
+              // Pastikan semua email anggota lowercase
+              const updatedMembers = data.members.map(m => ({
+                ...m,
+                email: m.email ? m.email.toLowerCase() : m.email
+              }));
+
+              // Buat memberEmails dari members (lowercase, unik)
+              const emails = [...new Set(updatedMembers.map(m => m.email).filter(Boolean))];
+
+              // Cek apakah perlu update
+              const currentEmails = data.memberEmails || [];
+              const needsUpdate = 
+                !data.memberEmails || 
+                emails.length !== currentEmails.length ||
+                emails.some(e => !currentEmails.includes(e));
+
+              if (needsUpdate) {
+                batch.update(doc.ref, { 
+                  members: updatedMembers,
+                  memberEmails: emails 
+                });
+                needsBatch = true;
+              }
             }
           });
 
@@ -4553,6 +4641,46 @@
         }
 
         container.innerHTML = '';
+
+        // Fallback: Jika teams array kosong, coba ambil dari meetings yang visible
+        if (teams.length === 0 && meetings.length > 0) {
+          const userEmailLower = (currentUser.email || '').toLowerCase();
+          const visibleTeamIds = new Set();
+
+          meetings.forEach(m => {
+            // Cek apakah user bisa akses meeting ini
+            const canAccess = 
+              m.createdBy === currentUser.uid ||
+              (m.workspaceId && workspaces.find(w => w.id === m.workspaceId)?.members?.includes(currentUser.uid));
+
+            if (canAccess && m.assignedTeamIds) {
+              m.assignedTeamIds.forEach(tid => visibleTeamIds.add(tid));
+            }
+          });
+
+          // Jika ada teamIds dari meetings, tampilkan placeholder yang akan diisi saat data teams tersedia
+          if (visibleTeamIds.size > 0) {
+            container.innerHTML = '<div style="padding: 16px; color: var(--color-text-light); font-size: 0.85rem; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Memuat tim...</div>';
+
+            // Fetch teams dari Firestore langsung
+            db.collection('teams').where(firebase.firestore.FieldPath.documentId(), 'in', Array.from(visibleTeamIds).slice(0, 10))
+              .get()
+              .then(snapshot => {
+                const fetchedTeams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (fetchedTeams.length > 0) {
+                  teams = fetchedTeams;
+                  renderTeamList();
+                } else {
+                  container.innerHTML = '<div class="team-empty-state" style="padding: 16px 8px; font-size: 0.8rem;"><i class="fas fa-users" style="font-size: 1.5rem;"></i>Belum ada tim. Klik tombol di atas untuk membuat.</div>';
+                }
+              })
+              .catch(err => {
+                console.error('Error fetching teams from meetings:', err);
+                container.innerHTML = '<div class="team-empty-state" style="padding: 16px 8px; font-size: 0.8rem;"><i class="fas fa-users" style="font-size: 1.5rem;"></i>Belum ada tim. Klik tombol di atas untuk membuat.</div>';
+              });
+            return;
+          }
+        }
 
         if (teams.length === 0) {
           container.innerHTML = '<div class="team-empty-state" style="padding: 16px 8px; font-size: 0.8rem;"><i class="fas fa-users" style="font-size: 1.5rem;"></i>Belum ada tim. Klik tombol di atas untuk membuat.</div>';
