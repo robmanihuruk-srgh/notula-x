@@ -5071,5 +5071,103 @@
 <!-- ========================================================= -->
 <!-- SELESAI: FITUR KALENDER INTERAKTIF NOTULA v2.0 (FIXED)    -->
 <!-- ========================================================= -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // [LANGKAH 1 OTOMATIS]: Mencari tombol tambah dan memperbaiki atributnya
+    // Script ini otomatis mencari input email anggota baru dan tombol di dekatnya
+    const emailInput = document.getElementById('newMemberEmail');
+    if (emailInput) {
+      // Mencari tombol 'Tambah' di area modal kelola anggota
+      const modals = document.querySelectorAll('.modal, .modal-content, #manage-members-modal');
+      modals.forEach(modal => {
+        const buttons = modal.querySelectorAll('button');
+        buttons.forEach(btn => {
+          if (btn.innerText.toLowerCase().includes('tambah') || btn.textContent.toLowerCase().includes('tambah')) {
+            // Ubah tipe menjadi button agar tidak me-refresh/submit halaman
+            btn.setAttribute('type', 'button');
+            // Timpa fungsi kliknya ke fungsi anti-gagal
+            btn.onclick = function(e) {
+              e.preventDefault();
+              window.forceAddMember();
+            };
+          }
+        });
+      });
+    }
+  });
+
+  // [LANGKAH 2 OTOMATIS]: Logika Penyimpanan ke Firestore
+  window.forceAddMember = async function() {
+    try {
+      const emailInput = document.getElementById('newMemberEmail'); 
+      if (!emailInput) {
+        alert('Error: Kolom input email tidak ditemukan!');
+        return;
+      }
+      
+      const email = emailInput.value.trim().toLowerCase();
+      if (!email) {
+        alert('Harap masukkan alamat email yang valid.');
+        return;
+      }
+
+      // Deteksi otomatis apakah user sedang di Grup atau Rapat
+      const workspaceId = typeof currentWorkspaceId !== 'undefined' ? currentWorkspaceId : null;
+      const meetingId = typeof currentMeetingId !== 'undefined' ? currentMeetingId : null;
+
+      if (!workspaceId && !meetingId) {
+        alert('Silakan pilih Grup atau Rapat yang aktif terlebih dahulu.');
+        return;
+      }
+
+      // Proses simpan ke Grup (Workspace)
+      if (workspaceId) {
+        const groupRef = db.collection('workspaces').doc(workspaceId);
+        const docSnap = await groupRef.get();
+        
+        if (docSnap.exists) {
+          let members = docSnap.data().members || [];
+          if (!members.includes(email)) {
+            members.push(email);
+            await groupRef.update({ members: members });
+            alert(`Berhasil! ${email} telah ditambahkan ke Grup.`);
+          } else {
+            alert('Email tersebut sudah menjadi anggota di Grup ini.');
+          }
+        }
+      } 
+      // Proses simpan ke Rapat Khusus
+      else if (meetingId) {
+        const meetingRef = db.collection('meetings').doc(meetingId);
+        const docSnap = await meetingRef.get();
+        
+        if (docSnap.exists) {
+          let members = docSnap.data().members || [];
+          if (!members.includes(email)) {
+            members.push(email);
+            await meetingRef.update({ members: members });
+            alert(`Berhasil! ${email} telah ditambahkan ke Rapat.`);
+          } else {
+            alert('Email tersebut sudah memiliki akses ke Rapat ini.');
+          }
+        }
+      }
+
+      // Bersihkan kolom dan muat ulang daftar
+      emailInput.value = '';
+      if (typeof loadMembers === 'function') loadMembers();
+      if (typeof renderMembersList === 'function') renderMembersList();
+      
+    } catch (error) {
+      console.error('Error saat menambah anggota:', error);
+      alert('Terjadi kesalahan saat menambah anggota. Pastikan Anda terhubung ke internet.');
+    }
+  };
+
+  // Timpa fungsi asli (jika ada) agar aman
+  if (typeof window.addMember !== 'undefined') {
+    window.addMember = window.forceAddMember;
+  }
+</script>
 </body>
 </html>
