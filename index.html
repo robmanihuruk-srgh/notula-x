@@ -5435,11 +5435,13 @@
 <!-- ========================================================= -->
 <script>
 (function() {
+  let lastMeetingId = null;
+
   async function refreshMeetingTeamDisplay() {
     if (typeof currentMeetingId === 'undefined' || !currentMeetingId) return;
 
     try {
-      // 1. Tarik Data Rapat
+      // 1. Tarik Data Rapat Aktif
       const meetingDoc = await db.collection('meetings').doc(currentMeetingId).get();
       if (!meetingDoc.exists) return;
 
@@ -5447,22 +5449,24 @@
       const members = meetingData.members || [];
       const workspaceId = meetingData.workspaceId;
       
-      let workspaceRoles = {};
+      if (!workspaceId) return;
 
-      // 2. Tarik Data Grup/Workspace untuk membaca objek 'roles'
-      if (workspaceId) {
-        const wsDoc = await db.collection('workspaces').doc(workspaceId).get();
-        if (wsDoc.exists) {
-          const wsData = wsDoc.data();
-          // Mengambil objek roles persis seperti yang terlihat di Console
-          workspaceRoles = wsData.roles || {};
-        }
-      }
+      // 2. Tarik Data Grup / Workspace untuk membaca objek roles
+      const wsDoc = await db.collection('workspaces').doc(workspaceId).get();
+      if (!wsDoc.exists) return;
+      const wsData = wsDoc.data();
+      const workspaceRoles = wsData.roles || {};
 
-      // 3. Render ke Layar
-      const teamListContainer = document.getElementById('meeting-team-list') || document.querySelector('.team-list-container');
+      // 3. Cari Kontainer Target UI (Mendukung semua kemungkinan id/class di Notula App)
+      const teamListContainer = document.getElementById('meeting-team-list') || 
+                                document.getElementById('meeting-members') || 
+                                document.getElementById('meetingMembersList') || 
+                                document.querySelector('.team-list-container') ||
+                                document.querySelector('.meeting-members-list');
+      
       if (!teamListContainer) return;
 
+      // Kosongkan isi sebelumnya untuk memuat data bersih yang telah ditranslasi
       teamListContainer.innerHTML = ''; 
 
       if (members.length === 0) {
@@ -5470,47 +5474,69 @@
         return;
       }
 
-      // Fungsi pencocokan email (Aman dari perbedaan huruf besar/kecil di DB)
-      const getRoleForEmail = (email) => {
-        const lowerEmail = email.toLowerCase();
-        for (const [key, value] of Object.entries(workspaceRoles)) {
-          if (key.toLowerCase() === lowerEmail) {
-            return value;
+      // 4. Proses Loop Anggota Rapat (Translasi UID -> Email -> Peran)
+      for (const memberIdentifier of members) {
+        let finalEmail = memberIdentifier;
+
+        // JIKA IDENTIFIER ADALAH UID (Tidak mengandung karakter '@'), konversi dulu ke Email via koleksi 'users'
+        if (!memberIdentifier.includes('@')) {
+          try {
+            const userDoc = await db.collection('users').doc(memberIdentifier).get();
+            if (userDoc.exists) {
+              finalEmail = userDoc.data().email || memberIdentifier;
+            }
+          } catch (e) {
+            console.log("UID tidak ditemukan di koleksi users, menggunakan ID asal:", memberIdentifier);
           }
         }
-        return "Anggota Umum";
-      };
 
-      members.forEach(memberEmail => {
-        // Tarik seksi dari fungsi pencocokan
-        let assignedTeam = getRoleForEmail(memberEmail);
+        // 5. Cari Peran/Seksi berdasarkan Email hasil translasi (Case-Insensitive)
+        let assignedTeam = "Anggota Umum";
+        const lowerEmail = finalEmail.toLowerCase();
+        
+        for (const [key, value] of Object.entries(workspaceRoles)) {
+          if (key.toLowerCase() === lowerEmail) {
+            assignedTeam = value;
+            break;
+          }
+        }
 
+        // 6. Cetak Elemen ke Tampilan secara Indah & Proporsional
         const memberEl = document.createElement('div');
         memberEl.className = 'team-member-item';
-        memberEl.style = 'display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #f1f5f9;';
+        memberEl.style = 'display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #f1f5f9; margin-bottom: 4px;';
         memberEl.innerHTML = `
-          <div style="background: #eef2f6; color: #1a2b4c; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; font-size: 14px; text-transform: uppercase;">
-            ${memberEmail.charAt(0)}
+          <div style="background: #eef2f6; color: #1a2b4c; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; font-size: 14px; text-transform: uppercase; flex-shrink: 0;">
+            ${finalEmail.charAt(0)}
           </div>
-          <div style="flex-grow: 1;">
-            <div style="font-weight: 600; font-size: 0.95em; color: #1e293b; margin-bottom: 3px;">${memberEmail}</div>
-            <div style="font-size: 0.75em; color: ${assignedTeam === 'Anggota Umum' ? '#64748b' : '#0369a1'}; background: ${assignedTeam === 'Anggota Umum' ? '#f1f5f9' : '#e0f2fe'}; padding: 3px 8px; border-radius: 12px; display: inline-block; text-transform: capitalize;">
+          <div style="flex-grow: 1; min-width: 0;">
+            <div style="font-weight: 600; font-size: 0.95em; color: #1e293b; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${finalEmail}</div>
+            <div style="font-size: 0.75em; color: ${assignedTeam === 'Anggota Umum' ? '#64748b' : '#0369a1'}; background: ${assignedTeam === 'Anggota Umum' ? '#f1f5f9' : '#e0f2fe'}; padding: 3px 8px; border-radius: 12px; display: inline-block; text-transform: capitalize; font-weight: 500;">
               Tim/Seksi: <strong>${assignedTeam}</strong>
             </div>
           </div>
         `;
         teamListContainer.appendChild(memberEl);
-      });
+      }
 
     } catch (err) {
-      console.error("Notula-X-Note Error: Gagal memuat data tim:", err);
+      console.error("Notula-X-Note Absolute Fix Error:", err);
     }
   }
 
-  // Trigger pembaruan saat rapat diklik dari sidebar
+  // Auto-Detector: Mengecek perubahan rapat secara realtime tiap 1 detik (Sangat Stabil)
+  setInterval(() => {
+    if (typeof currentMeetingId !== 'undefined' && currentMeetingId && currentMeetingId !== lastMeetingId) {
+      lastMeetingId = currentMeetingId;
+      refreshMeetingTeamDisplay();
+    }
+  }, 1000);
+
+  // Backup Event Trigger untuk interaksi langsung
   document.addEventListener('click', function(e) {
     if (e.target.closest('.meeting-item') || e.target.closest('.btn-open-meeting')) {
-      setTimeout(refreshMeetingTeamDisplay, 1200); 
+      setTimeout(refreshMeetingTeamDisplay, 600); 
+      setTimeout(refreshMeetingTeamDisplay, 1500); 
     }
   });
 
@@ -5518,4 +5544,5 @@
 })();
 </script>
 </body>
+
 </html>
