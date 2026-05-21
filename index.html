@@ -5435,50 +5435,94 @@
 <!-- ========================================================= -->
 <script>
 (function() {
-  let lastMeetingId = null;
+  let lastProcessedMeetingId = null;
+  let checkInterval = null;
 
-  async function refreshMeetingTeamDisplay() {
+  async function updateTeamDisplayUI() {
     if (typeof currentMeetingId === 'undefined' || !currentMeetingId) return;
 
     try {
-      // 1. Tarik Data Rapat Aktif
+      // 1. Ambil Data Rapat & Workspace dari Firestore
       const meetingDoc = await db.collection('meetings').doc(currentMeetingId).get();
       if (!meetingDoc.exists) return;
-
       const meetingData = meetingDoc.data();
-      const members = meetingData.members || [];
-      const workspaceId = meetingData.workspaceId;
       
+      const workspaceId = meetingData.workspaceId;
       if (!workspaceId) return;
 
-      // 2. Tarik Data Grup / Workspace untuk membaca objek roles
       const wsDoc = await db.collection('workspaces').doc(workspaceId).get();
       if (!wsDoc.exists) return;
       const wsData = wsDoc.data();
+      
+      const members = meetingData.members || meetingData.participants || [];
       const workspaceRoles = wsData.roles || {};
 
-      // 3. Cari Kontainer Target UI (Mendukung semua kemungkinan id/class di Notula App)
-      const teamListContainer = document.getElementById('meeting-team-list') || 
-                                document.getElementById('meeting-members') || 
-                                document.getElementById('meetingMembersList') || 
-                                document.querySelector('.team-list-container') ||
-                                document.querySelector('.meeting-members-list');
+      // 2. SMART DOM FINDER: Cari area visual berdasarkan teks yang tampil di layar
+      let targetPanel = null;
+      let headingEl = null;
+      const keywords = ['tim yang ditugaskan', 'tim ditugaskan', 'anggota terdaftar', 'member yang terdaftar', 'daftar anggota', 'kelola anggota', 'tim rapat'];
       
-      if (!teamListContainer) return;
+      const allElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, .card-title, .panel-title, div, span, strong, th');
+      for (const el of allElements) {
+        const text = (el.textContent || el.innerText || '').trim().toLowerCase();
+        if (keywords.some(k => text === k || text.includes(k))) {
+          if (text.length < 40 && el.children.length <= 1) {
+            headingEl = el;
+            targetPanel = el.parentElement; // Ambil wadah/kotak pembungkusnya
+            break;
+          }
+        }
+      }
 
-      // Kosongkan isi sebelumnya untuk memuat data bersih yang telah ditranslasi
-      teamListContainer.innerHTML = ''; 
+      // Fallback Selector jika pencarian teks tidak membuang hasil
+      if (!targetPanel) {
+        targetPanel = document.getElementById('meeting-team-list') || 
+                      document.getElementById('meeting-members') || 
+                      document.getElementById('meetingMembersList') || 
+                      document.querySelector('.team-list-container') ||
+                      document.querySelector('.meeting-members-list');
+      }
+
+      if (!targetPanel) return;
+
+      // 3. SELF-HEALING CHECK: Jika list kita sudah ada dan rapatnya sama, jangan render ulang (biar tidak flicker)
+      let injectedList = targetPanel.querySelector('#notula-x-injected-team-list');
+      if (injectedList && lastProcessedMeetingId === currentMeetingId) {
+        return; 
+      }
+
+      // Jika kotak tertimpa kode asli atau ganti rapat, bersihkan & suntik ulang
+      if (!injectedList) {
+        injectedList = document.createElement('div');
+        injectedList.id = 'notula-x-injected-team-list';
+        injectedList.style = 'width: 100%; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;';
+        
+        // Sembunyikan elemen kosong bawaan asli agar tidak tumpuk double
+        Array.from(targetPanel.children).forEach(child => {
+          if (child !== headingEl && child.id !== 'notula-x-injected-team-list') {
+            const childText = (child.textContent || '').toLowerCase();
+            if (childText.includes('belum ada') || childText.includes('tidak ada') || child.tagName === 'UL' || child.tagName === 'DIV') {
+              child.style.display = 'none'; 
+            }
+          }
+        });
+
+        targetPanel.appendChild(injectedList);
+      }
+
+      injectedList.innerHTML = ''; 
+      lastProcessedMeetingId = currentMeetingId;
 
       if (members.length === 0) {
-        teamListContainer.innerHTML = '<p style="color: gray; font-size: 0.9em; padding: 10px;">Belum ada tim yang ditugaskan.</p>';
+        injectedList.innerHTML = '<p style="color: #94a3b8; font-size: 0.85em; padding: 8px; font-style: italic;">Belum ada tim yang ditugaskan di rapat ini.</p>';
         return;
       }
 
-      // 4. Proses Loop Anggota Rapat (Translasi UID -> Email -> Peran)
+      // 4. Render Anggota & Seksi secara Akurat
       for (const memberIdentifier of members) {
         let finalEmail = memberIdentifier;
 
-        // JIKA IDENTIFIER ADALAH UID (Tidak mengandung karakter '@'), konversi dulu ke Email via koleksi 'users'
+        // Translasi jika data berupa UID biner bawaan Firebase
         if (!memberIdentifier.includes('@')) {
           try {
             const userDoc = await db.collection('users').doc(memberIdentifier).get();
@@ -5486,14 +5530,13 @@
               finalEmail = userDoc.data().email || memberIdentifier;
             }
           } catch (e) {
-            console.log("UID tidak ditemukan di koleksi users, menggunakan ID asal:", memberIdentifier);
+            console.log("UID translation bypassed:", memberIdentifier);
           }
         }
 
-        // 5. Cari Peran/Seksi berdasarkan Email hasil translasi (Case-Insensitive)
+        // Ambil data seksi dari roles Grup (Case-Insensitive)
         let assignedTeam = "Anggota Umum";
         const lowerEmail = finalEmail.toLowerCase();
-        
         for (const [key, value] of Object.entries(workspaceRoles)) {
           if (key.toLowerCase() === lowerEmail) {
             assignedTeam = value;
@@ -5501,46 +5544,41 @@
           }
         }
 
-        // 6. Cetak Elemen ke Tampilan secara Indah & Proporsional
-        const memberEl = document.createElement('div');
-        memberEl.className = 'team-member-item';
-        memberEl.style = 'display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #f1f5f9; margin-bottom: 4px;';
-        memberEl.innerHTML = `
-          <div style="background: #eef2f6; color: #1a2b4c; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; font-size: 14px; text-transform: uppercase; flex-shrink: 0;">
+        // Suntik baris tampilan baru dengan desain profesional
+        const memberRow = document.createElement('div');
+        memberRow.style = 'display: flex; align-items: center; padding: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
+        memberRow.innerHTML = `
+          <div style="background: #e2e8f0; color: #1e293b; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; font-size: 13px; text-transform: uppercase; flex-shrink: 0;">
             ${finalEmail.charAt(0)}
           </div>
           <div style="flex-grow: 1; min-width: 0;">
-            <div style="font-weight: 600; font-size: 0.95em; color: #1e293b; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${finalEmail}</div>
-            <div style="font-size: 0.75em; color: ${assignedTeam === 'Anggota Umum' ? '#64748b' : '#0369a1'}; background: ${assignedTeam === 'Anggota Umum' ? '#f1f5f9' : '#e0f2fe'}; padding: 3px 8px; border-radius: 12px; display: inline-block; text-transform: capitalize; font-weight: 500;">
+            <div style="font-weight: 600; font-size: 0.9em; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px;">${finalEmail}</div>
+            <div style="font-size: 0.75em; color: ${assignedTeam === 'Anggota Umum' ? '#64748b' : '#0369a1'}; background: ${assignedTeam === 'Anggota Umum' ? '#f1f5f9' : '#e0f2fe'}; padding: 2px 8px; border-radius: 20px; display: inline-block; font-weight: 500; text-transform: capitalize;">
               Tim/Seksi: <strong>${assignedTeam}</strong>
             </div>
           </div>
         `;
-        teamListContainer.appendChild(memberEl);
+        injectedList.appendChild(memberRow);
       }
 
     } catch (err) {
-      console.error("Notula-X-Note Absolute Fix Error:", err);
+      console.error("Notula-X-Note V5 Engine Error:", err);
     }
   }
 
-  // Auto-Detector: Mengecek perubahan rapat secara realtime tiap 1 detik (Sangat Stabil)
-  setInterval(() => {
-    if (typeof currentMeetingId !== 'undefined' && currentMeetingId && currentMeetingId !== lastMeetingId) {
-      lastMeetingId = currentMeetingId;
-      refreshMeetingTeamDisplay();
-    }
-  }, 1000);
+  // Menjalankan pemindaian dan proteksi kotak secara berkala tiap 1 detik
+  if (checkInterval) clearInterval(checkInterval);
+  checkInterval = setInterval(updateTeamDisplayUI, 1000);
 
-  // Backup Event Trigger untuk interaksi langsung
+  // Jalankan instan saat mendeteksi klik pada item rapat
   document.addEventListener('click', function(e) {
-    if (e.target.closest('.meeting-item') || e.target.closest('.btn-open-meeting')) {
-      setTimeout(refreshMeetingTeamDisplay, 600); 
-      setTimeout(refreshMeetingTeamDisplay, 1500); 
+    if (e.target.closest('.meeting-item') || e.target.closest('.btn-open-meeting') || e.target.closest('[id*="meeting"]')) {
+      setTimeout(updateTeamDisplayUI, 300);
+      setTimeout(updateTeamDisplayUI, 1200);
     }
   });
 
-  window.addEventListener('meetingLoaded', refreshMeetingTeamDisplay);
+  window.addEventListener('meetingLoaded', updateTeamDisplayUI);
 })();
 </script>
 </body>
