@@ -1130,7 +1130,7 @@
                   <div class="notif-time">${timeStr}</div>
               `;
               
-              li.addEventListener('click', () => {
+              li.addEventListener('click', async () => {
                   if (!n.isRead) {
                       db.collection('notifications').doc(n.id).update({ isRead: true });
                   }
@@ -1145,7 +1145,7 @@
                           } else {
                               renderPrivateMeetings();
                           }
-                          renderDetail(m);
+                          await renderDetail(m);
                           notifDropdown.classList.remove('active');
                       }
                   }
@@ -1754,7 +1754,7 @@
           });
 
           if (unsubscribeMeetings) unsubscribeMeetings();
-          unsubscribeMeetings = db.collection('meetings').onSnapshot(snapshot => {
+          unsubscribeMeetings = db.collection('meetings').onSnapshot(async snapshot => {
             meetings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             meetings.sort((a, b) => (a.date < b.date ? 1 : -1));
 
@@ -1763,7 +1763,7 @@
             if (currentMeetingId) {
               const meeting = meetings.find(m => m.id === currentMeetingId);
               if (meeting) {
-                renderDetail(meeting);
+                await renderDetail(meeting);
               } else {
                 currentMeetingId = null;
                 if (currentWorkspaceId) {
@@ -1872,13 +1872,80 @@
           </div>
           <div class="team-members-grid">`;
 
+        let hasValidTeam = false;
         meeting.assignedTeamIds.forEach(teamId => {
           const team = teams.find(t => t.id === teamId);
-          if (!team) return;
+          if (!team) {
+            // Team not in local cache - show placeholder and fetch on-demand
+            html += `<div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: 10px; padding: 16px; margin-bottom: 12px;" id="assigned-team-${teamId}">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
+                <h4 style="margin: 0; color: var(--color-secondary); font-family: var(--font-heading);"><i class="fas fa-user-friends" style="color: var(--color-primary); margin-right: 8px;"></i>Memuat data tim...</h4>
+                <span style="font-size: 0.75rem; background: #fef3c7; color: #92400e; padding: 2px 10px; border-radius: 12px;"><i class="fas fa-spinner fa-spin"></i> Loading</span>
+              </div>
+            </div>`;
+
+            // Fetch team data directly from Firestore with better error handling
+            (async function fetchTeamForMeeting(tid) {
+              try {
+                const doc = await db.collection('teams').doc(tid).get();
+                const el = document.getElementById(`assigned-team-${tid}`);
+                if (!el) return; // Element sudah tidak ada
+
+                if (doc.exists) {
+                  const teamData = { id: doc.id, ...doc.data() };
+
+                  // Simpan ke cache teams agar tidak perlu fetch lagi
+                  const existingIndex = teams.findIndex(t => t.id === tid);
+                  if (existingIndex === -1) {
+                    teams.push(teamData);
+                  } else {
+                    teams[existingIndex] = teamData;
+                  }
+
+                  let teamHtml = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
+                    <h4 style="margin: 0; color: var(--color-secondary); font-family: var(--font-heading);"><i class="fas fa-user-friends" style="color: var(--color-primary); margin-right: 8px;"></i>${escapeHtml(teamData.name || 'Tim Tanpa Nama')}</h4>
+                    <span style="font-size: 0.75rem; background: var(--color-bg-light); padding: 2px 10px; border-radius: 12px; color: var(--color-text-light);">${teamData.members?.length || 0} anggota</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 8px;">`;
+
+                  if (teamData.members && teamData.members.length > 0) {
+                    teamData.members.forEach(member => {
+                      const roleClass = member.role === 'koordinator' ? 'role-koordinator' : 'role-anggota';
+                      const roleLabel = member.role === 'koordinator' ? 'Koordinator' : 'Anggota';
+                      teamHtml += `<div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: white; border-radius: 8px; border: 1px solid var(--color-border);">
+                        <div class="member-avatar" style="width: 32px; height: 32px; font-size: 0.85rem;">${(member.name || '?').charAt(0).toUpperCase()}</div>
+                        <div style="flex: 1; min-width: 0;">
+                          <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(member.name || 'Tanpa Nama')}</div>
+                          <div style="font-size: 0.8rem; color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(member.email || '-')}</div>
+                        </div>
+                        <span class="member-role-badge ${roleClass}" style="font-size: 0.7rem;">${roleLabel}</span>
+                      </div>`;
+                    });
+                  } else {
+                    teamHtml += `<div style="text-align: center; color: var(--color-text-light); font-size: 0.85rem; padding: 12px;"><i class="fas fa-info-circle"></i> Belum ada anggota dalam tim ini.</div>`;
+                  }
+                  teamHtml += `</div>`;
+                  el.innerHTML = teamHtml;
+                } else {
+                  el.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 12px;"><i class="fas fa-exclamation-circle"></i> Tim tidak ditemukan di database.</div>`;
+                }
+              } catch (err) {
+                console.error('[renderAssignedTeams] Error fetching team:', err);
+                const el = document.getElementById(`assigned-team-${tid}`);
+                if (el) {
+                  el.innerHTML = `<div style="text-align: center; color: #b45309; padding: 12px;"><i class="fas fa-exclamation-triangle"></i> Gagal memuat data tim. <button onclick="retryFetchTeam('${tid}')" style="background: var(--color-primary); color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; margin-left: 8px; font-size: 0.8rem;">Coba Lagi</button></div>`;
+                }
+              }
+            })(teamId);
+
+            return;
+          }
+
+          hasValidTeam = true;
 
           html += `<div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: 10px; padding: 16px; margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
-              <h4 style="margin: 0; color: var(--color-secondary); font-family: var(--font-heading);"><i class="fas fa-user-friends" style="color: var(--color-primary); margin-right: 8px;"></i>${escapeHtml(team.name)}</h4>
+              <h4 style="margin: 0; color: var(--color-secondary); font-family: var(--font-heading);"><i class="fas fa-user-friends" style="color: var(--color-primary); margin-right: 8px;"></i>${escapeHtml(team.name || 'Tim Tanpa Nama')}</h4>
               <span style="font-size: 0.75rem; background: var(--color-bg-light); padding: 2px 10px; border-radius: 12px; color: var(--color-text-light);">${team.members?.length || 0} anggota</span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 8px;">`;
@@ -1890,8 +1957,8 @@
               html += `<div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: white; border-radius: 8px; border: 1px solid var(--color-border);">
                 <div class="member-avatar" style="width: 32px; height: 32px; font-size: 0.85rem;">${(member.name || '?').charAt(0).toUpperCase()}</div>
                 <div style="flex: 1; min-width: 0;">
-                  <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-secondary);">${escapeHtml(member.name || 'Tanpa Nama')}</div>
-                  <div style="font-size: 0.8rem; color: var(--color-text-light);">${escapeHtml(member.email || '-')}</div>
+                  <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(member.name || 'Tanpa Nama')}</div>
+                  <div style="font-size: 0.8rem; color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(member.email || '-')}</div>
                 </div>
                 <span class="member-role-badge ${roleClass}" style="font-size: 0.7rem;">${roleLabel}</span>
               </div>`;
@@ -1906,6 +1973,45 @@
         html += `</div></div>`;
         return html;
       }
+
+      // Fungsi retry untuk fetch team
+      window.retryFetchTeam = async function(teamId) {
+        const el = document.getElementById(`assigned-team-${teamId}`);
+        if (el) {
+          el.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
+            <h4 style="margin: 0; color: var(--color-secondary); font-family: var(--font-heading);"><i class="fas fa-user-friends" style="color: var(--color-primary); margin-right: 8px;"></i>Memuat data tim...</h4>
+            <span style="font-size: 0.75rem; background: #fef3c7; color: #92400e; padding: 2px 10px; border-radius: 12px;"><i class="fas fa-spinner fa-spin"></i> Loading</span>
+          </div>`;
+        }
+
+        try {
+          const doc = await db.collection('teams').doc(teamId).get();
+          if (!el) return;
+
+          if (doc.exists) {
+            const teamData = { id: doc.id, ...doc.data() };
+
+            // Simpan ke cache
+            const existingIndex = teams.findIndex(t => t.id === teamId);
+            if (existingIndex === -1) {
+              teams.push(teamData);
+            } else {
+              teams[existingIndex] = teamData;
+            }
+
+            // Re-render detail meeting untuk menampilkan tim yang sudah di-fetch
+            const meeting = meetings.find(m => m.id === currentMeetingId);
+            if (meeting) renderDetail(meeting);
+          } else {
+            el.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 12px;"><i class="fas fa-exclamation-circle"></i> Tim tidak ditemukan di database.</div>`;
+          }
+        } catch (err) {
+          console.error('[retryFetchTeam] Gagal:', err);
+          if (el) {
+            el.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 12px;"><i class="fas fa-exclamation-circle"></i> Gagal memuat data tim. Silakan refresh halaman.</div>`;
+          }
+        }
+      };
 
       function renderLogs(meeting) {
         const logs = meeting.logs || [];
@@ -2325,12 +2431,12 @@
 
           div.appendChild(checkbox);
           div.appendChild(content);
-          div.addEventListener('click', (e) => {
+          div.addEventListener('click', async (e) => {
             if (e.target !== checkbox) {
               currentWorkspaceId = null;
               currentMeetingId = m.id;
               renderPrivateMeetings();
-              renderDetail(m);
+              await renderDetail(m);
             }
           });
           container.appendChild(div);
@@ -2709,10 +2815,10 @@
                 updateDeleteSelectedButton();
               });
             }
-            el.addEventListener('click', (e) => {
+            el.addEventListener('click', async (e) => {
               if (e.target !== cb) {
                 currentMeetingId = m.id;
-                renderDetail(m);
+                await renderDetail(m);
               }
             });
           }
@@ -2720,11 +2826,11 @@
       }
 
       // ========== RENDER DETAIL ==========
-      function renderDetail(meeting) {
+      async function renderDetail(meeting) {
         const content = document.getElementById('contentArea');
         const headerTitle = document.getElementById('meetingTitle');
         const headerDate = document.getElementById('meetingDate');
-        
+
         if (!meeting) {
            headerTitle.innerText = "Pilih rapat";
            headerDate.innerHTML = `<i class="far fa-calendar-alt"></i>`;
@@ -2734,9 +2840,38 @@
            return;
         }
 
+        // PREFETCH TEAMS: Jika meeting punya assigned teams tapi teams array kosong,
+        // fetch semua teams yang di-assign terlebih dahulu untuk mencegah "Gagal memuat data tim"
+        if (meeting.assignedTeamIds && meeting.assignedTeamIds.length > 0) {
+          const missingTeamIds = meeting.assignedTeamIds.filter(tid => !teams.find(t => t.id === tid));
+          if (missingTeamIds.length > 0) {
+            console.log('[renderDetail] Prefetching', missingTeamIds.length, 'teams yang belum di-cache...');
+            try {
+              const teamPromises = missingTeamIds.map(tid => db.collection('teams').doc(tid).get());
+              const teamDocs = await Promise.all(teamPromises);
+              let fetchedCount = 0;
+              teamDocs.forEach(doc => {
+                if (doc.exists) {
+                  const teamData = { id: doc.id, ...doc.data() };
+                  const existingIndex = teams.findIndex(t => t.id === doc.id);
+                  if (existingIndex === -1) {
+                    teams.push(teamData);
+                  } else {
+                    teams[existingIndex] = teamData;
+                  }
+                  fetchedCount++;
+                }
+              });
+              console.log('[renderDetail] Prefetch berhasil:', fetchedCount, 'teams di-cache');
+            } catch (err) {
+              console.error('[renderDetail] Prefetch teams gagal:', err);
+            }
+          }
+        }
+
         headerTitle.innerText = meeting.title;
         headerDate.innerHTML = `<i class="far fa-calendar-alt"></i> ${formatDate(meeting.date)}`;
-        
+
         const canEditMeeting = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
         const isLatest = isMeetingLatest(meeting);
         const showGlobalReadOnly = !canEditMeeting && !isLatest;
@@ -2791,7 +2926,7 @@
             try {
               dashboardStatsData = JSON.parse(dashboardCard.dataset.stats);
             } catch (e) { dashboardStatsData = null; }
-            
+
             const statItems = dashboardCard.querySelectorAll('.stat-item');
             statItems.forEach(item => {
               const stat = item.getAttribute('data-stat');
@@ -2812,14 +2947,14 @@
 
         const filterSelect = document.getElementById('sectionFilterSelect');
         if (filterSelect) {
-          filterSelect.addEventListener('change', (e) => {
+          filterSelect.addEventListener('change', async (e) => {
             selectedSectionFilter = e.target.value;
-            renderDetail(meeting);
+            await renderDetail(meeting);
           });
         }
-        document.getElementById('resetFilterBtn')?.addEventListener('click', () => {
+        document.getElementById('resetFilterBtn')?.addEventListener('click', async () => {
           selectedSectionFilter = 'ALL';
-          renderDetail(meeting);
+          await renderDetail(meeting);
         });
 
         meeting.sections?.forEach(section => {
@@ -3605,7 +3740,7 @@
           try {
              await db.collection('meetings').doc(currentMeetingId).update({ sections: meeting.sections });
              openTaskModal(currentSectionId, taskId); 
-             renderDetail(meeting); 
+             await renderDetail(meeting); 
           } catch (error) {
              alert("Gagal menghapus data dari Firestore: " + error.message);
           }
@@ -3926,12 +4061,10 @@
 
         select.innerHTML = '<option value="">-- Pilih Tim --</option>';
         teams.forEach(t => {
-          // Only show teams where current user is creator or koordinator
-          const isCreator = t.createdBy === currentUser?.uid;
-          const isKoordinator = t.members?.some(m => m.email === currentUser?.email && m.role === 'koordinator');
-          // Also filter out teams already selected in modalSelectedTeamIds
+          // Show all teams the user has access to (creator or member)
+          // Filter out teams already selected in modalSelectedTeamIds
           const isAlreadySelected = modalSelectedTeamIds.includes(t.id);
-          if ((isCreator || isKoordinator) && !isAlreadySelected) {
+          if (!isAlreadySelected) {
             const option = document.createElement('option');
             option.value = t.id;
             option.text = escapeHtml(t.name);
@@ -4428,63 +4561,102 @@
         if (!currentUser) return;
         if (unsubscribeTeams) unsubscribeTeams();
 
-        // Query 1: Teams created by current user
+        let teamsCreated = [];
+        let teamsMember = [];
+        let listener1Ready = false;
+        let listener2Ready = false;
+        let listener1Error = false;
+        let listener2Error = false;
+
+        async function mergeAndRender() {
+          if ((!listener1Ready && !listener1Error) || (!listener2Ready && !listener2Error)) return;
+          const teamMap = new Map();
+          teamsCreated.forEach(t => teamMap.set(t.id, t));
+          teamsMember.forEach(t => teamMap.set(t.id, t));
+          teams = Array.from(teamMap.values());
+          teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          renderTeamList();
+          if (document.getElementById('meetingModal').classList.contains('active')) {
+            updateMeetingTeamSelect();
+            renderSelectedTeamChips();
+          }
+          // Re-render meeting detail if viewing a meeting with assigned teams
+          if (currentMeetingId) {
+            const meeting = meetings.find(m => m.id === currentMeetingId);
+            if (meeting && meeting.assignedTeamIds && meeting.assignedTeamIds.length > 0) {
+              await renderDetail(meeting);
+            }
+          }
+        }
+
+        // Query 1: Teams created by current user (selalu works)
         const unsub1 = db.collection('teams')
           .where('createdBy', '==', currentUser.uid)
           .onSnapshot(snapshot => {
-            const teamsCreated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Query 2: Get ALL teams and filter client-side by membership
-            // This is more reliable than array-contains which requires index and exact match
-            db.collection('teams').get().then(allTeamsSnap => {
-              const userEmailLower = (currentUser.email || '').toLowerCase();
-              const teamsMember = allTeamsSnap.docs
-                .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(team => {
-                  // Skip teams already in teamsCreated
-                  if (teamsCreated.find(t => t.id === team.id)) return false;
-
-                  // Check if user is in members array (by email or UID)
-                  if (team.members && Array.isArray(team.members)) {
-                    return team.members.some(m => {
-                      if (m.email && m.email.toLowerCase() === userEmailLower) return true;
-                      if (m.uid && m.uid === currentUser.uid) return true;
-                      return false;
-                    });
-                  }
-
-                  // Also check memberEmails array as fallback
-                  if (team.memberEmails && Array.isArray(team.memberEmails)) {
-                    return team.memberEmails.some(e => e.toLowerCase() === userEmailLower);
-                  }
-
-                  return false;
-                });
-
-              // Merge and render
-              const teamMap = new Map();
-              teamsCreated.forEach(t => teamMap.set(t.id, t));
-              teamsMember.forEach(t => teamMap.set(t.id, t));
-              teams = Array.from(teamMap.values());
-              teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-              renderTeamList();
-              if (document.getElementById('meetingModal').classList.contains('active')) {
-                updateMeetingTeamSelect();
-                renderSelectedTeamChips();
-              }
-            }).catch(err => {
-              console.error('Error fetching all teams:', err);
-              // Fallback: just show created teams
-              teams = teamsCreated;
-              teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-              renderTeamList();
-            });
+            teamsCreated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            listener1Ready = true;
+            mergeAndRender();
           }, error => {
             console.error('Error Teams Listener (created):', error);
+            listener1Error = true;
+            listener1Ready = true;
+            mergeAndRender();
+          });
+
+        // Query 2: Teams where user is a member
+        // Fallback: jika array-contains gagal (missing index), query semua teams lalu filter client-side
+        const userEmailLower = (currentUser.email || '').toLowerCase();
+
+        function fallbackMemberQuery() {
+          console.log('[Teams] Menggunakan fallback query untuk member teams...');
+          // Query semua teams yang dibuat oleh user lain, lalu filter di client
+          db.collection('teams')
+            .get()
+            .then(snapshot => {
+              const allTeams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+              // Filter teams yang memiliki user ini sebagai member (by email or uid)
+              teamsMember = allTeams.filter(team => {
+                if (!team.members || !Array.isArray(team.members)) return false;
+                return team.members.some(m => {
+                  const memberEmail = (m.email || '').toLowerCase();
+                  const memberUid = m.uid || '';
+                  return memberEmail === userEmailLower || memberUid === currentUser.uid;
+                });
+              });
+              console.log('[Teams] Fallback query berhasil, ditemukan', teamsMember.length, 'teams');
+              listener2Ready = true;
+              mergeAndRender();
+            })
+            .catch(err => {
+              console.error('[Teams] Fallback query juga gagal:', err);
+              listener2Error = true;
+              listener2Ready = true;
+              mergeAndRender();
+            });
+        }
+
+        const unsub2 = db.collection('teams')
+          .where('memberEmails', 'array-contains', userEmailLower)
+          .onSnapshot(snapshot => {
+            teamsMember = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            listener2Ready = true;
+            mergeAndRender();
+          }, error => {
+            console.log('[Teams] Error member query:', error.message);
+            listener2Error = true;
+            // Jika failed-precondition (missing index) atau permission denied, gunakan fallback
+            if (error.code === 'failed-precondition' || error.code === 'permission-denied') {
+              console.log('[Teams] Mencoba fallback query karena:', error.code);
+              fallbackMemberQuery();
+            } else {
+              listener2Ready = true;
+              mergeAndRender();
+            }
           });
 
         unsubscribeTeams = () => {
           unsub1();
+          unsub2();
         };
 
         // One-time migration: populate memberEmails for existing teams
@@ -4732,17 +4904,27 @@
 
   try {
     if (id) {
-      // Edit existing
+      // Edit existing - hanya update name dan description
       await db.collection('teams').doc(id).update({ name, description });
       console.log('Tim berhasil diupdate:', id);
     } else {
-      // Create new
+      // Create new - otomatis tambahkan pembuat sebagai koordinator
+      const creatorEmail = (currentUser.email || '').toLowerCase();
+      const creatorName = currentUser.displayName || currentUser.email.split('@')[0] || 'Pembuat Tim';
+
+      const initialMembers = [{
+        name: creatorName,
+        email: creatorEmail,
+        role: 'koordinator',
+        uid: currentUser.uid
+      }];
+
       const docRef = await db.collection('teams').add({
         name,
         description,
         createdBy: currentUser.uid,
-        members: [],
-        memberEmails: [],
+        members: initialMembers,
+        memberEmails: [creatorEmail], // Penting: agar muncul di query memberEmails
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       console.log('Tim baru dibuat dengan ID:', docRef.id);
@@ -5433,153 +5615,5 @@
 <!-- ========================================================= -->
 <!-- SELESAI: FITUR KALENDER INTERAKTIF NOTULA v2.0 (FIXED)    -->
 <!-- ========================================================= -->
-<script>
-(function() {
-  let lastProcessedMeetingId = null;
-  let checkInterval = null;
-
-  async function updateTeamDisplayUI() {
-    if (typeof currentMeetingId === 'undefined' || !currentMeetingId) return;
-
-    try {
-      // 1. Ambil Data Rapat & Workspace dari Firestore
-      const meetingDoc = await db.collection('meetings').doc(currentMeetingId).get();
-      if (!meetingDoc.exists) return;
-      const meetingData = meetingDoc.data();
-      
-      const workspaceId = meetingData.workspaceId;
-      if (!workspaceId) return;
-
-      const wsDoc = await db.collection('workspaces').doc(workspaceId).get();
-      if (!wsDoc.exists) return;
-      const wsData = wsDoc.data();
-      
-      const members = meetingData.members || meetingData.participants || [];
-      const workspaceRoles = wsData.roles || {};
-
-      // 2. SMART DOM FINDER: Cari area visual berdasarkan teks yang tampil di layar
-      let targetPanel = null;
-      let headingEl = null;
-      const keywords = ['tim yang ditugaskan', 'tim ditugaskan', 'anggota terdaftar', 'member yang terdaftar', 'daftar anggota', 'kelola anggota', 'tim rapat'];
-      
-      const allElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, .card-title, .panel-title, div, span, strong, th');
-      for (const el of allElements) {
-        const text = (el.textContent || el.innerText || '').trim().toLowerCase();
-        if (keywords.some(k => text === k || text.includes(k))) {
-          if (text.length < 40 && el.children.length <= 1) {
-            headingEl = el;
-            targetPanel = el.parentElement; // Ambil wadah/kotak pembungkusnya
-            break;
-          }
-        }
-      }
-
-      // Fallback Selector jika pencarian teks tidak membuang hasil
-      if (!targetPanel) {
-        targetPanel = document.getElementById('meeting-team-list') || 
-                      document.getElementById('meeting-members') || 
-                      document.getElementById('meetingMembersList') || 
-                      document.querySelector('.team-list-container') ||
-                      document.querySelector('.meeting-members-list');
-      }
-
-      if (!targetPanel) return;
-
-      // 3. SELF-HEALING CHECK: Jika list kita sudah ada dan rapatnya sama, jangan render ulang (biar tidak flicker)
-      let injectedList = targetPanel.querySelector('#notula-x-injected-team-list');
-      if (injectedList && lastProcessedMeetingId === currentMeetingId) {
-        return; 
-      }
-
-      // Jika kotak tertimpa kode asli atau ganti rapat, bersihkan & suntik ulang
-      if (!injectedList) {
-        injectedList = document.createElement('div');
-        injectedList.id = 'notula-x-injected-team-list';
-        injectedList.style = 'width: 100%; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;';
-        
-        // Sembunyikan elemen kosong bawaan asli agar tidak tumpuk double
-        Array.from(targetPanel.children).forEach(child => {
-          if (child !== headingEl && child.id !== 'notula-x-injected-team-list') {
-            const childText = (child.textContent || '').toLowerCase();
-            if (childText.includes('belum ada') || childText.includes('tidak ada') || child.tagName === 'UL' || child.tagName === 'DIV') {
-              child.style.display = 'none'; 
-            }
-          }
-        });
-
-        targetPanel.appendChild(injectedList);
-      }
-
-      injectedList.innerHTML = ''; 
-      lastProcessedMeetingId = currentMeetingId;
-
-      if (members.length === 0) {
-        injectedList.innerHTML = '<p style="color: #94a3b8; font-size: 0.85em; padding: 8px; font-style: italic;">Belum ada tim yang ditugaskan di rapat ini.</p>';
-        return;
-      }
-
-      // 4. Render Anggota & Seksi secara Akurat
-      for (const memberIdentifier of members) {
-        let finalEmail = memberIdentifier;
-
-        // Translasi jika data berupa UID biner bawaan Firebase
-        if (!memberIdentifier.includes('@')) {
-          try {
-            const userDoc = await db.collection('users').doc(memberIdentifier).get();
-            if (userDoc.exists) {
-              finalEmail = userDoc.data().email || memberIdentifier;
-            }
-          } catch (e) {
-            console.log("UID translation bypassed:", memberIdentifier);
-          }
-        }
-
-        // Ambil data seksi dari roles Grup (Case-Insensitive)
-        let assignedTeam = "Anggota Umum";
-        const lowerEmail = finalEmail.toLowerCase();
-        for (const [key, value] of Object.entries(workspaceRoles)) {
-          if (key.toLowerCase() === lowerEmail) {
-            assignedTeam = value;
-            break;
-          }
-        }
-
-        // Suntik baris tampilan baru dengan desain profesional
-        const memberRow = document.createElement('div');
-        memberRow.style = 'display: flex; align-items: center; padding: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
-        memberRow.innerHTML = `
-          <div style="background: #e2e8f0; color: #1e293b; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; font-size: 13px; text-transform: uppercase; flex-shrink: 0;">
-            ${finalEmail.charAt(0)}
-          </div>
-          <div style="flex-grow: 1; min-width: 0;">
-            <div style="font-weight: 600; font-size: 0.9em; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px;">${finalEmail}</div>
-            <div style="font-size: 0.75em; color: ${assignedTeam === 'Anggota Umum' ? '#64748b' : '#0369a1'}; background: ${assignedTeam === 'Anggota Umum' ? '#f1f5f9' : '#e0f2fe'}; padding: 2px 8px; border-radius: 20px; display: inline-block; font-weight: 500; text-transform: capitalize;">
-              Tim/Seksi: <strong>${assignedTeam}</strong>
-            </div>
-          </div>
-        `;
-        injectedList.appendChild(memberRow);
-      }
-
-    } catch (err) {
-      console.error("Notula-X-Note V5 Engine Error:", err);
-    }
-  }
-
-  // Menjalankan pemindaian dan proteksi kotak secara berkala tiap 1 detik
-  if (checkInterval) clearInterval(checkInterval);
-  checkInterval = setInterval(updateTeamDisplayUI, 1000);
-
-  // Jalankan instan saat mendeteksi klik pada item rapat
-  document.addEventListener('click', function(e) {
-    if (e.target.closest('.meeting-item') || e.target.closest('.btn-open-meeting') || e.target.closest('[id*="meeting"]')) {
-      setTimeout(updateTeamDisplayUI, 300);
-      setTimeout(updateTeamDisplayUI, 1200);
-    }
-  });
-
-  window.addEventListener('meetingLoaded', updateTeamDisplayUI);
-})();
-</script>
 </body>
 </html>
