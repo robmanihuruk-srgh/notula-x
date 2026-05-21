@@ -1833,7 +1833,7 @@
             const team = teams.find(t => t.id === teamId);
             if (!team || !team.members) return false;
             return team.members.some(m => 
-              m.email === currentUser?.email && m.role === 'koordinator'
+              m.email && m.email.toLowerCase() === currentUser?.email?.toLowerCase() && m.role === 'koordinator'
             );
           });
           if (isKoordinatorOfAssignedTeam) return true;
@@ -1872,9 +1872,24 @@
           </div>
           <div class="team-members-grid">`;
 
+        let hasValidTeam = false;
         meeting.assignedTeamIds.forEach(teamId => {
           const team = teams.find(t => t.id === teamId);
-          if (!team) return;
+          if (!team) {
+            // Team not found in local cache - show placeholder
+            html += `<div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: 10px; padding: 16px; margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
+                <h4 style="margin: 0; color: var(--color-secondary); font-family: var(--font-heading);"><i class="fas fa-user-friends" style="color: var(--color-primary); margin-right: 8px;"></i>Tim (ID: ${teamId.substring(0, 8)}...)</h4>
+                <span style="font-size: 0.75rem; background: #fef3c7; color: #92400e; padding: 2px 10px; border-radius: 12px;"><i class="fas fa-exclamation-circle"></i> Data tim tidak tersedia</span>
+              </div>
+              <div style="text-align: center; color: var(--color-text-light); font-size: 0.85rem; padding: 12px;">
+                <i class="fas fa-sync-alt" style="margin-right: 6px;"></i> Data tim sedang dimuat atau tim telah dihapus.
+              </div>
+            </div>`;
+            return;
+          }
+
+          hasValidTeam = true;
 
           html += `<div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: 10px; padding: 16px; margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
@@ -1904,7 +1919,7 @@
         });
 
         html += `</div></div>`;
-        return html;
+        return hasValidTeam ? html : '';
       }
 
       function renderLogs(meeting) {
@@ -3926,12 +3941,10 @@
 
         select.innerHTML = '<option value="">-- Pilih Tim --</option>';
         teams.forEach(t => {
-          // Only show teams where current user is creator or koordinator
-          const isCreator = t.createdBy === currentUser?.uid;
-          const isKoordinator = t.members?.some(m => m.email === currentUser?.email && m.role === 'koordinator');
-          // Also filter out teams already selected in modalSelectedTeamIds
+          // Show all teams the user has access to (creator or member)
+          // Filter out teams already selected in modalSelectedTeamIds
           const isAlreadySelected = modalSelectedTeamIds.includes(t.id);
-          if ((isCreator || isKoordinator) && !isAlreadySelected) {
+          if (!isAlreadySelected) {
             const option = document.createElement('option');
             option.value = t.id;
             option.text = escapeHtml(t.name);
@@ -4428,64 +4441,54 @@
         if (!currentUser) return;
         if (unsubscribeTeams) unsubscribeTeams();
 
-        // Query 1: Teams created by current user
-        const unsub1 = db.collection('teams')
-          .where('createdBy', '==', currentUser.uid)
+        // Listen to ALL teams with real-time updates
+        // Client-side filter for teams user has access to
+        unsubscribeTeams = db.collection('teams')
           .onSnapshot(snapshot => {
-            const teamsCreated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const allTeams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const userEmailLower = (currentUser.email || '').toLowerCase();
 
-            // Query 2: Get ALL teams and filter client-side by membership
-            // This is more reliable than array-contains which requires index and exact match
-            db.collection('teams').get().then(allTeamsSnap => {
-              const userEmailLower = (currentUser.email || '').toLowerCase();
-              const teamsMember = allTeamsSnap.docs
-                .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(team => {
-                  // Skip teams already in teamsCreated
-                  if (teamsCreated.find(t => t.id === team.id)) return false;
+            // Filter teams: user is creator OR user is in members array
+            teams = allTeams.filter(team => {
+              // Check if user is creator
+              if (team.createdBy === currentUser.uid) return true;
 
-                  // Check if user is in members array (by email or UID)
-                  if (team.members && Array.isArray(team.members)) {
-                    return team.members.some(m => {
-                      if (m.email && m.email.toLowerCase() === userEmailLower) return true;
-                      if (m.uid && m.uid === currentUser.uid) return true;
-                      return false;
-                    });
-                  }
-
-                  // Also check memberEmails array as fallback
-                  if (team.memberEmails && Array.isArray(team.memberEmails)) {
-                    return team.memberEmails.some(e => e.toLowerCase() === userEmailLower);
-                  }
-
+              // Check if user is in members array (by email or uid)
+              if (team.members && Array.isArray(team.members)) {
+                return team.members.some(m => {
+                  if (m.email && m.email.toLowerCase() === userEmailLower) return true;
+                  if (m.uid && m.uid === currentUser.uid) return true;
                   return false;
                 });
-
-              // Merge and render
-              const teamMap = new Map();
-              teamsCreated.forEach(t => teamMap.set(t.id, t));
-              teamsMember.forEach(t => teamMap.set(t.id, t));
-              teams = Array.from(teamMap.values());
-              teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-              renderTeamList();
-              if (document.getElementById('meetingModal').classList.contains('active')) {
-                updateMeetingTeamSelect();
-                renderSelectedTeamChips();
               }
-            }).catch(err => {
-              console.error('Error fetching all teams:', err);
-              // Fallback: just show created teams
-              teams = teamsCreated;
-              teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-              renderTeamList();
-            });
-          }, error => {
-            console.error('Error Teams Listener (created):', error);
-          });
 
-        unsubscribeTeams = () => {
-          unsub1();
-        };
+              // Check memberEmails fallback
+              if (team.memberEmails && Array.isArray(team.memberEmails)) {
+                return team.memberEmails.some(e => e.toLowerCase() === userEmailLower);
+              }
+
+              return false;
+            });
+
+            teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            renderTeamList();
+
+            // Update meeting modal team select if open
+            if (document.getElementById('meetingModal').classList.contains('active')) {
+              updateMeetingTeamSelect();
+              renderSelectedTeamChips();
+            }
+
+            // Re-render meeting detail if viewing a meeting with assigned teams
+            if (currentMeetingId) {
+              const meeting = meetings.find(m => m.id === currentMeetingId);
+              if (meeting && meeting.assignedTeamIds && meeting.assignedTeamIds.length > 0) {
+                renderDetail(meeting);
+              }
+            }
+          }, error => {
+            console.error('Error Teams Listener:', error);
+          });
 
         // One-time migration: populate memberEmails for existing teams
         migrateTeamMemberEmails();
