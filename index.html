@@ -1872,9 +1872,59 @@
           </div>
           <div class="team-members-grid">`;
 
+        let hasValidTeam = false;
         meeting.assignedTeamIds.forEach(teamId => {
           const team = teams.find(t => t.id === teamId);
-          if (!team) return;
+          if (!team) {
+            // Team not in local cache - show placeholder and fetch on-demand
+            html += `<div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: 10px; padding: 16px; margin-bottom: 12px;" id="assigned-team-${teamId}">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
+                <h4 style="margin: 0; color: var(--color-secondary); font-family: var(--font-heading);"><i class="fas fa-user-friends" style="color: var(--color-primary); margin-right: 8px;"></i>Memuat data tim...</h4>
+                <span style="font-size: 0.75rem; background: #fef3c7; color: #92400e; padding: 2px 10px; border-radius: 12px;"><i class="fas fa-spinner fa-spin"></i> Loading</span>
+              </div>
+            </div>`;
+            // Fetch team data directly from Firestore
+            db.collection('teams').doc(teamId).get().then(doc => {
+              if (doc.exists) {
+                const teamData = { id: doc.id, ...doc.data() };
+                const el = document.getElementById(`assigned-team-${teamId}`);
+                if (el) {
+                  let teamHtml = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
+                    <h4 style="margin: 0; color: var(--color-secondary); font-family: var(--font-heading);"><i class="fas fa-user-friends" style="color: var(--color-primary); margin-right: 8px;"></i>${escapeHtml(teamData.name)}</h4>
+                    <span style="font-size: 0.75rem; background: var(--color-bg-light); padding: 2px 10px; border-radius: 12px; color: var(--color-text-light);">${teamData.members?.length || 0} anggota</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 8px;">`;
+                  if (teamData.members && teamData.members.length > 0) {
+                    teamData.members.forEach(member => {
+                      const roleClass = member.role === 'koordinator' ? 'role-koordinator' : 'role-anggota';
+                      const roleLabel = member.role === 'koordinator' ? 'Koordinator' : 'Anggota';
+                      teamHtml += `<div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: white; border-radius: 8px; border: 1px solid var(--color-border);">
+                        <div class="member-avatar" style="width: 32px; height: 32px; font-size: 0.85rem;">${(member.name || '?').charAt(0).toUpperCase()}</div>
+                        <div style="flex: 1; min-width: 0;">
+                          <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-secondary);">${escapeHtml(member.name || 'Tanpa Nama')}</div>
+                          <div style="font-size: 0.8rem; color: var(--color-text-light);">${escapeHtml(member.email || '-')}</div>
+                        </div>
+                        <span class="member-role-badge ${roleClass}" style="font-size: 0.7rem;">${roleLabel}</span>
+                      </div>`;
+                    });
+                  } else {
+                    teamHtml += `<div style="text-align: center; color: var(--color-text-light); font-size: 0.85rem; padding: 12px;"><i class="fas fa-info-circle"></i> Belum ada anggota dalam tim ini.</div>`;
+                  }
+                  teamHtml += `</div>`;
+                  el.innerHTML = teamHtml;
+                }
+              }
+            }).catch(err => {
+              console.error('Error fetching team:', err);
+              const el = document.getElementById(`assigned-team-${teamId}`);
+              if (el) {
+                el.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 12px;"><i class="fas fa-exclamation-circle"></i> Gagal memuat data tim.</div>`;
+              }
+            });
+            return;
+          }
+
+          hasValidTeam = true;
 
           html += `<div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: 10px; padding: 16px; margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border);">
@@ -3926,12 +3976,10 @@
 
         select.innerHTML = '<option value="">-- Pilih Tim --</option>';
         teams.forEach(t => {
-          // Only show teams where current user is creator or koordinator
-          const isCreator = t.createdBy === currentUser?.uid;
-          const isKoordinator = t.members?.some(m => m.email === currentUser?.email && m.role === 'koordinator');
-          // Also filter out teams already selected in modalSelectedTeamIds
+          // Show all teams the user has access to (creator or member)
+          // Filter out teams already selected in modalSelectedTeamIds
           const isAlreadySelected = modalSelectedTeamIds.includes(t.id);
-          if ((isCreator || isKoordinator) && !isAlreadySelected) {
+          if (!isAlreadySelected) {
             const option = document.createElement('option');
             option.value = t.id;
             option.text = escapeHtml(t.name);
@@ -4428,63 +4476,67 @@
         if (!currentUser) return;
         if (unsubscribeTeams) unsubscribeTeams();
 
+        let teamsCreated = [];
+        let teamsMember = [];
+        let listener1Ready = false;
+        let listener2Ready = false;
+
+        function mergeAndRender() {
+          if (!listener1Ready || !listener2Ready) return;
+          const teamMap = new Map();
+          teamsCreated.forEach(t => teamMap.set(t.id, t));
+          teamsMember.forEach(t => teamMap.set(t.id, t));
+          teams = Array.from(teamMap.values());
+          teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          renderTeamList();
+          if (document.getElementById('meetingModal').classList.contains('active')) {
+            updateMeetingTeamSelect();
+            renderSelectedTeamChips();
+          }
+          // Re-render meeting detail if viewing a meeting with assigned teams
+          if (currentMeetingId) {
+            const meeting = meetings.find(m => m.id === currentMeetingId);
+            if (meeting && meeting.assignedTeamIds && meeting.assignedTeamIds.length > 0) {
+              renderDetail(meeting);
+            }
+          }
+        }
+
         // Query 1: Teams created by current user
         const unsub1 = db.collection('teams')
           .where('createdBy', '==', currentUser.uid)
           .onSnapshot(snapshot => {
-            const teamsCreated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Query 2: Get ALL teams and filter client-side by membership
-            // This is more reliable than array-contains which requires index and exact match
-            db.collection('teams').get().then(allTeamsSnap => {
-              const userEmailLower = (currentUser.email || '').toLowerCase();
-              const teamsMember = allTeamsSnap.docs
-                .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(team => {
-                  // Skip teams already in teamsCreated
-                  if (teamsCreated.find(t => t.id === team.id)) return false;
-
-                  // Check if user is in members array (by email or UID)
-                  if (team.members && Array.isArray(team.members)) {
-                    return team.members.some(m => {
-                      if (m.email && m.email.toLowerCase() === userEmailLower) return true;
-                      if (m.uid && m.uid === currentUser.uid) return true;
-                      return false;
-                    });
-                  }
-
-                  // Also check memberEmails array as fallback
-                  if (team.memberEmails && Array.isArray(team.memberEmails)) {
-                    return team.memberEmails.some(e => e.toLowerCase() === userEmailLower);
-                  }
-
-                  return false;
-                });
-
-              // Merge and render
-              const teamMap = new Map();
-              teamsCreated.forEach(t => teamMap.set(t.id, t));
-              teamsMember.forEach(t => teamMap.set(t.id, t));
-              teams = Array.from(teamMap.values());
-              teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-              renderTeamList();
-              if (document.getElementById('meetingModal').classList.contains('active')) {
-                updateMeetingTeamSelect();
-                renderSelectedTeamChips();
-              }
-            }).catch(err => {
-              console.error('Error fetching all teams:', err);
-              // Fallback: just show created teams
-              teams = teamsCreated;
-              teams.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-              renderTeamList();
-            });
+            teamsCreated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            listener1Ready = true;
+            mergeAndRender();
           }, error => {
             console.error('Error Teams Listener (created):', error);
+            listener1Ready = true;
+            mergeAndRender();
+          });
+
+        // Query 2: Teams where user is a member
+        // Use array-contains query (requires composite index but works with security rules)
+        const userEmailLower = (currentUser.email || '').toLowerCase();
+        const unsub2 = db.collection('teams')
+          .where('memberEmails', 'array-contains', userEmailLower)
+          .onSnapshot(snapshot => {
+            teamsMember = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            listener2Ready = true;
+            mergeAndRender();
+          }, error => {
+            console.log('Error Teams Listener (member):', error.message);
+            // If array-contains fails (missing index), try fallback
+            if (error.code === 'failed-precondition') {
+              console.log('Missing composite index for memberEmails query');
+            }
+            listener2Ready = true;
+            mergeAndRender();
           });
 
         unsubscribeTeams = () => {
           unsub1();
+          unsub2();
         };
 
         // One-time migration: populate memberEmails for existing teams
@@ -5433,116 +5485,5 @@
 <!-- ========================================================= -->
 <!-- SELESAI: FITUR KALENDER INTERAKTIF NOTULA v2.0 (FIXED)    -->
 <!-- ========================================================= -->
-<script>
-(function() {
-  let lastMeetingId = null;
-
-  async function refreshMeetingTeamDisplay() {
-    if (typeof currentMeetingId === 'undefined' || !currentMeetingId) return;
-
-    try {
-      // 1. Tarik Data Rapat Aktif
-      const meetingDoc = await db.collection('meetings').doc(currentMeetingId).get();
-      if (!meetingDoc.exists) return;
-
-      const meetingData = meetingDoc.data();
-      const members = meetingData.members || [];
-      const workspaceId = meetingData.workspaceId;
-      
-      if (!workspaceId) return;
-
-      // 2. Tarik Data Grup / Workspace untuk membaca objek roles
-      const wsDoc = await db.collection('workspaces').doc(workspaceId).get();
-      if (!wsDoc.exists) return;
-      const wsData = wsDoc.data();
-      const workspaceRoles = wsData.roles || {};
-
-      // 3. Cari Kontainer Target UI (Mendukung semua kemungkinan id/class di Notula App)
-      const teamListContainer = document.getElementById('meeting-team-list') || 
-                                document.getElementById('meeting-members') || 
-                                document.getElementById('meetingMembersList') || 
-                                document.querySelector('.team-list-container') ||
-                                document.querySelector('.meeting-members-list');
-      
-      if (!teamListContainer) return;
-
-      // Kosongkan isi sebelumnya untuk memuat data bersih yang telah ditranslasi
-      teamListContainer.innerHTML = ''; 
-
-      if (members.length === 0) {
-        teamListContainer.innerHTML = '<p style="color: gray; font-size: 0.9em; padding: 10px;">Belum ada tim yang ditugaskan.</p>';
-        return;
-      }
-
-      // 4. Proses Loop Anggota Rapat (Translasi UID -> Email -> Peran)
-      for (const memberIdentifier of members) {
-        let finalEmail = memberIdentifier;
-
-        // JIKA IDENTIFIER ADALAH UID (Tidak mengandung karakter '@'), konversi dulu ke Email via koleksi 'users'
-        if (!memberIdentifier.includes('@')) {
-          try {
-            const userDoc = await db.collection('users').doc(memberIdentifier).get();
-            if (userDoc.exists) {
-              finalEmail = userDoc.data().email || memberIdentifier;
-            }
-          } catch (e) {
-            console.log("UID tidak ditemukan di koleksi users, menggunakan ID asal:", memberIdentifier);
-          }
-        }
-
-        // 5. Cari Peran/Seksi berdasarkan Email hasil translasi (Case-Insensitive)
-        let assignedTeam = "Anggota Umum";
-        const lowerEmail = finalEmail.toLowerCase();
-        
-        for (const [key, value] of Object.entries(workspaceRoles)) {
-          if (key.toLowerCase() === lowerEmail) {
-            assignedTeam = value;
-            break;
-          }
-        }
-
-        // 6. Cetak Elemen ke Tampilan secara Indah & Proporsional
-        const memberEl = document.createElement('div');
-        memberEl.className = 'team-member-item';
-        memberEl.style = 'display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #f1f5f9; margin-bottom: 4px;';
-        memberEl.innerHTML = `
-          <div style="background: #eef2f6; color: #1a2b4c; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; font-size: 14px; text-transform: uppercase; flex-shrink: 0;">
-            ${finalEmail.charAt(0)}
-          </div>
-          <div style="flex-grow: 1; min-width: 0;">
-            <div style="font-weight: 600; font-size: 0.95em; color: #1e293b; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${finalEmail}</div>
-            <div style="font-size: 0.75em; color: ${assignedTeam === 'Anggota Umum' ? '#64748b' : '#0369a1'}; background: ${assignedTeam === 'Anggota Umum' ? '#f1f5f9' : '#e0f2fe'}; padding: 3px 8px; border-radius: 12px; display: inline-block; text-transform: capitalize; font-weight: 500;">
-              Tim/Seksi: <strong>${assignedTeam}</strong>
-            </div>
-          </div>
-        `;
-        teamListContainer.appendChild(memberEl);
-      }
-
-    } catch (err) {
-      console.error("Notula-X-Note Absolute Fix Error:", err);
-    }
-  }
-
-  // Auto-Detector: Mengecek perubahan rapat secara realtime tiap 1 detik (Sangat Stabil)
-  setInterval(() => {
-    if (typeof currentMeetingId !== 'undefined' && currentMeetingId && currentMeetingId !== lastMeetingId) {
-      lastMeetingId = currentMeetingId;
-      refreshMeetingTeamDisplay();
-    }
-  }, 1000);
-
-  // Backup Event Trigger untuk interaksi langsung
-  document.addEventListener('click', function(e) {
-    if (e.target.closest('.meeting-item') || e.target.closest('.btn-open-meeting')) {
-      setTimeout(refreshMeetingTeamDisplay, 600); 
-      setTimeout(refreshMeetingTeamDisplay, 1500); 
-    }
-  });
-
-  window.addEventListener('meetingLoaded', refreshMeetingTeamDisplay);
-})();
-</script>
 </body>
-
 </html>
