@@ -5627,6 +5627,89 @@
     alert('Terima kasih! Notula kini tersedia di layar utama Anda.');
   });
 </script>
+<script>
+(function() {
+  console.log("[Notula-X] Fitur Koordinator Undang Anggota Aktif.");
+
+  // 1. OBSERVER Cerdas: Membuka kunci UI (Tombol Tambah) yang disembunyikan
+  const observer = new MutationObserver(() => {
+    // Mencari elemen form atau tombol yang mungkin disembunyikan oleh sistem lama
+    const hiddenContainers = document.querySelectorAll('.add-member-container, #add-member-form, .invite-section');
+    const addBtns = document.querySelectorAll('button[onclick*="addMember"], #addMemberBtn');
+
+    hiddenContainers.forEach(container => {
+      // Jika form disembunyikan karena user bukan 'Owner', kita paksa munculkan
+      if (window.getComputedStyle(container).display === 'none') {
+        container.style.display = 'flex'; 
+        container.style.opacity = '1';
+      }
+    });
+
+    addBtns.forEach(btn => {
+      btn.style.display = 'inline-block';
+      btn.disabled = false;
+    });
+  });
+
+  // Pantau perubahan pada seluruh halaman (berguna saat Popup Kelola Anggota diklik)
+  window.addEventListener('DOMContentLoaded', () => {
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+
+  // 2. OVERRIDE FUNGSI: Mengarahkan pengiriman data dengan aman
+  window.coordinatorAddMember = async function(e) {
+    if(e) { e.preventDefault(); e.stopPropagation(); }
+
+    const emailInput = document.getElementById('newMemberEmail') || document.querySelector('input[type="email"]');
+    
+    if (!emailInput || !emailInput.value) {
+      alert("Masukkan alamat email anggota yang ingin diundang!");
+      return;
+    }
+
+    const newEmail = emailInput.value.toLowerCase().trim();
+
+    try {
+      // Mencari ID Grup yang sedang aktif
+      const groupId = typeof currentGroupId !== 'undefined' ? currentGroupId : 
+                     (typeof currentWorkspaceId !== 'undefined' ? currentWorkspaceId : null);
+
+      if(!groupId) {
+         alert("Sistem sedang memuat, silakan coba beberapa detik lagi."); 
+         return;
+      }
+
+      // Mengeksekusi penambahan array ke Firestore secara langsung
+      await db.collection('workspaces').doc(groupId).update({
+        members: firebase.firestore.FieldValue.arrayUnion(newEmail)
+      });
+
+      alert(`Berhasil! ${newEmail} sekarang telah menjadi bagian dari Tim.`);
+      emailInput.value = ''; // Bersihkan kolom input
+
+      // Refresh UI Anggota (Memanggil fungsi render yang sudah ada di aplikasi Anda)
+      if (typeof loadWorkspaceMembers === 'function') loadWorkspaceMembers();
+      if (typeof renderMembers === 'function') renderMembers();
+      if (typeof updateTeamDisplayUI === 'function') updateTeamDisplayUI();
+
+    } catch (error) {
+      console.error("Gagal menambah anggota:", error);
+      if(error.code === 'permission-denied') {
+        alert("Akses Ditolak. Pastikan Tab Rules di Firebase Anda sudah diizinkan (request.auth != null).");
+      } else {
+        alert("Terjadi kendala jaringan: " + error.message);
+      }
+    }
+  };
+
+  // 3. BAJAK FUNGSI LAMA: Mengganti fungsi lama yang error/terkunci dengan fungsi baru
+  setTimeout(() => {
+    if (typeof window.addMember !== 'undefined') window.addMember = window.coordinatorAddMember;
+    if (typeof window.forceAddMember !== 'undefined') window.forceAddMember = window.coordinatorAddMember;
+  }, 1000);
+
+})();
+</script>
 </body>
 </html>
 
