@@ -1,11 +1,9 @@
 <!DOCTYPE html>                                        
-  
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip + Notifikasi</title>
-  
   <meta name="theme-color" content="#1a2b4c">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -5761,85 +5759,516 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. FUNGSI EXPORT EXCEL (Cerdas mengambil semua data dari database)
-    window.exportHistoryAllToExcel = async function() {
-        try {
-            if (typeof XLSX === 'undefined') {
-                alert("Sistem Excel sedang memuat, pastikan Anda terhubung ke internet.");
-                return;
-            }
+  
+  // ========================================================
+  // 1. FITUR TAMBAH ANGGOTA (SINKRONISASI PASANGAN MERGE)
+  // ========================================================
+  window.superAddMember = async function(e) {
+    if(e) { e.preventDefault(); e.stopPropagation(); }
+    const emailInput = document.querySelector('#new-member-email') || 
+                       document.querySelector('.modal input[type="email"]') || 
+                       document.getElementById('memberEmail');
+    if(!emailInput || !emailInput.value) {
+        alert("Peringatan: Silakan ketik email anggota terlebih dahulu!");
+        return;
+    }
+    const newEmail = emailInput.value.trim();
+    const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
+    if(!groupId) {
+        alert("Grup belum terpilih atau sistem sedang memuat. Silakan klik ulang nama Grup Anda di sidebar kiri.");
+        return;
+    }
+    try {
+        await db.collection('workspaces').doc(groupId).set({
+            members: firebase.firestore.FieldValue.arrayUnion(newEmail)
+        }, { merge: true });
+        alert(`Sukses! Akun ${newEmail} berhasil ditambahkan ke dalam Tim.`);
+        emailInput.value = '';
+        if(typeof loadWorkspaceMembers === 'function') loadWorkspaceMembers();
+        if(typeof renderMembers === 'function') renderMembers();
+        if(typeof updateTeamDisplayUI === 'function') updateTeamDisplayUI();
+        if(typeof loadWorkspaces === 'function') loadWorkspaces(); 
+    } catch(error) {
+        console.error("Gagal menambah anggota:", error);
+        alert("Gagal menambahkan anggota: " + error.message);
+    }
+  };
 
-            const groupId = window.currentWorkspaceId || window.currentGroupId || localStorage.getItem('currentWorkspaceId');
-            if(!groupId) {
-                alert("Pilih Grup/Rapat di sidebar terlebih dahulu sebelum mengekspor riwayat.");
-                return;
-            }
+  // Override otomatis tombol tambah bawaan
+  setTimeout(() => {
+    window.addMember = window.superAddMember;
+    window.coordinatorAddMember = window.superAddMember;
+    window.forceAddMember = window.superAddMember;
+    const allButtons = document.querySelectorAll('button');
+    allButtons.forEach(btn => {
+       if(btn.innerText.toLowerCase().includes('tambah') && btn.closest('.modal')) {
+           btn.onclick = window.superAddMember;
+           btn.type = "button";
+       }
+    });
+  }, 1000);
 
-            // Menarik riwayat lengkap dari Firestore
-            const snapshot = await db.collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get();
-            let dataExport = [];
+  // ========================================================
+  // 2. MODUL MANDIRI: SEURUH PANEL RIWAYAT, ARCHIVE LOG, & EXCEL
+  // ========================================================
+  
+  // Membuat Elemen UI Jendela Jendela Pop-up Riwayat secara Otomatis
+  const historyModalDiv = document.createElement('div');
+  historyModalDiv.innerHTML = `
+    <div id="notula-history-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; justify-content:center; align-items:center; font-family:sans-serif;">
+      <div style="background:white; width:95%; max-width:850px; height:80vh; border-radius:12px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+        <div style="background:#1a2b4c; color:white; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="margin:0; font-size:1.2rem; display:flex; align-items:center; gap:8px;">📜 Riwayat Aktivitas & Log Grup</h3>
+          <span id="close-notula-history" style="cursor:pointer; font-size:1.8rem; font-weight:bold; line-height:1;">&times;</span>
+        </div>
+        <div style="padding:12px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <button id="btn-export-history-final" style="background:#107c41; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:6px; font-size:13px;">
+            📊 Export Semua ke Excel
+          </button>
+          <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:#475569; cursor:pointer; font-weight:500;">
+            <input type="checkbox" id="chk-show-archived-final" style="cursor:pointer;"> Tampilkan Log di-Arsip
+          </label>
+        </div>
+        <div style="flex:1; padding:20px; overflow-y:auto; background:#ffffff;">
+          <table style="width:100%; border-collapse:collapse; text-align:left; font-size:13px;">
+            <thead>
+              <tr style="background:#f1f5f9; color:#334155; border-bottom:2px solid #cbd5e1; font-weight:600;">
+                <th style="padding:12px 10px; width:25%;">Waktu</th>
+                <th style="padding:12px 10px; width:25%;">Pengguna</th>
+                <th style="padding:12px 10px; width:38%;">Aktivitas</th>
+                <th style="padding:12px 10px; width:12%; text-align:center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="history-log-tbody-final"></tbody>
+          </table>
+          <div id="history-empty-final" style="text-align:center; padding:50px; color:#94a3b8; display:none; font-size:14px;">
+            Belum ada catatan riwayat aktivitas di grup ini.
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(historyModalDiv);
 
-            snapshot.forEach(doc => {
-                let data = doc.data();
-                dataExport.push({
-                    "Waktu": data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString('id-ID') : "-",
-                    "Pengguna": data.user || data.email || "-",
-                    "Aktivitas": data.action || data.activity || "-",
-                    "Status": data.isArchived ? "Arsip (Sembunyi)" : "Aktif"
-                });
+  let historyUnsubscribe = null;
+
+  // Fungsi Membuka Jendela Riwayat dan Memasang Sinkronisasi Snapshot Firestore
+  window.openNotulaHistoryModal = function() {
+    const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
+    if(!groupId) {
+        alert("Silakan pilih salah satu nama Grup/Workspace Anda di sidebar kiri terlebih dahulu!");
+        return;
+    }
+
+    document.getElementById('notula-history-modal').style.display = 'flex';
+    fetchAndRenderLogs(groupId);
+  };
+
+  function fetchAndRenderLogs(groupId) {
+    if(historyUnsubscribe) historyUnsubscribe();
+
+    historyUnsubscribe = db.collection('workspaces').doc(groupId).collection('history')
+      .orderBy('timestamp', 'desc')
+      .onSnapshot((snapshot) => {
+          renderHistoryRows(snapshot);
+      }, (error) => {
+          console.error("Gagal memuat snapshot riwayat:", error);
+      });
+  }
+
+  // Fungsi Menutup Jendela Pop-up
+  window.closeNotulaHistoryModal = function() {
+    document.getElementById('notula-history-modal').style.display = 'none';
+    if(historyUnsubscribe) {
+        historyUnsubscribe();
+        historyUnsubscribe = null;
+    }
+  };
+
+  // Komponen Renderer untuk Menyusun Baris Tabel Aktivitas
+  function renderHistoryRows(snapshot) {
+    const tbody = document.getElementById('history-log-tbody-final');
+    const emptyMsg = document.getElementById('history-empty-final');
+    const showArchived = document.getElementById('chk-show-archived-final').checked;
+    
+    tbody.innerHTML = '';
+    
+    if(!snapshot || snapshot.empty) {
+        emptyMsg.style.display = 'block';
+        return;
+    }
+    emptyMsg.style.display = 'none';
+
+    snapshot.forEach((doc) => {
+        const data = doc.data();
+        const logId = doc.id;
+        const isArchived = data.isArchived || false;
+
+        if(isArchived && !showArchived) return;
+
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #e2e8f0';
+        if(isArchived) tr.style.background = '#f8fafc';
+
+        const waktu = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString('id-ID') : '-';
+        const user = data.user || data.email || '-';
+        const aktivitas = data.action || data.activity || '-';
+
+        tr.innerHTML = `
+            <td style="padding:10px; color:#475569;">${waktu}</td>
+            <td style="padding:10px; font-weight:500; color:#1e293b;">${user}</td>
+            <td style="padding:10px; color:#334155;">${aktivitas} ${isArchived ? '<span style="background:#e2e8f0; color:#475569; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:6px;">Diarsipkan</span>' : ''}</td>
+            <td style="padding:10px; text-align:center;">
+                ${!isArchived ? `
+                    <button onclick="archiveSingleLog('${logId}')" style="background:#e11d48; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:500;">
+                        📁 Arsip
+                    </button>
+                ` : '<span style="color:#94a3b8; font-size:11px;">-</span>'}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if(tbody.children.length === 0) {
+        emptyMsg.style.display = 'block';
+    }
+  }
+
+  // Fungsi Pemindah Log ke Laci Arsip Elektronik
+  window.archiveSingleLog = async function(logId) {
+    const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
+    if(!groupId || !logId) return;
+
+    try {
+        await db.collection('workspaces').doc(groupId).collection('history').doc(logId).set({
+            isArchived: true
+        }, { merge: true });
+        alert("Sukses: Aktivitas berhasil dipindahkan ke laci arsip rahasia.");
+    } catch (error) {
+        console.error("Gagal melakukan enkripsi arsip log:", error);
+        alert("Gagal mengarsipkan log: " + error.message);
+    }
+  };
+
+  // Logika Eksport Excel dengan Engine SheetJS (XLSX) Kompatibilitas Tinggi
+  window.exportHistoryToExcelFinal = async function() {
+    try {
+        if (typeof XLSX === 'undefined') {
+            alert("Engine Excel belum termuat sempurna. Hubungkan ke internet untuk menyelaraskan pustaka SheetJS.");
+            return;
+        }
+        const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
+        if(!groupId) return;
+
+        const snapshot = await db.collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get();
+        let dataExport = [];
+
+        snapshot.forEach(doc => {
+            let data = doc.data();
+            dataExport.push({
+                "Waktu Aktivitas": data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString('id-ID') : "-",
+                "Nama Pengguna/Email": data.user || data.email || "-",
+                "Detail Aktivitas / Log": data.action || data.activity || "-",
+                "Status Data": data.isArchived ? "Diarsipkan" : "Aktif"
             });
+        });
 
-            if(dataExport.length === 0) {
-                alert("Belum ada riwayat aktivitas di Grup/Rapat ini.");
-                return;
-            }
-
-            // Membuat dan Mengunduh Excel
-            const worksheet = XLSX.utils.json_to_sheet(dataExport);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Lengkap");
-            XLSX.writeFile(workbook, "Riwayat_Lengkap_Notula.xlsx");
-
-        } catch (error) {
-            console.error("Gagal mengekspor riwayat:", error);
-            alert("Gagal Export Excel. Pastikan Anda memiliki akses ke grup ini.");
+        if(dataExport.length === 0) {
+            alert("Tidak ditemukan riwayat aktivitas pada database grup ini untuk diekspor.");
+            return;
         }
-    };
 
-    // 2. FUNGSI ARCHIVE LOG (Menyembunyikan log dari layar utama tanpa menghapus data)
-    window.archiveHistoryLog = async function(logId) {
-        try {
-            const groupId = window.currentWorkspaceId || window.currentGroupId;
-            if(!groupId || !logId) return;
+        const worksheet = XLSX.utils.json_to_sheet(dataExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Log Aktivitas Notula");
+        XLSX.writeFile(workbook, "Riwayat_Aktivitas_Grup_Notula.xlsx");
+    } catch (error) {
+        console.error("Crash saat ekspor excel:", error);
+        alert("Gagal Export Excel: " + error.message);
+    }
+  };
 
-            // Menandai log sebagai arsip
-            await db.collection('workspaces').doc(groupId).collection('history').doc(logId).set({
-                isArchived: true
-            }, { merge: true });
+  // Mendaftarkan Seluruh Pengendali Event Listener Tombol
+  document.getElementById('close-notula-history').onclick = window.closeNotulaHistoryModal;
+  document.getElementById('btn-export-history-final').onclick = window.exportHistoryToExcelFinal;
+  document.getElementById('chk-show-archived-final').onchange = () => {
+     const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
+     if(groupId) {
+         db.collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get().then(renderHistoryRows);
+     }
+  };
 
-            alert("Log riwayat berhasil diarsipkan!");
-            // Refresh tampilan riwayat jika fungsinya ada
-            if(typeof loadHistory === 'function') loadHistory(); 
-        } catch (error) {
-            console.error("Gagal mengarsipkan log:", error);
-        }
-    };
+  // AUTO-PLACEMENT: Menyisipkan Tombol Pemicu Utama ke Antarmuka Layar
+  setTimeout(() => {
+     const targetHeader = document.querySelector('.header-actions') || document.querySelector('.user-info');
+     
+     const mainBtn = document.createElement('button');
+     mainBtn.id = 'notula-history-trigger-btn';
+     mainBtn.innerHTML = '📜 Riwayat & Log';
+     mainBtn.type = 'button';
+     
+     if(targetHeader) {
+         // Menyatu dengan gaya baris atas aplikasi
+         mainBtn.style.cssText = "background-color: #1a2b4c; color: white; border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-right: 10px; transition: all 0.2s;";
+         targetHeader.insertBefore(mainBtn, targetHeader.firstChild);
+     } else {
+         // Floating Action Button jika elemen header tidak ditemukan (Anti-Gagal)
+         mainBtn.style.cssText = "position: fixed; bottom: 20px; right: 20px; background-color: #1a2b4c; color: white; border: none; padding: 12px 20px; border-radius: 50px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 99999;";
+         document.body.appendChild(mainBtn);
+     }
+     
+     mainBtn.onclick = window.openNotulaHistoryModal;
+  }, 1500);
 
-    // 3. AUTO-INJECT UI: Memunculkan tombol Export Excel di UI jika belum ada
-    setTimeout(() => {
-        const historyHeader = document.querySelector('.history-header') || document.querySelector('#history-panel header') || document.querySelector('.section-header');
+});
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  
+  // --- 0. ANTI-GAGAL: AUTO LOAD SHEETJS (JIKA TERHAPUS) ---
+  if (typeof XLSX === 'undefined') {
+    console.log("Notula-X: Mendeteksi pustaka Excel hilang, menyuntikkan engine via CDN...");
+    const sheetJsScript = document.createElement('script');
+    sheetJsScript.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+    document.head.appendChild(sheetJsScript);
+  }
+
+  // ========================================================
+  // 1. LOGIKA UTAMA: TAMBAH ANGGOTA KORPORAT (ANTI-MENIMPA)
+  // ========================================================
+  window.superAddMember = async function(e) {
+    if(e) { e.preventDefault(); e.stopPropagation(); }
+    
+    const emailInput = document.querySelector('#new-member-email') || 
+                       document.querySelector('.modal input[type="email"]') || 
+                       document.getElementById('memberEmail');
+                       
+    if(!emailInput || !emailInput.value) {
+        alert("Peringatan: Silakan ketik alamat email anggota terlebih dahulu!");
+        return;
+    }
+
+    const newEmail = emailInput.value.trim();
+    const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
+
+    if(!groupId) {
+        alert("Grup belum terpilih sempurna. Silakan klik ulang nama Grup/Workspace Anda di sidebar kiri.");
+        return;
+    }
+
+    try {
+        // Menggunakan set + merge true agar dokumen grup lama Anda tidak kehilangan field krusial lainnya
+        await db.collection('workspaces').doc(groupId).set({
+            members: firebase.firestore.FieldValue.arrayUnion(newEmail)
+        }, { merge: true });
+
+        alert(`Sukses! Akun ${newEmail} berhasil dimasukkan ke dalam tim.`);
+        emailInput.value = ''; // Reset input
+
+        // Memicu render ulang antarmuka bawaan aplikasi Anda
+        if(typeof loadWorkspaceMembers === 'function') loadWorkspaceMembers();
+        if(typeof renderMembers === 'function') renderMembers();
+        if(typeof updateTeamDisplayUI === 'function') updateTeamDisplayUI();
+        if(typeof loadWorkspaces === 'function') loadWorkspaces(); 
         
-        if (historyHeader && !document.getElementById('btn-export-history-all')) {
-            const exportBtn = document.createElement('button');
-            exportBtn.id = 'btn-export-history-all';
-            exportBtn.innerHTML = '📊 Export Riwayat (Excel)';
-            exportBtn.style.cssText = "background-color: #107c41; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px; margin-left: 10px;";
-            exportBtn.onclick = window.exportHistoryAllToExcel;
-            exportBtn.type = "button";
-            
-            historyHeader.appendChild(exportBtn);
+    } catch(error) {
+        console.error("Gagal menambah anggota:", error);
+        alert("Gagal menambahkan anggota: " + error.message);
+    }
+  };
+
+  // Membajak/Override event tombol tambah bawaan sistem
+  setTimeout(() => {
+    window.addMember = window.superAddMember;
+    window.coordinatorAddMember = window.superAddMember;
+    window.forceAddMember = window.superAddMember;
+    document.querySelectorAll('button').forEach(btn => {
+       if(btn.innerText.toLowerCase().includes('tambah') && btn.closest('.modal')) {
+           btn.onclick = window.superAddMember;
+           btn.type = "button";
+       }
+    });
+  }, 1000);
+
+
+  // ========================================================
+  // 2. LOGIKA UTAMA: JENDELA RIWAYAT & LOG AKTIVITAS MANDIRI
+  // ========================================================
+  
+  // Menyuntikkan struktur modal Riwayat ke dalam HTML secara dinamis
+  const historyModalDiv = document.createElement('div');
+  historyModalDiv.innerHTML = `
+    <div id="notula-history-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; justify-content:center; align-items:center; font-family:sans-serif;">
+      <div style="background:white; width:95%; max-width:850px; height:80vh; border-radius:12px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+        
+        <div style="background:#1a2b4c; color:white; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="margin:0; font-size:1.2rem; display:flex; align-items:center; gap:8px;">📜 Riwayat Aktivitas & Log Grup</h3>
+          <span id="close-notula-history" style="cursor:pointer; font-size:1.8rem; font-weight:bold; line-height:1;">&times;</span>
+        </div>
+        
+        <div style="padding:12px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <button id="btn-export-history-final" style="background:#107c41; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:6px; font-size:13px;">
+            📊 Export Semua ke Excel
+          </button>
+          <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:#475569; cursor:pointer; font-weight:500;">
+            <input type="checkbox" id="chk-show-archived-final" style="cursor:pointer;"> Tampilkan Log di-Arsip
+          </label>
+        </div>
+        
+        <div style="flex:1; padding:20px; overflow-y:auto; background:#ffffff;">
+          <table style="width:100%; border-collapse:collapse; text-align:left; font-size:13px;">
+            <thead>
+              <tr style="background:#f1f5f9; color:#334155; border-bottom:2px solid #cbd5e1; font-weight:600;">
+                <th style="padding:12px 10px; width:25%;">Waktu</th>
+                <th style="padding:12px 10px; width:25%;">Pengguna</th>
+                <th style="padding:12px 10px; width:38%;">Aktivitas</th>
+                <th style="padding:12px 10px; width:12%; text-align:center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="history-log-tbody-final"></tbody>
+          </table>
+          <div id="history-empty-final" style="text-align:center; padding:50px; color:#94a3b8; display:none; font-size:14px;">
+            Belum ada catatan riwayat aktivitas di grup ini.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `;
+  document.body.appendChild(historyModalDiv);
+
+  let historyUnsubscribe = null;
+
+  // Membuka Pop-up & Sync Firestore Real-time Snapshot
+  window.openNotulaHistoryModal = function() {
+    const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
+    if(!groupId) {
+        alert("Silakan klik salah satu nama Grup/Workspace Anda di sidebar kiri terlebih dahulu!");
+        return;
+    }
+    document.getElementById('notula-history-modal').style.display = 'flex';
+    fetchAndRenderLogs(groupId);
+  };
+
+  window.closeNotulaHistoryModal = function() {
+    document.getElementById('notula-history-modal').style.display = 'none';
+    if(historyUnsubscribe) { historyUnsubscribe(); historyUnsubscribe = null; }
+  };
+
+  function fetchAndRenderLogs(groupId) {
+    if(historyUnsubscribe) historyUnsubscribe();
+
+    historyUnsubscribe = db.collection('workspaces').doc(groupId).collection('history')
+      .orderBy('timestamp', 'desc')
+      .onSnapshot((snapshot) => {
+          const tbody = document.getElementById('history-log-tbody-final');
+          const emptyMsg = document.getElementById('history-empty-final');
+          const showArchived = document.getElementById('chk-show-archived-final').checked;
+          
+          tbody.innerHTML = '';
+          if(!snapshot || snapshot.empty) { emptyMsg.style.display = 'block'; return; }
+          emptyMsg.style.display = 'none';
+
+          snapshot.forEach((doc) => {
+              const data = doc.data();
+              const isArchived = data.isArchived || false;
+              if(isArchived && !showArchived) return;
+
+              const tr = document.createElement('tr');
+              tr.style.borderBottom = '1px solid #e2e8f0';
+              if(isArchived) tr.style.background = '#f8fafc';
+
+              const waktu = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString('id-ID') : '-';
+              const user = data.user || data.email || '-';
+              const aktivitas = data.action || data.activity || '-';
+
+              tr.innerHTML = `
+                  <td style="padding:10px; color:#475569;">${waktu}</td>
+                  <td style="padding:10px; font-weight:500; color:#1e293b;">${user}</td>
+                  <td style="padding:10px; color:#334155;">${aktivitas} ${isArchived ? '<span style="background:#cbd5e1; color:#334155; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:6px;">Diarsipkan</span>' : ''}</td>
+                  <td style="padding:10px; text-align:center;">
+                      ${!isArchived ? `
+                          <button onclick="archiveSingleLog('${doc.id}')" style="background:#e11d48; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">
+                              📁 Arsip
+                          </button>
+                      ` : '<span style="color:#94a3b8;">-</span>'}
+                  </td>
+              `;
+              tbody.appendChild(tr);
+          });
+          if(tbody.children.length === 0) emptyMsg.style.display = 'block';
+      }, (error) => { console.error("History Log Error:", error); });
+  }
+
+  // Mengarsipkan Log Data
+  window.archiveSingleLog = async function(logId) {
+    const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
+    if(!groupId || !logId) return;
+    try {
+        await db.collection('workspaces').doc(groupId).collection('history').doc(logId).set({
+            isArchived: true
+        }, { merge: true });
+        alert("Log aktivitas berhasil dimasukkan ke dalam arsip.");
+    } catch (error) { alert("Gagal mengarsipkan: " + error.message); }
+  };
+
+  // Eksport Riwayat Langsung ke Dokumen Excel
+  window.exportHistoryToExcelFinal = async function() {
+    try {
+        if (typeof XLSX === 'undefined') {
+            alert("Engine Excel sedang di-load oleh browser, silakan klik ulang dalam 3 detik.");
+            return;
         }
-    }, 2000);
+        const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
+        if(!groupId) return;
+
+        const snapshot = await db.collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get();
+        let dataExport = [];
+
+        snapshot.forEach(doc => {
+            let data = doc.data();
+            dataExport.push({
+                "Waktu Aktivitas": data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString('id-ID') : "-",
+                "Nama Pengguna/Email": data.user || data.email || "-",
+                "Detail Aktivitas / Log": data.action || data.activity || "-",
+                "Status Data": data.isArchived ? "Diarsipkan" : "Aktif"
+            });
+        });
+
+        if(dataExport.length === 0) { alert("Tidak ada data log di grup ini."); return; }
+
+        const worksheet = XLSX.utils.json_to_sheet(dataExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Log Riwayat Notula");
+        XLSX.writeFile(workbook, "Riwayat_Aktivitas_Grup.xlsx");
+    } catch (error) { alert("Gagal Export Excel: " + error.message); }
+  };
+
+  // Binding Event click tombol modal riwayat
+  document.getElementById('close-notula-history').onclick = window.closeNotulaHistoryModal;
+  document.getElementById('btn-export-history-final').onclick = window.exportHistoryToExcelFinal;
+  document.getElementById('chk-show-archived-final').onchange = () => {
+     const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
+     if(groupId) fetchAndRenderLogs(groupId);
+  };
+
+  // AUTOMATIC PLACEMENT: Menyuntikkan tombol pemicu utama ke pojok kanan atas / floating
+  setTimeout(() => {
+     const targetHeader = document.querySelector('.header-actions') || document.querySelector('.user-info');
+     const mainBtn = document.createElement('button');
+     mainBtn.id = 'notula-history-trigger-btn';
+     mainBtn.innerHTML = '📜 Riwayat & Log';
+     mainBtn.type = 'button';
+     
+     if(targetHeader) {
+         mainBtn.style.cssText = "background-color: #1a2b4c; color: white; border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-right: 10px; transition: all 0.2s;";
+         targetHeader.insertBefore(mainBtn, targetHeader.firstChild);
+     } else {
+         mainBtn.style.cssText = "position: fixed; bottom: 25px; right: 25px; background-color: #1a2b4c; color: white; border: none; padding: 12px 22px; border-radius: 50px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 99998;";
+         document.body.appendChild(mainBtn);
+     }
+     mainBtn.onclick = window.openNotulaHistoryModal;
+  }, 1500);
+
 });
 </script>
 </body>
