@@ -5628,87 +5628,136 @@
   });
 </script>
 <script>
-(function() {
-  console.log("[Notula-X] Fitur Koordinator Undang Anggota Aktif.");
+document.addEventListener("DOMContentLoaded", () => {
+  window.superAddMember = async function(e) {
+    if(e) e.preventDefault();
 
-  // 1. OBSERVER Cerdas: Membuka kunci UI (Tombol Tambah) yang disembunyikan
-  const observer = new MutationObserver(() => {
-    // Mencari elemen form atau tombol yang mungkin disembunyikan oleh sistem lama
-    const hiddenContainers = document.querySelectorAll('.add-member-container, #add-member-form, .invite-section');
-    const addBtns = document.querySelectorAll('button[onclick*="addMember"], #addMemberBtn');
-
-    hiddenContainers.forEach(container => {
-      // Jika form disembunyikan karena user bukan 'Owner', kita paksa munculkan
-      if (window.getComputedStyle(container).display === 'none') {
-        container.style.display = 'flex'; 
-        container.style.opacity = '1';
-      }
-    });
-
-    addBtns.forEach(btn => {
-      btn.style.display = 'inline-block';
-      btn.disabled = false;
-    });
-  });
-
-  // Pantau perubahan pada seluruh halaman (berguna saat Popup Kelola Anggota diklik)
-  window.addEventListener('DOMContentLoaded', () => {
-    observer.observe(document.body, { childList: true, subtree: true });
-  });
-
-  // 2. OVERRIDE FUNGSI: Mengarahkan pengiriman data dengan aman
-  window.coordinatorAddMember = async function(e) {
-    if(e) { e.preventDefault(); e.stopPropagation(); }
-
-    const emailInput = document.getElementById('newMemberEmail') || document.querySelector('input[type="email"]');
-    
-    if (!emailInput || !emailInput.value) {
-      alert("Masukkan alamat email anggota yang ingin diundang!");
-      return;
+    // 1. Cari input email di dalam modal
+    const emailInput = document.querySelector('input[type="email"]') || document.getElementById('new-member-email');
+    if(!emailInput || !emailInput.value) {
+        alert("Peringatan: Silakan ketik email anggota terlebih dahulu!");
+        return;
     }
 
-    const newEmail = emailInput.value.toLowerCase().trim();
+    const newEmail = emailInput.value.trim();
+    
+    // 2. Tangkap ID Grup yang sedang dibuka saat ini
+    const groupId = window.currentWorkspaceId || window.currentGroupId || localStorage.getItem('currentWorkspaceId');
+
+    if(!groupId) {
+        alert("Grup belum terpilih. Silakan klik nama Grup/Rapat Anda di sidebar kiri terlebih dahulu.");
+        return;
+    }
 
     try {
-      // Mencari ID Grup yang sedang aktif
-      const groupId = typeof currentGroupId !== 'undefined' ? currentGroupId : 
-                     (typeof currentWorkspaceId !== 'undefined' ? currentWorkspaceId : null);
+        // 3. Eksekusi Paksa ke Database (Gunakan merge: true agar aman untuk Grup Lama)
+        await db.collection('workspaces').doc(groupId).set({
+            members: firebase.firestore.FieldValue.arrayUnion(newEmail)
+        }, { merge: true });
 
-      if(!groupId) {
-         alert("Sistem sedang memuat, silakan coba beberapa detik lagi."); 
-         return;
-      }
+        alert(`Sukses! Akun ${newEmail} berhasil ditambahkan ke dalam Tim.`);
+        emailInput.value = ''; // Bersihkan kolom
 
-      // Mengeksekusi penambahan array ke Firestore secara langsung
-      await db.collection('workspaces').doc(groupId).update({
-        members: firebase.firestore.FieldValue.arrayUnion(newEmail)
-      });
-
-      alert(`Berhasil! ${newEmail} sekarang telah menjadi bagian dari Tim.`);
-      emailInput.value = ''; // Bersihkan kolom input
-
-      // Refresh UI Anggota (Memanggil fungsi render yang sudah ada di aplikasi Anda)
-      if (typeof loadWorkspaceMembers === 'function') loadWorkspaceMembers();
-      if (typeof renderMembers === 'function') renderMembers();
-      if (typeof updateTeamDisplayUI === 'function') updateTeamDisplayUI();
-
-    } catch (error) {
-      console.error("Gagal menambah anggota:", error);
-      if(error.code === 'permission-denied') {
-        alert("Akses Ditolak. Pastikan Tab Rules di Firebase Anda sudah diizinkan (request.auth != null).");
-      } else {
-        alert("Terjadi kendala jaringan: " + error.message);
-      }
+        // 4. Refresh tampilan agar anggota baru langsung muncul
+        if(typeof loadWorkspaceMembers === 'function') loadWorkspaceMembers();
+        if(typeof renderMembers === 'function') renderMembers();
+        if(typeof loadWorkspaces === 'function') loadWorkspaces(); 
+    } catch(error) {
+        console.error("Gagal menambah anggota:", error);
+        alert("Gagal menambahkan anggota. Pesan error: " + error.message);
     }
   };
 
-  // 3. BAJAK FUNGSI LAMA: Mengganti fungsi lama yang error/terkunci dengan fungsi baru
+  // 5. Timpa seluruh fungsi lama agar menggunakan fungsi super ini
   setTimeout(() => {
-    if (typeof window.addMember !== 'undefined') window.addMember = window.coordinatorAddMember;
-    if (typeof window.forceAddMember !== 'undefined') window.forceAddMember = window.coordinatorAddMember;
-  }, 1000);
+    window.addMember = window.superAddMember;
+    window.superAddMember = window.superAddMember;
+    window.forceAddMember = window.superAddMember;
+    
+    // Cari tombol "Tambah" di layar dan pasangkan paksa kodenya
+    const btns = document.querySelectorAll('button');
+    btns.forEach(btn => {
+       if(btn.innerText.toLowerCase().includes('tambah') && btn.closest('.modal')) {
+           btn.onclick = window.superAddMember;
+           btn.type = "button";
+       }
+    });
+  }, 2000); // Tunggu 2 detik hingga halaman selesai dimuat sepenuhnya
+});
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Fungsi Super untuk Menambah Anggota langsung ke Firestore dengan metode Merge
+  window.superAddMember = async function(e) {
+    if(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-})();
+    // 1. Cari input email di dalam modal Kelola Anggota
+    const emailInput = document.querySelector('#new-member-email') || 
+                       document.querySelector('.modal input[type="email"]') || 
+                       document.getElementById('memberEmail');
+                       
+    if(!emailInput || !emailInput.value) {
+        alert("Peringatan: Silakan ketik email anggota terlebih dahulu!");
+        return;
+    }
+
+    const newEmail = emailInput.value.trim();
+    
+    // 2. Tangkap ID Workspace/Grup yang sedang aktif saat ini
+    const groupId = window.currentWorkspaceId || 
+                    window.currentGroupId || 
+                    window.activeWorkspaceId || 
+                    localStorage.getItem('currentWorkspaceId');
+
+    if(!groupId) {
+        alert("Grup belum terpilih atau sistem sedang memuat. Silakan klik ulang nama Grup Anda di sidebar kiri.");
+        return;
+    }
+
+    try {
+        // 3. Gunakan .set dengan { merge: true } agar tidak menimpa/menghilangkan field lain (seperti owner/nama grup)
+        // dan aman digunakan meskipun array 'members' belum ada di dokumen grup lama Anda.
+        await db.collection('workspaces').doc(groupId).set({
+            members: firebase.firestore.FieldValue.arrayUnion(newEmail)
+        }, { merge: true });
+
+        alert(`Sukses! Akun ${newEmail} berhasil ditambahkan ke dalam Tim.`);
+        emailInput.value = ''; // Bersihkan kolom input setelah sukses
+
+        // 4. Picu refresh UI agar anggota baru langsung muncul di layar Anda
+        if(typeof loadWorkspaceMembers === 'function') loadWorkspaceMembers();
+        if(typeof renderMembers === 'function') renderMembers();
+        if(typeof updateTeamDisplayUI === 'function') updateTeamDisplayUI();
+        if(typeof loadWorkspaces === 'function') loadWorkspaces(); 
+        
+    } catch(error) {
+        console.error("Gagal menambah anggota:", error);
+        if(error.code === 'permission-denied') {
+            alert("Akses Ditolak! Pastikan Tab 'Rules' di Firebase Console Anda sudah diubah menjadi: allow read, write: if request.auth != null;");
+        } else {
+            alert("Gagal menambahkan anggota. Pesan error: " + error.message);
+        }
+    }
+  };
+
+  // 5. Override/Bajak semua fungsi tambah lama agar beralih ke fungsi super ini
+  setTimeout(() => {
+    window.addMember = window.superAddMember;
+    window.coordinatorAddMember = window.superAddMember;
+    window.forceAddMember = window.superAddMember;
+    
+    // Cari tombol "Tambah" di dalam modal secara otomatis dan pasangkan fungsi super
+    const allButtons = document.querySelectorAll('button');
+    allButtons.forEach(btn => {
+       if(btn.innerText.toLowerCase().includes('tambah') && btn.closest('.modal')) {
+           btn.onclick = window.superAddMember;
+           btn.type = "button"; // Ubah tipe agar tidak memicu submit form reload halaman
+       }
+    });
+  }, 1500); // Tunggu 1.5 detik hingga seluruh script utama halaman selesai dimuat
+});
 </script>
 </body>
 </html>
