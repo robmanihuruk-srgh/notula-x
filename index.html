@@ -1007,6 +1007,11 @@
         <button class="btn-edit-meeting" id="editMeetingBtn" disabled><i class="fas fa-pen"></i> Edit</button>
         <button class="btn-delete-meeting" id="deleteMeetingBtn" disabled><i class="fas fa-trash"></i> Hapus</button>
         
+        <!-- TOMBOL RIWAYAT PERUBAHAN, ARCHIVE & EXPORT EXCEL -->
+        <button class="btn-header" id="btn-open-riwayat" onclick="window.openNotulaHistoryModal && window.openNotulaHistoryModal()" style="background: rgba(26,43,76,0.07); border-color: #1a2b4c; color: #1a2b4c; font-weight: 600;" title="Lihat Riwayat Aktivitas, Arsip, dan Export Excel">
+          <i class="fas fa-history"></i> Riwayat & Log
+        </button>
+
         <!-- INTEGRASI NOTIFIKASI -->
         <div class="notification-wrapper" id="notifWrapper" style="display: none;">
           <button class="notification-btn" id="notifBtn">
@@ -6253,84 +6258,25 @@ document.addEventListener("DOMContentLoaded", () => {
      if(groupId) fetchAndRenderLogs(groupId);
   };
 
-  // AUTOMATIC PLACEMENT: Menyuntikkan tombol pemicu utama ke pojok kanan atas / floating
+  // AUTOMATIC PLACEMENT: Menyuntikkan tombol pemicu utama (hanya jika belum ada di header)
   setTimeout(() => {
-     const targetHeader = document.querySelector('.header-actions') || document.querySelector('.user-info');
+     // Jika tombol sudah ada di header (dirender dari HTML statis), hubungkan saja eventnya
+     const existingBtn = document.getElementById('btn-open-riwayat');
+     if(existingBtn) {
+         existingBtn.onclick = window.openNotulaHistoryModal;
+         return; // Tombol sudah ada, tidak perlu duplikat
+     }
+     // Fallback: buat tombol floating jika elemen statis tidak ditemukan
      const mainBtn = document.createElement('button');
      mainBtn.id = 'notula-history-trigger-btn';
      mainBtn.innerHTML = '📜 Riwayat & Log';
      mainBtn.type = 'button';
-     
-     if(targetHeader) {
-         mainBtn.style.cssText = "background-color: #1a2b4c; color: white; border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-right: 10px; transition: all 0.2s;";
-         targetHeader.insertBefore(mainBtn, targetHeader.firstChild);
-     } else {
-         mainBtn.style.cssText = "position: fixed; bottom: 25px; right: 25px; background-color: #1a2b4c; color: white; border: none; padding: 12px 22px; border-radius: 50px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 99998;";
-         document.body.appendChild(mainBtn);
-     }
+     mainBtn.style.cssText = "position: fixed; bottom: 25px; right: 25px; background-color: #1a2b4c; color: white; border: none; padding: 12px 22px; border-radius: 50px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 99998;";
+     document.body.appendChild(mainBtn);
      mainBtn.onclick = window.openNotulaHistoryModal;
   }, 1500);
 
 });
-</script>
-<script>
-// =========================================================================
-// PATCH FIX: ULTIMATE INJECTOR (DEBUG VERSION)
-// Jika header tidak ketemu, tombol akan muncul mengambang di pojok layar
-// =========================================================================
-(function() {
-    function injectWithDiagnostic() {
-        if (document.getElementById('notula-history-trigger-btn')) return;
-
-        // Mencari target dengan lebih agresif
-        const targetHeader = document.querySelector('.header-actions') || 
-                             document.querySelector('.user-info') || 
-                             document.querySelector('header');
-        
-        const mainBtn = document.createElement('button');
-        mainBtn.id = 'notula-history-trigger-btn';
-        mainBtn.innerHTML = '📜 Riwayat & Log';
-        mainBtn.type = 'button';
-
-        // Cek apakah user sudah login/punya akses (ambil groupId)
-        const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
-
-        // Styling Dasar
-        mainBtn.style.cssText = "background-color: #d32f2f; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; z-index: 999999; transition: all 0.3s;";
-
-        // Logika Klik
-        mainBtn.onclick = () => {
-            const modal = document.getElementById('notula-history-modal-final');
-            if (modal) {
-                modal.style.display = 'flex';
-                if(typeof fetchAndRenderLogs === 'function') {
-                    fetchAndRenderLogs(groupId || 'default');
-                }
-            } else {
-                console.error("DEBUG: Modal 'notula-history-modal-final' TIDAK DITEMUKAN di halaman.");
-                alert("Fitur Riwayat belum dimuat. Pastikan Anda sudah login.");
-            }
-        };
-
-        if (targetHeader) {
-            // Jika berhasil menemukan header, tempel di sana
-            mainBtn.style.marginRight = "10px";
-            targetHeader.insertBefore(mainBtn, targetHeader.firstChild);
-            console.log("DEBUG: Tombol berhasil disuntikkan ke Header.");
-        } else {
-            // FALLBACK: Jika header tidak ketemu, buat tombol mengambang di pojok kanan bawah
-            mainBtn.style.position = "fixed";
-            mainBtn.style.bottom = "20px";
-            mainBtn.style.right = "20px";
-            mainBtn.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
-            document.body.appendChild(mainBtn);
-            console.warn("DEBUG: Header tidak ditemukan. Tombol disuntikkan sebagai Floating Button.");
-        }
-    }
-
-    // Jalankan setiap 1 detik
-    setInterval(injectWithDiagnostic, 1000);
-})();
 </script>
 </body>
 </html>
