@@ -6273,6 +6273,58 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
+<script>
+// =========================================================================
+// PATCH FIX: SMART WATCHER UNTUK TOMBOL RIWAYAT, ARCHIVE & EXPORT EXCEL
+// Memastikan tombol selalu muncul dan tidak hilang karena delay login
+// =========================================================================
+(function() {
+    function injectHistoryButton() {
+        // 1. Cek apakah tombol sudah ada, jika sudah ada, hentikan fungsi agar tidak ganda
+        if (document.getElementById('notula-history-trigger-btn')) return;
+
+        // 2. Cari tempat yang pas untuk menaruh tombol (Header atas)
+        const targetHeader = document.querySelector('.header-actions') || document.querySelector('.user-info');
+        
+        // 3. Cek apakah kita sedang berada di dalam grup/workspace aktif
+        const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
+
+        // Jika area header sudah dirender dan user berada di dalam grup
+        if (targetHeader && groupId) {
+            const mainBtn = document.createElement('button');
+            mainBtn.id = 'notula-history-trigger-btn';
+            mainBtn.innerHTML = '📜 Riwayat & Log';
+            mainBtn.type = 'button';
+            mainBtn.style.cssText = "background-color: #1a2b4c; color: white; border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-right: 10px; transition: all 0.2s;";
+            
+            // Tambahkan efek hover
+            mainBtn.onmouseover = () => mainBtn.style.backgroundColor = '#2c4375';
+            mainBtn.onmouseout = () => mainBtn.style.backgroundColor = '#1a2b4c';
+
+            // Logika ketika diklik: Membuka modal riwayat yang sebelumnya sudah tertanam di index(9)
+            mainBtn.onclick = () => {
+                const modal = document.getElementById('notula-history-modal-final');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    // Panggil fungsi fetch data (Riwayat & Archive) yang sudah ada di sistem index(9)
+                    if(typeof fetchAndRenderLogs === 'function') {
+                        fetchAndRenderLogs(groupId);
+                    }
+                } else {
+                    alert("Menunggu sistem memuat modal riwayat, mohon pastikan halaman telah termuat penuh.");
+                }
+            };
+
+            // Suntikkan tombol ke posisi awal (kiri dari info pengguna)
+            targetHeader.insertBefore(mainBtn, targetHeader.firstChild);
+        }
+    }
+
+    // Jalankan pengawas cerdas setiap 1.5 detik
+    // Sangat aman: Interval ini ringan dan memastikan kapan pun Anda login atau pindah grup, tombol selalu menyesuaikan.
+    setInterval(injectHistoryButton, 1500);
+})();
+</script>
 </body>
 </html>
 
