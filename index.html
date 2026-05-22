@@ -1055,6 +1055,9 @@
       const auth = firebase.auth();
       const db = firebase.firestore();
       const rtdb = firebase.database();
+      // Expose ke window agar script eksternal dapat akses (Riwayat, superAddMember, dll)
+      window.db = db;
+      window.rtdb = rtdb;
 
       // ========== GLOBAL STATE ==========
       let meetings = [];
@@ -1732,6 +1735,7 @@
       auth.onAuthStateChanged(async (user) => {
         if (user) {
           currentUser = user;
+          window.currentUser = user; // expose untuk script eksternal
           document.getElementById('userEmail').innerText = user.email;
           document.getElementById('userInfo').style.display = 'flex';
           document.getElementById('notifWrapper').style.display = 'flex'; // Tampilkan notifikasi
@@ -1866,7 +1870,28 @@
         } catch (e) {
           console.error("Gagal menyimpan log: ", e);
         }
+        // Juga catat ke workspaces/history agar tampil di Riwayat & Log
+        if (currentWorkspaceId) {
+          window.addWorkspaceLog(message);
+        }
       }
+
+      // Fungsi global untuk mencatat perubahan ke workspaces/{id}/history (dibaca oleh modal Riwayat & Log)
+      window.addWorkspaceLog = async function(action) {
+        const groupId = currentWorkspaceId || window.currentWorkspaceId;
+        const user = currentUser || window.currentUser;
+        if (!groupId || !user) return;
+        try {
+          await db.collection('workspaces').doc(groupId).collection('history').add({
+            action: action,
+            user: user.email,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            isArchived: false
+          });
+        } catch(e) {
+          console.error("Gagal mencatat riwayat workspace:", e);
+        }
+      };
 
       function renderAssignedTeams(meeting) {
         if (!meeting.assignedTeamIds || meeting.assignedTeamIds.length === 0) return '';
@@ -3139,9 +3164,11 @@
         try {
           if (meetingData.id) {
             await db.collection('meetings').doc(meetingData.id).set(meetingData, { merge: true });
+            if (window.addWorkspaceLog) window.addWorkspaceLog(`Mengedit rapat: "${meetingData.title}"`);
           } else {
             const ref = await db.collection('meetings').add(meetingData);
             currentMeetingId = ref.id;
+            if (window.addWorkspaceLog) window.addWorkspaceLog(`Membuat rapat baru: "${meetingData.title}"`);
           }
         } catch (error) {
           alert('Gagal menyimpan rapat: ' + error.message);
@@ -3159,7 +3186,9 @@
         }
         if (!confirm('Hapus rapat ini? Semua seksi dan tugas akan ikut terhapus.')) return;
         try {
+          const _delMeeting = meetings.find(m => m.id === meetingId);
           await db.collection('meetings').doc(meetingId).delete();
+          if (window.addWorkspaceLog) window.addWorkspaceLog(`Menghapus rapat: "${_delMeeting?.title || meetingId}"`);
           if (currentMeetingId === meetingId) currentMeetingId = null;
         } catch (error) {
           alert('Gagal menghapus rapat: ' + error.message);
@@ -5660,7 +5689,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
         // 3. Eksekusi Paksa ke Database (Gunakan merge: true agar aman untuk Grup Lama)
-        await db.collection('workspaces').doc(groupId).set({
+        await window.db.collection('workspaces').doc(groupId).set({
             members: firebase.firestore.FieldValue.arrayUnion(newEmail)
         }, { merge: true });
 
@@ -5729,7 +5758,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
         // 3. Gunakan .set dengan { merge: true } agar tidak menimpa/menghilangkan field lain (seperti owner/nama grup)
         // dan aman digunakan meskipun array 'members' belum ada di dokumen grup lama Anda.
-        await db.collection('workspaces').doc(groupId).set({
+        await window.db.collection('workspaces').doc(groupId).set({
             members: firebase.firestore.FieldValue.arrayUnion(newEmail)
         }, { merge: true });
 
@@ -5791,7 +5820,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
     try {
-        await db.collection('workspaces').doc(groupId).set({
+        await window.db.collection('workspaces').doc(groupId).set({
             members: firebase.firestore.FieldValue.arrayUnion(newEmail)
         }, { merge: true });
         alert(`Sukses! Akun ${newEmail} berhasil ditambahkan ke dalam Tim.`);
@@ -5879,7 +5908,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function fetchAndRenderLogs(groupId) {
     if(historyUnsubscribe) historyUnsubscribe();
 
-    historyUnsubscribe = db.collection('workspaces').doc(groupId).collection('history')
+    historyUnsubscribe = window.db.collection('workspaces').doc(groupId).collection('history')
       .orderBy('timestamp', 'desc')
       .onSnapshot((snapshot) => {
           renderHistoryRows(snapshot);
@@ -5952,7 +5981,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if(!groupId || !logId) return;
 
     try {
-        await db.collection('workspaces').doc(groupId).collection('history').doc(logId).set({
+        await (window.db).collection('workspaces').doc(groupId).collection('history').doc(logId).set({
             isArchived: true
         }, { merge: true });
         alert("Sukses: Aktivitas berhasil dipindahkan ke laci arsip rahasia.");
@@ -5972,7 +6001,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
         if(!groupId) return;
 
-        const snapshot = await db.collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get();
+        const snapshot = await (window.db).collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get();
         let dataExport = [];
 
         snapshot.forEach(doc => {
@@ -6006,7 +6035,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById('chk-show-archived-final').onchange = () => {
      const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
      if(groupId) {
-         db.collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get().then(renderHistoryRows);
+         window.db.collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get().then(renderHistoryRows);
      }
   };
 
@@ -6051,7 +6080,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
         // Menggunakan set + merge true agar dokumen grup lama Anda tidak kehilangan field krusial lainnya
-        await db.collection('workspaces').doc(groupId).set({
+        await window.db.collection('workspaces').doc(groupId).set({
             members: firebase.firestore.FieldValue.arrayUnion(newEmail)
         }, { merge: true });
 
@@ -6090,5 +6119,4 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
-
 
