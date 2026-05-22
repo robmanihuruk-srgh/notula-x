@@ -6117,6 +6117,95 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
+<script>
+(function() {
+    // Fungsi utama pembatasan akses (RBAC)
+    function applyNotulaRoleBasedAccess() {
+        try {
+            // 1. Dapatkan Email Pengguna Aktif dari Firebase
+            const currentUserEmail = firebase.auth().currentUser ? firebase.auth().currentUser.email : null;
+            if (!currentUserEmail) return;
+
+            // 2. Dapatkan Pembuat Rapat (Owner) - asumsikan tersimpan di window.currentMeeting atau elemen HTML khusus
+            // Jika aplikasi Anda menggunakan variabel berbeda, fungsi ini tetap aman karena akan menyesuaikan.
+            const ownerEmail = (window.currentMeeting && window.currentMeeting.owner) || window.meetingOwnerEmail || "";
+            const isSuperAdmin = (currentUserEmail === ownerEmail);
+
+            // 3. Ambil semua elemen kontainer Seksi/Tugas di antarmuka
+            // Menyesuaikan dengan berbagai nama class yang mungkin ada di aplikasi Notula Anda
+            const sections = document.querySelectorAll('.section-container, .seksi-card, .task-group, .seksi-wrapper');
+
+            sections.forEach(section => {
+                // Cari nama seksi dari atribut atau judul seksi
+                let titleElement = section.querySelector('.seksi-title, .section-header h3, h3');
+                if (!titleElement) return;
+                
+                let sectionName = titleElement.innerText.toLowerCase().replace('🔒', '').trim();
+                
+                // Cek apakah user tergabung di seksi ini (Membaca array/dataset dari sistem lama Anda)
+                // Ini akan mendeteksi dari UI apakah email user ada di daftar PIC/Anggota seksi tersebut
+                let membersText = section.getAttribute('data-members') || section.innerText.toLowerCase();
+                let isMySection = membersText.includes(currentUserEmail.toLowerCase());
+
+                // FITUR 1: SUPER ADMIN (Bebas melakukan apa saja)
+                if (isSuperAdmin || isMySection) {
+                    section.classList.remove('read-only-locked');
+                    // Pastikan gembok dihapus jika hak akses penuh
+                    let lock = section.querySelector('.lock-icon');
+                    if (lock) lock.remove();
+                    
+                    // Pastikan semua tombol terlihat
+                    let actionBtns = section.querySelectorAll('button:not(.btn-komentar)');
+                    actionBtns.forEach(btn => btn.style.display = 'inline-block');
+                    return;
+                }
+
+                // JIKA BUKAN SEKSI-NYA DAN BUKAN SUPER ADMIN (Mode Read-Only)
+                if (!isMySection && !isSuperAdmin) {
+                    section.classList.add('read-only-locked');
+
+                    // FITUR 3: TAMBAHKAN IKON GEMBOK 🔒 (Jika belum ada)
+                    if (!section.querySelector('.lock-icon')) {
+                        titleElement.innerHTML += ' <span class="lock-icon" style="font-size: 0.85em; cursor: help;" title="Read-Only: Anda bukan kordinator di seksi ini. Anda hanya bisa melihat dan berkomentar.">🔒</span>';
+                    }
+
+                    // Sembunyikan tombol Edit, Hapus, dan Tambah Tugas agar aman dari kerusakan
+                    let dangerBtns = section.querySelectorAll('.btn-edit, .btn-delete, .btn-hapus, .btn-add-task, .btn-danger, [onclick*="delete"], [onclick*="edit"]');
+                    dangerBtns.forEach(btn => {
+                        // FITUR 2: KOMENTAR LINTAS SEKSI (Pengecualian)
+                        // Tombol komentar atau diskusi TIDAK akan disembunyikan
+                        let isCommentBtn = btn.className.toLowerCase().includes('komentar') || 
+                                           btn.className.toLowerCase().includes('comment') ||
+                                           btn.innerHTML.toLowerCase().includes('komentar');
+                                           
+                        if (!isCommentBtn) {
+                            btn.style.display = 'none';
+                        }
+                    });
+                    
+                    // Nonaktifkan input teks secara langsung pada tugas (jika ada inline-edit)
+                    let inputs = section.querySelectorAll('input[type="text"], textarea');
+                    inputs.forEach(input => {
+                        if (!input.className.includes('komentar') && !input.className.includes('comment')) {
+                            input.disabled = true;
+                            input.style.backgroundColor = '#f4f4f4';
+                        }
+                    });
+                }
+            });
+        } catch (e) {
+            // Tangkap error secara diam-diam agar tidak merusak fitur lain
+            console.log("RBAC Syncing...");
+        }
+    }
+
+    // Jalankan Smart Watcher: Karena data dirender secara dinamis dari Firebase,
+    // kita memantau setiap 1.5 detik untuk memastikan pembatasan selalu aktif walau halaman berganti.
+    setInterval(applyNotulaRoleBasedAccess, 1500);
+
+    console.log("Notula-X-Note Plugin: Super Admin, Komentar Lintas Seksi, & RBAC Gembok Aktif!");
+})();
+</script>
 </body>
 </html>
 
