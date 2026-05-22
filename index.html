@@ -5759,6 +5759,89 @@ document.addEventListener("DOMContentLoaded", () => {
   }, 1500); // Tunggu 1.5 detik hingga seluruh script utama halaman selesai dimuat
 });
 </script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. FUNGSI EXPORT EXCEL (Cerdas mengambil semua data dari database)
+    window.exportHistoryAllToExcel = async function() {
+        try {
+            if (typeof XLSX === 'undefined') {
+                alert("Sistem Excel sedang memuat, pastikan Anda terhubung ke internet.");
+                return;
+            }
+
+            const groupId = window.currentWorkspaceId || window.currentGroupId || localStorage.getItem('currentWorkspaceId');
+            if(!groupId) {
+                alert("Pilih Grup/Rapat di sidebar terlebih dahulu sebelum mengekspor riwayat.");
+                return;
+            }
+
+            // Menarik riwayat lengkap dari Firestore
+            const snapshot = await db.collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get();
+            let dataExport = [];
+
+            snapshot.forEach(doc => {
+                let data = doc.data();
+                dataExport.push({
+                    "Waktu": data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString('id-ID') : "-",
+                    "Pengguna": data.user || data.email || "-",
+                    "Aktivitas": data.action || data.activity || "-",
+                    "Status": data.isArchived ? "Arsip (Sembunyi)" : "Aktif"
+                });
+            });
+
+            if(dataExport.length === 0) {
+                alert("Belum ada riwayat aktivitas di Grup/Rapat ini.");
+                return;
+            }
+
+            // Membuat dan Mengunduh Excel
+            const worksheet = XLSX.utils.json_to_sheet(dataExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Lengkap");
+            XLSX.writeFile(workbook, "Riwayat_Lengkap_Notula.xlsx");
+
+        } catch (error) {
+            console.error("Gagal mengekspor riwayat:", error);
+            alert("Gagal Export Excel. Pastikan Anda memiliki akses ke grup ini.");
+        }
+    };
+
+    // 2. FUNGSI ARCHIVE LOG (Menyembunyikan log dari layar utama tanpa menghapus data)
+    window.archiveHistoryLog = async function(logId) {
+        try {
+            const groupId = window.currentWorkspaceId || window.currentGroupId;
+            if(!groupId || !logId) return;
+
+            // Menandai log sebagai arsip
+            await db.collection('workspaces').doc(groupId).collection('history').doc(logId).set({
+                isArchived: true
+            }, { merge: true });
+
+            alert("Log riwayat berhasil diarsipkan!");
+            // Refresh tampilan riwayat jika fungsinya ada
+            if(typeof loadHistory === 'function') loadHistory(); 
+        } catch (error) {
+            console.error("Gagal mengarsipkan log:", error);
+        }
+    };
+
+    // 3. AUTO-INJECT UI: Memunculkan tombol Export Excel di UI jika belum ada
+    setTimeout(() => {
+        const historyHeader = document.querySelector('.history-header') || document.querySelector('#history-panel header') || document.querySelector('.section-header');
+        
+        if (historyHeader && !document.getElementById('btn-export-history-all')) {
+            const exportBtn = document.createElement('button');
+            exportBtn.id = 'btn-export-history-all';
+            exportBtn.innerHTML = '📊 Export Riwayat (Excel)';
+            exportBtn.style.cssText = "background-color: #107c41; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px; margin-left: 10px;";
+            exportBtn.onclick = window.exportHistoryAllToExcel;
+            exportBtn.type = "button";
+            
+            historyHeader.appendChild(exportBtn);
+        }
+    }, 2000);
+});
+</script>
 </body>
 </html>
 
