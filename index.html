@@ -6275,54 +6275,61 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <script>
 // =========================================================================
-// PATCH FIX: SMART WATCHER UNTUK TOMBOL RIWAYAT, ARCHIVE & EXPORT EXCEL
-// Memastikan tombol selalu muncul dan tidak hilang karena delay login
+// PATCH FIX: ULTIMATE INJECTOR (DEBUG VERSION)
+// Jika header tidak ketemu, tombol akan muncul mengambang di pojok layar
 // =========================================================================
 (function() {
-    function injectHistoryButton() {
-        // 1. Cek apakah tombol sudah ada, jika sudah ada, hentikan fungsi agar tidak ganda
+    function injectWithDiagnostic() {
         if (document.getElementById('notula-history-trigger-btn')) return;
 
-        // 2. Cari tempat yang pas untuk menaruh tombol (Header atas)
-        const targetHeader = document.querySelector('.header-actions') || document.querySelector('.user-info');
+        // Mencari target dengan lebih agresif
+        const targetHeader = document.querySelector('.header-actions') || 
+                             document.querySelector('.user-info') || 
+                             document.querySelector('header');
         
-        // 3. Cek apakah kita sedang berada di dalam grup/workspace aktif
+        const mainBtn = document.createElement('button');
+        mainBtn.id = 'notula-history-trigger-btn';
+        mainBtn.innerHTML = '📜 Riwayat & Log';
+        mainBtn.type = 'button';
+
+        // Cek apakah user sudah login/punya akses (ambil groupId)
         const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
 
-        // Jika area header sudah dirender dan user berada di dalam grup
-        if (targetHeader && groupId) {
-            const mainBtn = document.createElement('button');
-            mainBtn.id = 'notula-history-trigger-btn';
-            mainBtn.innerHTML = '📜 Riwayat & Log';
-            mainBtn.type = 'button';
-            mainBtn.style.cssText = "background-color: #1a2b4c; color: white; border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-right: 10px; transition: all 0.2s;";
-            
-            // Tambahkan efek hover
-            mainBtn.onmouseover = () => mainBtn.style.backgroundColor = '#2c4375';
-            mainBtn.onmouseout = () => mainBtn.style.backgroundColor = '#1a2b4c';
+        // Styling Dasar
+        mainBtn.style.cssText = "background-color: #d32f2f; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; z-index: 999999; transition: all 0.3s;";
 
-            // Logika ketika diklik: Membuka modal riwayat yang sebelumnya sudah tertanam di index(9)
-            mainBtn.onclick = () => {
-                const modal = document.getElementById('notula-history-modal-final');
-                if (modal) {
-                    modal.style.display = 'flex';
-                    // Panggil fungsi fetch data (Riwayat & Archive) yang sudah ada di sistem index(9)
-                    if(typeof fetchAndRenderLogs === 'function') {
-                        fetchAndRenderLogs(groupId);
-                    }
-                } else {
-                    alert("Menunggu sistem memuat modal riwayat, mohon pastikan halaman telah termuat penuh.");
+        // Logika Klik
+        mainBtn.onclick = () => {
+            const modal = document.getElementById('notula-history-modal-final');
+            if (modal) {
+                modal.style.display = 'flex';
+                if(typeof fetchAndRenderLogs === 'function') {
+                    fetchAndRenderLogs(groupId || 'default');
                 }
-            };
+            } else {
+                console.error("DEBUG: Modal 'notula-history-modal-final' TIDAK DITEMUKAN di halaman.");
+                alert("Fitur Riwayat belum dimuat. Pastikan Anda sudah login.");
+            }
+        };
 
-            // Suntikkan tombol ke posisi awal (kiri dari info pengguna)
+        if (targetHeader) {
+            // Jika berhasil menemukan header, tempel di sana
+            mainBtn.style.marginRight = "10px";
             targetHeader.insertBefore(mainBtn, targetHeader.firstChild);
+            console.log("DEBUG: Tombol berhasil disuntikkan ke Header.");
+        } else {
+            // FALLBACK: Jika header tidak ketemu, buat tombol mengambang di pojok kanan bawah
+            mainBtn.style.position = "fixed";
+            mainBtn.style.bottom = "20px";
+            mainBtn.style.right = "20px";
+            mainBtn.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
+            document.body.appendChild(mainBtn);
+            console.warn("DEBUG: Header tidak ditemukan. Tombol disuntikkan sebagai Floating Button.");
         }
     }
 
-    // Jalankan pengawas cerdas setiap 1.5 detik
-    // Sangat aman: Interval ini ringan dan memastikan kapan pun Anda login atau pindah grup, tombol selalu menyesuaikan.
-    setInterval(injectHistoryButton, 1500);
+    // Jalankan setiap 1 detik
+    setInterval(injectWithDiagnostic, 1000);
 })();
 </script>
 </body>
