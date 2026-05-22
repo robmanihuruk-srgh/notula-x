@@ -312,7 +312,20 @@
     .btn-add-section:hover { background: var(--color-primary-dark); transform: translateY(-1px); box-shadow: 0 6px 8px rgba(0,0,0,0.15); }
     .btn-add-section.disabled, .btn-edit-meeting.disabled, .btn-new.disabled, .btn-delete-meeting.disabled { opacity: 0.5; pointer-events: none; }
     
-    .section-card { background: #ffffff; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid var(--color-border); box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+    .section-card { background: #ffffff; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid var(--color-border); box-shadow: 0 4px 15px rgba(0,0,0,0.02); position: relative; }
+    .section-card.readonly-section { border-left: 4px solid #94a3b8; background: #fafbfc; }
+    .section-lock-badge { position: absolute; top: 16px; right: 16px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 10px; font-size: 0.75rem; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 4px; pointer-events: none; }
+    .comment-section { margin-top: 16px; border-top: 1px dashed var(--color-border); padding-top: 14px; }
+    .comment-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; max-height: 200px; overflow-y: auto; }
+    .comment-bubble { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; }
+    .comment-bubble .comment-author { font-weight: 700; color: var(--color-primary); margin-bottom: 2px; font-size: 0.78rem; }
+    .comment-bubble .comment-time { color: #94a3b8; font-size: 0.72rem; margin-left: 6px; }
+    .comment-bubble .comment-text { color: var(--color-text); margin-top: 2px; }
+    .comment-input-row { display: flex; gap: 8px; align-items: center; }
+    .comment-input-row textarea { flex: 1; border: 1px solid var(--color-border); border-radius: 8px; padding: 8px 10px; font-size: 0.85rem; font-family: var(--font-body); resize: none; height: 36px; transition: height 0.2s; }
+    .comment-input-row textarea:focus { outline: none; border-color: var(--color-primary); height: 60px; }
+    .comment-input-row button { background: var(--color-primary); color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 600; white-space: nowrap; transition: 0.2s; }
+    .comment-input-row button:hover { background: var(--color-primary-dark); }
     .section-title { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; }
     .section-title h4 { font-weight: 700; color: var(--color-secondary); font-size: 1.25rem; margin-bottom: 4px; }
     .section-actions button { background: #f8fafc; border: 1px solid var(--color-border); color: var(--color-text-light); padding: 6px 10px; border-radius: 6px; margin-left: 8px; cursor: pointer; transition: 0.2s; }
@@ -1831,29 +1844,35 @@
         return latest && latest.id === meeting.id;
       }
 
-      function canUserEditSection(meeting, section) {
+      function isMeetingOwner(meeting) {
         if (!meeting) return false;
         if (userRole === 'admin') return true;
-        if (meeting.createdBy === currentUser?.uid) return true;
+        return meeting.createdBy === currentUser?.uid;
+      }
 
-        // Koordinator of assigned teams can edit
-        if (meeting.assignedTeamIds && meeting.assignedTeamIds.length > 0) {
-          const isKoordinatorOfAssignedTeam = meeting.assignedTeamIds.some(teamId => {
-            const team = teams.find(t => t.id === teamId);
-            if (!team || !team.members) return false;
-            return team.members.some(m => 
-              m.email === currentUser?.email && m.role === 'koordinator'
-            );
-          });
-          if (isKoordinatorOfAssignedTeam) return true;
-        }
-
-        if (!isMeetingLatest(meeting)) return false; 
-        if (!section) return false; // Prevent members from creating new sections
-        if (!section.assignedEmails) return true; 
-
+      function isAssignedToSection(section) {
+        if (!section || !section.assignedEmails) return false;
         const emails = section.assignedEmails.split(',').map(e => e.trim().toLowerCase());
         return emails.includes(currentUser?.email?.toLowerCase());
+      }
+
+      function canUserComment(meeting) {
+        return !!(meeting && currentUser);
+      }
+
+      function canUserEditSection(meeting, section) {
+        if (!meeting) return false;
+        // Super Admin: admin global ATAU pembuat rapat => akses penuh ke SEMUA seksi
+        if (isMeetingOwner(meeting)) return true;
+
+        if (!isMeetingLatest(meeting)) return false;
+        if (!section) return false; // anggota biasa tidak bisa buat seksi baru
+
+        // Seksi tanpa assignedEmails => terbuka untuk semua anggota
+        if (!section.assignedEmails) return true;
+
+        // Anggota hanya boleh edit seksi yang email-nya tercantum di assignedEmails
+        return isAssignedToSection(section);
       }
 
       async function addLog(meetingId, message) {
@@ -3136,14 +3155,21 @@
             </div>`;
         }
 
+        const isReadOnly = !canEditSec;
+        const canComment = canUserComment(meeting);
+        const commentsHtml = renderCommentSection(section.id, section.comments || []);
+
         return `
-          <div class="section-card">
+          <div class="section-card${isReadOnly ? ' readonly-section' : ''}">
+            ${isReadOnly ? `<div class="section-lock-badge">🔒 Read Only</div>` : ''}
             <div class="section-title">
               <div style="width:100%; padding-right:12px;">
                  <h4 style="margin-bottom:0;">${escapeHtml(section.name)}</h4>
-                 ${section.assignedEmails 
-                    ? `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-lock"></i> Akses: ${escapeHtml(section.assignedEmails)}</div>` 
-                    : `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-globe"></i> Akses Terbuka</div>`}
+                 ${isReadOnly
+                    ? `<div style="font-size:0.8rem; color:#94a3b8; margin-top:6px; font-family:var(--font-body); font-style:italic;">Anda hanya dapat membaca seksi ini. Komentar tetap diperbolehkan.</div>`
+                    : section.assignedEmails
+                        ? `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-user-check"></i> Seksi Anda &mdash; ${escapeHtml(section.assignedEmails)}</div>`
+                        : `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-globe"></i> Akses Terbuka</div>`}
                  ${rabDetailsHtml}
               </div>
               <div class="section-actions" style="flex-shrink:0;">
@@ -3154,7 +3180,29 @@
             <div class="task-list">
               ${tasksHtml || '<div style="color:var(--color-text-light); padding:12px; font-family:var(--font-body); background:var(--color-bg-light); border-radius:8px; text-align:center;">Belum ada tugas di seksi ini.</div>'}
             </div>
-            <button class="add-task-btn ${!canEditSec ? 'disabled' : ''}" id="add-task-${section.id}" ${!canEditSec ? 'disabled' : ''}><i class="fas fa-plus-circle"></i> Tambah Tugas</button>
+            ${canEditSec ? `<button class="add-task-btn" id="add-task-${section.id}"><i class="fas fa-plus-circle"></i> Tambah Tugas</button>` : ''}
+            ${canComment ? commentsHtml : ''}
+          </div>
+        `;
+      }
+
+      // ========== KOMENTAR LINTAS SEKSI ==========
+      function renderCommentSection(sectionId, comments) {
+        const commentsListHtml = (comments || []).map(c => `
+          <div class="comment-bubble">
+            <div><span class="comment-author">${escapeHtml(c.author || c.email || 'Anonim')}</span><span class="comment-time">${c.time ? new Date(c.time).toLocaleString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</span></div>
+            <div class="comment-text">${escapeHtml(c.text)}</div>
+          </div>
+        `).join('');
+
+        return `
+          <div class="comment-section">
+            <div style="font-size:0.8rem; font-weight:700; color:var(--color-text-light); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;"><i class="fas fa-comments"></i> Diskusi / Komentar</div>
+            <div class="comment-list" id="comment-list-${sectionId}">${commentsListHtml || '<div style="color:#94a3b8; font-size:0.82rem; text-align:center; padding:8px;">Belum ada komentar. Jadilah yang pertama!</div>'}</div>
+            <div class="comment-input-row">
+              <textarea id="comment-input-${sectionId}" placeholder="Tulis komentar atau koordinasi lintas seksi..." rows="1"></textarea>
+              <button onclick="submitComment('${sectionId}')"><i class="fas fa-paper-plane"></i> Kirim</button>
+            </div>
           </div>
         `;
       }
@@ -6117,88 +6165,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
-<script>
-(function() {
-    function applyStrictRBAC() {
-        try {
-            // 1. Dapatkan Email User yang Login
-            const currentUser = firebase.auth().currentUser;
-            if (!currentUser) return;
-            const currentUserEmail = currentUser.email.toLowerCase();
-
-            // 2. Dapatkan Email Pembuat Rapat (Super Admin)
-            const ownerEmail = (window.currentMeeting && window.currentMeeting.owner) ? window.currentMeeting.owner.toLowerCase() : "";
-            const isSuperAdmin = (currentUserEmail === ownerEmail);
-
-            // Jika Super Admin, biarkan semua terbuka dan hentikan eksekusi script ke bawah
-            if (isSuperAdmin) return; 
-
-            // 3. Ambil semua elemen kontainer Seksi
-            const sections = document.querySelectorAll('.section-container, .seksi-card, .task-group, .seksi-wrapper');
-
-            sections.forEach(section => {
-                let titleElement = section.querySelector('.seksi-title, .section-header h3, h3');
-                if (!titleElement) return;
-
-                let isMySection = false;
-
-                // CARA BARU YANG KETAT: Hanya cari email di elemen yang khusus menampung data anggota/PIC
-                // 1. Cek dari data-attributes jika aplikasi Anda menyimpannya di HTML
-                let dataMembers = section.getAttribute('data-members');
-                if (dataMembers && dataMembers.toLowerCase().includes(currentUserEmail)) {
-                    isMySection = true;
-                }
-
-                // 2. Cek spesifik dari input/teks yang ditugaskan sebagai PIC
-                let picElements = section.querySelectorAll('input[placeholder*="PIC"], input[placeholder*="Email"], .pic-text, [class*="pic"], [class*="member"]');
-                picElements.forEach(el => {
-                    let textValue = (el.value || el.innerText || "").toLowerCase();
-                    if (textValue.includes(currentUserEmail)) {
-                        isMySection = true;
-                    }
-                });
-
-                // EKSEKUSI PENGUNCIAN JIKA BUKAN SEKSINYA
-                if (!isMySection) {
-                    section.classList.add('read-only-locked');
-
-                    // Pasang Gembok
-                    if (!section.querySelector('.lock-icon')) {
-                        titleElement.innerHTML += ' <span class="lock-icon" style="font-size: 0.85em; cursor: help;" title="Read-Only: Anda bukan kordinator di seksi ini.">🔒</span>';
-                    }
-
-                    // Lumpuhkan/Sembunyikan semua tombol (Edit, Save, Delete, Tambah Tugas) KECUALI tombol komentar
-                    let buttons = section.querySelectorAll('button');
-                    buttons.forEach(btn => {
-                        let btnClassOrText = (btn.className + " " + btn.innerText).toLowerCase();
-                        let isCommentBtn = btnClassOrText.includes('komentar') || btnClassOrText.includes('comment') || btnClassOrText.includes('diskusi');
-                        
-                        if (!isCommentBtn) {
-                            btn.style.display = 'none'; 
-                        }
-                    });
-
-                    // Kunci secara fisik (disable) semua kotak input agar tidak bisa diubah isinya
-                    let inputs = section.querySelectorAll('input, textarea, select');
-                    inputs.forEach(input => {
-                        let inputClass = (input.className || "").toLowerCase();
-                        if (!inputClass.includes('komentar') && !inputClass.includes('comment')) {
-                            input.disabled = true;
-                            input.style.backgroundColor = '#f4f4f4'; // Beri efek warna abu-abu (terkunci)
-                            input.style.opacity = '0.7';
-                        }
-                    });
-                }
-            });
-        } catch (e) {
-            // Error ditangkap diam-diam agar tidak merusak console
-        }
-    }
-
-    // Jalankan pengecekan lebih cepat (setiap 800ms) untuk mencegah tombol edit sempat terlihat
-    setInterval(applyStrictRBAC, 800);
-})();
-</script>
 </body>
 </html>
-
