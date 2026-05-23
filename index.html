@@ -1869,18 +1869,14 @@
       }
 
       // =====================================================
-      // PERMISSION SYSTEM - per-seksi access control
-      // =====================================================
-      // =====================================================
       // PERMISSION SYSTEM - per-seksi dengan role koordinator/anggota
       // =====================================================
 
-      // Helper: cek apakah email user ada di list koordinator seksi ini
+      // Cek apakah email user ada di list koordinator seksi
       function isKoordinatorOfSection(section) {
         if (!section) return false;
         const userEmail = currentUser?.email?.toLowerCase();
         if (!userEmail) return false;
-        // Field baru: koordinatorEmails
         if (section.koordinatorEmails && section.koordinatorEmails.trim()) {
           const list = section.koordinatorEmails.split(',').map(e => e.trim().toLowerCase());
           if (list.includes(userEmail)) return true;
@@ -1888,17 +1884,16 @@
         return false;
       }
 
-      // Helper: cek apakah email user ada di list anggota seksi ini
+      // Cek apakah email user ada di list anggota seksi (atau assignedEmails lama)
       function isMemberOfSection(section) {
         if (!section) return false;
         const userEmail = currentUser?.email?.toLowerCase();
         if (!userEmail) return false;
-        // Field baru: memberEmails
         if (section.memberEmails && section.memberEmails.trim()) {
           const list = section.memberEmails.split(',').map(e => e.trim().toLowerCase());
           if (list.includes(userEmail)) return true;
         }
-        // Backward-compat: assignedEmails lama (semua dianggap bisa edit tugas)
+        // Backward-compat: assignedEmails lama dianggap sebagai anggota
         if (section.assignedEmails && section.assignedEmails.trim()) {
           const list = section.assignedEmails.split(',').map(e => e.trim().toLowerCase());
           if (list.includes(userEmail)) return true;
@@ -1906,30 +1901,41 @@
         return false;
       }
 
-      // canUserEditSection: boleh edit NAMA SEKSI (Edit Seksi button)
-      // = admin, owner, atau koordinator seksi ini
+      // Cek apakah seksi ini punya pembatasan akses sama sekali
+      function sectionHasAccessControl(section) {
+        if (!section) return false;
+        return !!(
+          (section.koordinatorEmails && section.koordinatorEmails.trim()) ||
+          (section.memberEmails && section.memberEmails.trim()) ||
+          (section.assignedEmails && section.assignedEmails.trim())
+        );
+      }
+
+      // canUserEditSection: boleh edit NAMA/SETTING SEKSI (tombol "Edit Seksi")
+      // = admin, pembuat rapat (owner), atau koordinator seksi ini
+      // Jika seksi tidak ada access control -> semua bisa edit
       function canUserEditSection(meeting, section) {
         if (!meeting) return false;
         if (userRole === 'admin') return true;
         if (meeting.createdBy === currentUser?.uid) return true;
-        if (!section) return false; // tidak boleh buat seksi baru kecuali owner/admin
-        if (!isMeetingLatest(meeting)) return false;
+        if (!section) return false;
+        if (!sectionHasAccessControl(section)) return true;
         return isKoordinatorOfSection(section);
       }
 
       // canUserEditTask: boleh tambah/edit/hapus TUGAS di seksi ini
-      // = admin, owner, koordinator seksi ini, ATAU anggota seksi ini
+      // = admin, pembuat rapat (owner), koordinator seksi, ATAU anggota seksi
+      // Jika seksi tidak ada access control -> semua bisa edit tugas
       function canUserEditTask(meeting, section) {
         if (!meeting) return false;
         if (userRole === 'admin') return true;
         if (meeting.createdBy === currentUser?.uid) return true;
         if (!section) return false;
-        if (!isMeetingLatest(meeting)) return false;
+        if (!sectionHasAccessControl(section)) return true;
         return isKoordinatorOfSection(section) || isMemberOfSection(section);
       }
 
-
-      // Cek apakah user boleh berkomentar di seksi manapun (semua anggota tim rapat)
+      // canUserCommentSection: boleh komentar (semua anggota tim yang terlibat di rapat)
       function canUserCommentSection(meeting) {
         if (!meeting) return false;
         if (userRole === 'admin') return true;
