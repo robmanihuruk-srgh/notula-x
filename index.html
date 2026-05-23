@@ -312,20 +312,16 @@
     .btn-add-section:hover { background: var(--color-primary-dark); transform: translateY(-1px); box-shadow: 0 6px 8px rgba(0,0,0,0.15); }
     .btn-add-section.disabled, .btn-edit-meeting.disabled, .btn-new.disabled, .btn-delete-meeting.disabled { opacity: 0.5; pointer-events: none; }
     
-    .section-card { background: #ffffff; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid var(--color-border); box-shadow: 0 4px 15px rgba(0,0,0,0.02); position: relative; }
-    .section-card.readonly-section { border-left: 4px solid #94a3b8; background: #fafbfc; }
-    .section-lock-badge { position: absolute; top: 16px; right: 16px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 10px; font-size: 0.75rem; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 4px; pointer-events: none; }
-    .comment-section { margin-top: 16px; border-top: 1px dashed var(--color-border); padding-top: 14px; }
-    .comment-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; max-height: 200px; overflow-y: auto; }
-    .comment-bubble { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; }
-    .comment-bubble .comment-author { font-weight: 700; color: var(--color-primary); margin-bottom: 2px; font-size: 0.78rem; }
-    .comment-bubble .comment-time { color: #94a3b8; font-size: 0.72rem; margin-left: 6px; }
-    .comment-bubble .comment-text { color: var(--color-text); margin-top: 2px; }
-    .comment-input-row { display: flex; gap: 8px; align-items: center; }
-    .comment-input-row textarea { flex: 1; border: 1px solid var(--color-border); border-radius: 8px; padding: 8px 10px; font-size: 0.85rem; font-family: var(--font-body); resize: none; height: 36px; transition: height 0.2s; }
-    .comment-input-row textarea:focus { outline: none; border-color: var(--color-primary); height: 60px; }
-    .comment-input-row button { background: var(--color-primary); color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 600; white-space: nowrap; transition: 0.2s; }
-    .comment-input-row button:hover { background: var(--color-primary-dark); }
+    .section-card { background: #ffffff; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid var(--color-border); box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: border-color 0.2s; }
+    /* Styling tambahan: Read-only section card */
+    .section-card[style*="fde68a"] { opacity: 0.97; }
+    .section-card[style*="fde68a"] .task-item { background: #fafaf7; }
+    /* Komentar lintas seksi */
+    #commentList::-webkit-scrollbar { width: 5px; }
+    #commentList::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    #commentList::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .comment-bubble { background: #f1f5ff; border-radius: 8px; padding: 8px 12px; font-size: 0.875rem; animation: fadeInUp 0.2s ease; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     .section-title { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; }
     .section-title h4 { font-weight: 700; color: var(--color-secondary); font-size: 1.25rem; margin-bottom: 4px; }
     .section-actions button { background: #f8fafc; border: 1px solid var(--color-border); color: var(--color-text-light); padding: 6px 10px; border-radius: 6px; margin-left: 8px; cursor: pointer; transition: 0.2s; }
@@ -737,6 +733,23 @@
       <div class="modal-actions">
         <button class="btn-secondary" id="cancelSectionModal">Batal</button>
         <button class="btn-primary" id="saveSectionModal">Simpan Seksi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KOMENTAR LINTAS SEKSI -->
+  <div class="modal" id="commentModal" style="z-index:2500;">
+    <div class="modal-content" style="max-width:520px;">
+      <h3 style="display:flex; align-items:center; gap:8px;"><i class="fas fa-comment-dots" style="color:#6366f1;"></i> Komentar / Diskusi</h3>
+      <div id="commentTaskInfo" style="background:#f1f5f9; border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:0.9rem; color:#334155;"></div>
+      <div id="commentList" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:14px;"></div>
+      <div class="form-group">
+        <label><i class="fas fa-pen"></i> Tulis Komentar Anda</label>
+        <textarea id="commentTextInput" rows="3" placeholder="Contoh: Mic untuk acara ini sudah kami siapkan ya..." style="resize:vertical;"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelCommentModal">Tutup</button>
+        <button class="btn-primary" id="saveCommentBtn"><i class="fas fa-paper-plane"></i> Kirim Komentar</button>
       </div>
     </div>
   </div>
@@ -1844,36 +1857,52 @@
         return latest && latest.id === meeting.id;
       }
 
-      function isMeetingOwner(meeting) {
+      // =====================================================
+      // PERMISSION SYSTEM - per-seksi access control
+      // =====================================================
+      function canUserEditSection(meeting, section) {
         if (!meeting) return false;
+        // Super Admin: sistem admin global
         if (userRole === 'admin') return true;
-        return meeting.createdBy === currentUser?.uid;
-      }
+        // Super Admin: Pembuat Rapat (owner) - akses tak terbatas ke semua seksi
+        if (meeting.createdBy === currentUser?.uid) return true;
 
-      function isAssignedToSection(section) {
-        if (!section || !section.assignedEmails) return false;
+        // Anggota biasa: hanya boleh edit seksi yang assignedEmails-nya mencantumkan email mereka
+        if (!section) return false; // Tidak boleh buat seksi baru
+        if (!isMeetingLatest(meeting)) return false;
+
+        if (!section.assignedEmails || section.assignedEmails.trim() === '') {
+          // Seksi tanpa pembatasan email: cek apakah user terdaftar di tim yang di-assign
+          if (meeting.assignedTeamIds && meeting.assignedTeamIds.length > 0) {
+            return meeting.assignedTeamIds.some(teamId => {
+              const team = teams.find(t => t.id === teamId);
+              if (!team || !team.members) return false;
+              return team.members.some(m => m.email === currentUser?.email);
+            });
+          }
+          return true;
+        }
+
+        // Seksi dengan assignedEmails: HANYA email yang terdaftar yang boleh edit seksi ini
         const emails = section.assignedEmails.split(',').map(e => e.trim().toLowerCase());
         return emails.includes(currentUser?.email?.toLowerCase());
       }
 
-      function canUserComment(meeting) {
-        return !!(meeting && currentUser);
-      }
-
-      function canUserEditSection(meeting, section) {
+      // Cek apakah user boleh berkomentar di seksi manapun (semua anggota tim rapat)
+      function canUserCommentSection(meeting) {
         if (!meeting) return false;
-        // Super Admin: admin global ATAU pembuat rapat => akses penuh ke SEMUA seksi
-        if (isMeetingOwner(meeting)) return true;
-
-        if (!isMeetingLatest(meeting)) return false;
-        if (!section) return false; // anggota biasa tidak bisa buat seksi baru
-
-        // Seksi tanpa assignedEmails => terbuka untuk semua anggota
-        if (!section.assignedEmails) return true;
-
-        // Anggota hanya boleh edit seksi yang email-nya tercantum di assignedEmails
-        return isAssignedToSection(section);
+        if (userRole === 'admin') return true;
+        if (meeting.createdBy === currentUser?.uid) return true;
+        if (meeting.assignedTeamIds && meeting.assignedTeamIds.length > 0) {
+          return meeting.assignedTeamIds.some(teamId => {
+            const team = teams.find(t => t.id === teamId);
+            if (!team || !team.members) return false;
+            return team.members.some(m => m.email === currentUser?.email);
+          });
+        }
+        return false;
       }
+
 
       async function addLog(meetingId, message) {
         if (!meetingId || !currentUser) return;
@@ -3059,12 +3088,15 @@
         const meeting = meetings.find(m => m.id === meetingId);
         const canEditSec = canUserEditSection(meeting, section);
         const canDeleteSec = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
+        const canComment = canUserCommentSection(meeting);
+        // isReadOnly: user bisa lihat tapi tidak bisa edit seksi ini
+        const isReadOnly = !canEditSec;
 
         let tasksHtml = '';
         section.tasks?.forEach(task => {
           const statusClass = `status-${task.status}`;
           const progress = task.progress ?? 0;
-          const pic = task.pic || '—';
+          const pic = task.pic || '\u2014';
           const deadline = task.deadline ? new Date(task.deadline) : null;
           const deadlineStr = deadline ? deadline.toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
           
@@ -3077,8 +3109,22 @@
             attachmentsHtml += `</div>`;
           }
 
+          // Render komentar lintas seksi
+          let commentsHtml = '';
+          if (task.comments && task.comments.length > 0) {
+            commentsHtml = `<div style="margin-top:10px; margin-left:126px; border-left:3px solid #e0e7ff; padding-left:10px; display:flex; flex-direction:column; gap:6px;">`;
+            task.comments.forEach(c => {
+              commentsHtml += `<div style="background:#f1f5ff; border-radius:6px; padding:6px 10px; font-size:0.82rem;">
+                <span style="font-weight:600; color:#3730a3;">${escapeHtml(c.user)}</span>
+                <span style="color:#94a3b8; margin-left:6px; font-size:0.75rem;">${c.time ? new Date(c.time).toLocaleString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</span>
+                <div style="margin-top:3px; color:#334155;">${escapeHtml(c.text)}</div>
+              </div>`;
+            });
+            commentsHtml += `</div>`;
+          }
+
           tasksHtml += `
-            <div class="task-item">
+            <div class="task-item" style="${isReadOnly ? 'background: #fafafa;' : ''}">
               <div class="task-row">
                 <div class="task-status"><span class="status-badge ${statusClass}">${translateStatus(task.status)}</span></div>
                 <div class="task-desc">${escapeHtml(task.desc)}</div>
@@ -3091,9 +3137,11 @@
                 <div class="task-actions">
                   <button id="edit-task-${task.id}" title="Edit" ${!canEditSec ? 'disabled class="disabled"' : ''}><i class="fas fa-pencil-alt"></i></button>
                   <button id="del-task-${task.id}" title="Hapus" ${!canEditSec ? 'disabled class="disabled"' : ''}><i class="fas fa-trash"></i></button>
+                  ${canComment ? `<button id="cmt-task-${task.id}" title="Komentar" onclick="openCommentModal('${meetingId}','${section.id}','${task.id}')" style="background:transparent; border:1px solid #6366f1; color:#6366f1; padding:3px 7px; border-radius:4px; cursor:pointer; font-size:11px;" title="Tulis Komentar"><i class="fas fa-comment-dots"></i></button>` : ''}
                 </div>
               </div>
               ${task.notes ? `<div style="font-size:0.85rem; color:var(--color-text-light); margin-top:8px; margin-left:126px; border-left:2px solid var(--color-border); padding-left:10px;"><i class="fas fa-comment"></i> ${escapeHtml(task.notes)}</div>` : ''}
+              ${commentsHtml}
               ${attachmentsHtml}
             </div>
           `;
@@ -3155,24 +3203,33 @@
             </div>`;
         }
 
-        const isReadOnly = !canEditSec;
-        const canComment = canUserComment(meeting);
-        const commentsHtml = renderCommentSection(section.id, section.comments || []);
+        // ==========================================
+        // VISUAL GEMBOK & READ-ONLY INDICATOR
+        // ==========================================
+        const lockBadge = isReadOnly ? `
+          <div style="position:absolute; top:12px; right:12px; background:#fef3c7; border:1px solid #f59e0b; color:#92400e; border-radius:20px; padding:3px 10px; font-size:0.75rem; font-weight:600; display:flex; align-items:center; gap:4px; pointer-events:none;">
+            \uD83D\uDD12 Read Only
+          </div>` : `
+          <div style="position:absolute; top:12px; right:12px; background:#f0fdf4; border:1px solid #86efac; color:#166534; border-radius:20px; padding:3px 10px; font-size:0.75rem; font-weight:600; display:flex; align-items:center; gap:4px; pointer-events:none;">
+            \u270F\uFE0F Dapat Diedit
+          </div>`;
+
+        const sectionBorderStyle = isReadOnly
+          ? 'border: 1.5px solid #fde68a; background: linear-gradient(to bottom, #fffdf0, #fff);'
+          : '';
 
         return `
-          <div class="section-card${isReadOnly ? ' readonly-section' : ''}">
-            ${isReadOnly ? `<div class="section-lock-badge">🔒 Read Only</div>` : ''}
+          <div class="section-card" style="position:relative; ${sectionBorderStyle}">
+            ${lockBadge}
             <div class="section-title">
               <div style="width:100%; padding-right:12px;">
                  <h4 style="margin-bottom:0;">${escapeHtml(section.name)}</h4>
-                 ${isReadOnly
-                    ? `<div style="font-size:0.8rem; color:#94a3b8; margin-top:6px; font-family:var(--font-body); font-style:italic;">Anda hanya dapat membaca seksi ini. Komentar tetap diperbolehkan.</div>`
-                    : section.assignedEmails
-                        ? `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-user-check"></i> Seksi Anda &mdash; ${escapeHtml(section.assignedEmails)}</div>`
-                        : `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-globe"></i> Akses Terbuka</div>`}
+                 ${section.assignedEmails 
+                    ? `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-lock"></i> Akses: ${escapeHtml(section.assignedEmails)}</div>` 
+                    : `<div style="font-size:0.8rem; color:var(--color-text-light); margin-top:6px; font-family:var(--font-body);"><i class="fas fa-globe"></i> Akses Terbuka</div>`}
                  ${rabDetailsHtml}
               </div>
-              <div class="section-actions" style="flex-shrink:0;">
+              <div class="section-actions" style="flex-shrink:0; margin-top:32px;">
                 <button id="edit-section-${section.id}" title="Edit seksi" ${!canEditSec ? 'disabled class="disabled"' : ''}><i class="fas fa-edit"></i> Edit Seksi</button>
                 <button id="del-section-${section.id}" title="Hapus seksi" ${!canDeleteSec ? 'disabled class="disabled"' : ''}><i class="fas fa-times-circle"></i> Hapus</button>
               </div>
@@ -3180,32 +3237,11 @@
             <div class="task-list">
               ${tasksHtml || '<div style="color:var(--color-text-light); padding:12px; font-family:var(--font-body); background:var(--color-bg-light); border-radius:8px; text-align:center;">Belum ada tugas di seksi ini.</div>'}
             </div>
-            ${canEditSec ? `<button class="add-task-btn" id="add-task-${section.id}"><i class="fas fa-plus-circle"></i> Tambah Tugas</button>` : ''}
-            ${canComment ? commentsHtml : ''}
+            <button class="add-task-btn ${!canEditSec ? 'disabled' : ''}" id="add-task-${section.id}" ${!canEditSec ? 'disabled' : ''}><i class="fas fa-plus-circle"></i> Tambah Tugas</button>
           </div>
         `;
       }
 
-      // ========== KOMENTAR LINTAS SEKSI ==========
-      function renderCommentSection(sectionId, comments) {
-        const commentsListHtml = (comments || []).map(c => `
-          <div class="comment-bubble">
-            <div><span class="comment-author">${escapeHtml(c.author || c.email || 'Anonim')}</span><span class="comment-time">${c.time ? new Date(c.time).toLocaleString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</span></div>
-            <div class="comment-text">${escapeHtml(c.text)}</div>
-          </div>
-        `).join('');
-
-        return `
-          <div class="comment-section">
-            <div style="font-size:0.8rem; font-weight:700; color:var(--color-text-light); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;"><i class="fas fa-comments"></i> Diskusi / Komentar</div>
-            <div class="comment-list" id="comment-list-${sectionId}">${commentsListHtml || '<div style="color:#94a3b8; font-size:0.82rem; text-align:center; padding:8px;">Belum ada komentar. Jadilah yang pertama!</div>'}</div>
-            <div class="comment-input-row">
-              <textarea id="comment-input-${sectionId}" placeholder="Tulis komentar atau koordinasi lintas seksi..." rows="1"></textarea>
-              <button onclick="submitComment('${sectionId}')"><i class="fas fa-paper-plane"></i> Kirim</button>
-            </div>
-          </div>
-        `;
-      }
 
       // ========== CRUD OPERATIONS ==========
       async function saveMeeting(meetingData) {
@@ -3368,6 +3404,89 @@
         }
       }
 
+      // =====================================================
+      // FITUR KOMENTAR / DISKUSI LINTAS SEKSI
+      // =====================================================
+      let _commentMeetingId = null, _commentSectionId = null, _commentTaskId = null;
+
+      window.openCommentModal = function(meetingId, sectionId, taskId) {
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (!meeting) return;
+        const section = meeting.sections?.find(s => s.id === sectionId);
+        if (!section) return;
+        const task = section.tasks?.find(t => t.id === taskId);
+        if (!task) return;
+
+        _commentMeetingId = meetingId;
+        _commentSectionId = sectionId;
+        _commentTaskId = taskId;
+
+        document.getElementById('commentTaskInfo').innerHTML =
+          `<strong>Seksi:</strong> ${escapeHtml(section.name)} &nbsp;|&nbsp; <strong>Tugas:</strong> ${escapeHtml(task.desc)}`;
+
+        // Render komentar yang sudah ada
+        const list = document.getElementById('commentList');
+        list.innerHTML = '';
+        if (task.comments && task.comments.length > 0) {
+          task.comments.forEach(c => {
+            const div = document.createElement('div');
+            div.style.cssText = 'background:#f1f5ff; border-radius:8px; padding:8px 12px; font-size:0.875rem;';
+            div.innerHTML = `<span style="font-weight:600; color:#3730a3;">${escapeHtml(c.user)}</span>
+              <span style="color:#94a3b8; margin-left:8px; font-size:0.75rem;">${c.time ? new Date(c.time).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</span>
+              <div style="margin-top:4px; color:#334155;">${escapeHtml(c.text)}</div>`;
+            list.appendChild(div);
+          });
+          list.scrollTop = list.scrollHeight;
+        } else {
+          list.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:16px; font-size:0.875rem;">Belum ada komentar. Jadilah yang pertama!</div>';
+        }
+
+        document.getElementById('commentTextInput').value = '';
+        document.getElementById('commentModal').classList.add('active');
+      };
+
+      document.getElementById('cancelCommentModal').addEventListener('click', () => {
+        document.getElementById('commentModal').classList.remove('active');
+      });
+
+      document.getElementById('saveCommentBtn').addEventListener('click', async () => {
+        const text = document.getElementById('commentTextInput').value.trim();
+        if (!text) return alert('Tulis komentar terlebih dahulu.');
+
+        const meeting = meetings.find(m => m.id === _commentMeetingId);
+        if (!meeting) return;
+        const section = meeting.sections?.find(s => s.id === _commentSectionId);
+        if (!section) return;
+        const task = section.tasks?.find(t => t.id === _commentTaskId);
+        if (!task) return;
+
+        const newComment = {
+          user: currentUser?.email || 'Anonim',
+          text: text,
+          time: new Date().toISOString()
+        };
+
+        if (!task.comments) task.comments = [];
+        task.comments.push(newComment);
+
+        try {
+          const btn = document.getElementById('saveCommentBtn');
+          btn.disabled = true; btn.innerText = 'Mengirim...';
+          await db.collection('meetings').doc(_commentMeetingId).update({ sections: meeting.sections });
+          // Re-render komentar di modal
+          window.openCommentModal(_commentMeetingId, _commentSectionId, _commentTaskId);
+          btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Komentar';
+          // Re-render kartu seksi agar komentar muncul
+          const cardEl = document.getElementById(`section-card-${_commentSectionId}`);
+          if (cardEl) cardEl.outerHTML = renderSectionCard(_commentMeetingId, section);
+        } catch(err) {
+          alert('Gagal mengirim komentar: ' + err.message);
+          document.getElementById('saveCommentBtn').disabled = false;
+          document.getElementById('saveCommentBtn').innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Komentar';
+        }
+      });
+
+
       // ========== MODAL HANDLING ==========
       const meetingModal = document.getElementById('meetingModal');
       const sectionModal = document.getElementById('sectionModal');
@@ -3382,6 +3501,7 @@
         momModal.classList.remove('active');
         editWorkspaceModal?.classList.remove('active');
         document.getElementById('incomeModal')?.classList.remove('active');
+        document.getElementById('commentModal')?.classList.remove('active');
       }
 
       document.getElementById('newMeetingBtn').addEventListener('click', () => {
@@ -6167,3 +6287,4 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
