@@ -3798,7 +3798,7 @@
             return { name: item.name.trim() || 'Item Tanpa Nama', amount: amt, realisasi: real };
         });
 
-        const sectionData = { name, koordinatorEmails, memberEmails, assignedEmails, sectionBudget,
+        const sectionData = { name, koordinatorEmails, memberEmails, assignedEmails, sectionBudget, sectionRealisasi, rabItems: rabItemsToSave, tasks: [] };
         if (currentSectionId) {
           sectionData.id = currentSectionId;
           const existing = meeting.sections.find(s => s.id === currentSectionId);
