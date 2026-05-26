@@ -571,7 +571,13 @@
       <div class="forgot-password"><a id="forgotPasswordLink">Lupa password?</a></div>
       <p id="loginError" class="error"></p>
     </div>
-  </div>
+  </div
+  <!-- MOBILE MENU TOGGLE BUTTON -->
+  <button class="mobile-menu-toggle" id="mobileMenuToggle">
+    <i class="fas fa-bars"></i> Menu
+  </button>
+
+>
 
   <div class="modal" id="resetPasswordModal">
     <div class="modal-content">
@@ -1629,6 +1635,39 @@
       document.querySelectorAll('.theme-btn').forEach(btn => btn.addEventListener('click', () => setTheme(btn.dataset.theme)));
       const savedTheme = localStorage.getItem('notula_theme') || 'gsm';
       setTheme(savedTheme);
+
+      // ========== MOBILE RESPONSIVE MENU ==========
+      const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+      const sidebar = document.querySelector('.sidebar');
+      
+      if (mobileMenuToggle && sidebar) {
+        mobileMenuToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          sidebar.classList.toggle('mobile-open');
+        });
+        
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+          if (window.innerWidth <= 768) {
+            if (sidebar.classList.contains('mobile-open')) {
+              if (!sidebar.contains(e.target) && e.target !== mobileMenuToggle && !mobileMenuToggle.contains(e.target)) {
+                sidebar.classList.remove('mobile-open');
+              }
+            }
+          }
+        });
+        
+        // Close sidebar when a workspace or meeting is clicked
+        sidebar.addEventListener('click', (e) => {
+          if (e.target.closest('.workspace-item') || e.target.closest('.meeting-item')) {
+            if (window.innerWidth <= 768) {
+              sidebar.classList.remove('mobile-open');
+            }
+          }
+        });
+      }
+
+
 
       // ========== AUTH & ROLE ==========
       const loginOverlay = document.getElementById('loginOverlay');
@@ -5466,7 +5505,177 @@
     border-radius: 8px; margin-top: 20px; font-weight: 500; cursor: pointer; transition: 0.2s;
   }
   .ne-modal-close:hover { background: var(--color-primary, #b8860b); }
-</style>
+
+
+    /* ========== RESPONSIVE DESIGN FOR MOBILE, TABLET, AND IPHONE ========== */
+    @media (max-width: 768px) {
+      body { height: auto; flex-direction: column; }
+      
+      .sidebar { 
+        width: 100% !important;
+        height: auto !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: -100% !important;
+        z-index: 3000 !important;
+        transition: left 0.3s ease !important;
+        max-height: 100vh !important;
+        overflow-y: auto !important;
+        box-shadow: 10px 0 20px rgba(0,0,0,0.2) !important;
+      }
+      
+      .sidebar.mobile-open {
+        left: 0 !important;
+      }
+      
+      .sidebar-hover-trigger { display: none !important; }
+      
+      .main-panel { 
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-top: 60px !important;
+      }
+      
+      .panel-header { 
+        padding: 12px 16px !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+      }
+      
+      .header-title h2 { font-size: 1.3rem !important; }
+      .header-title p { font-size: 0.8rem !important; }
+      
+      .header-actions { 
+        width: 100% !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+      }
+      
+      .btn-header, .btn-edit-meeting, .btn-delete-meeting { 
+        padding: 6px 12px !important;
+        font-size: 0.8rem !important;
+        flex: 1 !important;
+        min-width: 80px !important;
+      }
+      
+      .theme-switcher { margin-left: 0 !important; }
+      
+      .content { 
+        padding: 16px !important;
+        overflow-y: auto !important;
+      }
+      
+      .meeting-item { 
+        padding: 12px !important;
+        gap: 8px !important;
+      }
+      
+      .meeting-title { font-size: 0.95rem !important; }
+      .meeting-date { font-size: 0.75rem !important; }
+      
+      .section-card { padding: 16px !important; }
+      .info-card { padding: 16px !important; }
+      .dashboard-card { padding: 16px 20px !important; }
+      
+      .stats-grid { 
+        gap: 12px 20px !important;
+        padding: 12px !important;
+      }
+      
+      .stat-value { font-size: 1.5rem !important; }
+      
+      .section-header { margin: 24px 0 16px 0 !important; }
+      .section-header h3 { font-size: 1.1rem !important; }
+      
+      .btn-add-section { padding: 8px 16px !important; font-size: 0.85rem !important; }
+      
+      .task-row { flex-direction: column !important; gap: 8px !important; }
+      .task-status { min-width: auto !important; }
+      
+      .section-progress-name { width: 100% !important; }
+      
+      .filter-row { flex-direction: column !important; gap: 8px !important; }
+      .section-filter-select { min-width: 100% !important; }
+      
+      .modal-content { width: 95% !important; }
+      
+      .notification-dropdown { width: 280px !important; right: -140px !important; }
+      
+      .user-info { flex-direction: column !important; gap: 8px !important; width: 100% !important; }
+    }
+    
+    @media (max-width: 480px) {
+      .sidebar { width: 100% !important; }
+      
+      .panel-header { padding: 10px 12px !important; }
+      
+      .header-title h2 { font-size: 1.1rem !important; }
+      
+      .btn-header, .btn-edit-meeting, .btn-delete-meeting { 
+        padding: 6px 10px !important;
+        font-size: 0.75rem !important;
+      }
+      
+      .content { padding: 12px !important; }
+      
+      .meeting-item { padding: 10px !important; }
+      
+      .section-card { padding: 12px !important; }
+      .info-card { padding: 12px !important; }
+      
+      .stat-value { font-size: 1.25rem !important; }
+      
+      .task-item { padding: 12px !important; }
+      
+      .section-header { margin: 16px 0 12px 0 !important; }
+      .section-header h3 { font-size: 1rem !important; }
+    }
+    
+    @media (min-width: 481px) and (max-width: 1024px) {
+      .sidebar { width: 250px !important; }
+      
+      .panel-header { padding: 16px 24px !important; }
+      
+      .content { padding: 24px !important; }
+      
+      .header-actions { gap: 8px !important; }
+      
+      .btn-header { padding: 8px 14px !important; font-size: 0.85rem !important; }
+      
+      .stats-grid { gap: 16px 30px !important; }
+      
+      .section-card { padding: 20px !important; }
+      .info-card { padding: 20px !important; }
+      
+      .task-row { flex-wrap: wrap !important; }
+    }
+    
+    /* Mobile menu toggle button */
+    .mobile-menu-toggle {
+      display: none !important;
+      background: var(--color-primary) !important;
+      color: white !important;
+      border: none !important;
+      padding: 10px 16px !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      font-size: 1rem !important;
+      position: fixed !important;
+      top: 10px !important;
+      left: 10px !important;
+      z-index: 3100 !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
+    
+    @media (max-width: 768px) {
+      .mobile-menu-toggle {
+        display: flex !important;
+      }
+    }
+
+  </style>
 
 <!-- UI Kalender -->
 <button id="btn-trigger-calendar">
@@ -6351,186 +6560,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
-<!-- START: AUTO-PATCH RESPONSIVE FULL VIEW MOBILE & TAB -->
-<script>
-(function() {
-    console.log("🛠️ Inisialisasi Plugin Mobile Full View (Notula-X-Note)...");
-
-    // 1. INJEKSI CSS DINAMIS KHUSUS LAYAR KECIL (<= 1024px)
-    const style = document.createElement('style');
-    style.innerHTML = `
-        /* Breakpoint untuk Tab, iPad, dan HP */
-        @media screen and (max-width: 1024px) {
-            body {
-                overflow-x: hidden !important;
-                position: relative;
-            }
-
-            /* Set Sidebar agar penuh satu layar */
-            .sidebar, #sidebar, aside {
-                width: 100% !important;
-                max-width: 100% !important;
-                position: fixed !important;
-                left: 0;
-                top: 0;
-                bottom: 0;
-                z-index: 100;
-                transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-                background: var(--color-surface, #1a2b4c);
-                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            }
-
-            /* Set Main Content agar penuh satu layar dan awalnya sembunyi di kanan */
-            .main-content, .main-panel {
-                width: 100% !important;
-                margin-left: 0 !important;
-                position: fixed !important;
-                left: 0;
-                top: 0;
-                bottom: 0;
-                z-index: 150;
-                background: #ffffff; /* Solid background agar tidak transparan */
-                transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-                transform: translateX(100%); /* Sembunyi di luar layar kanan */
-                padding: 15px !important;
-                overflow-y: auto !important;
-                padding-bottom: 50px !important;
-            }
-
-            /* STATE: SAAT RAPAT DIBUKA */
-            body.mobile-meeting-active .sidebar,
-            body.mobile-meeting-active #sidebar,
-            body.mobile-meeting-active aside {
-                transform: translateX(-30%); /* Efek parallax bergeser sedikit ke kiri */
-                opacity: 0.3; /* Gelapkan sedikit layar belakang */
-            }
-
-            body.mobile-meeting-active .main-content,
-            body.mobile-meeting-active .main-panel {
-                transform: translateX(0); /* Geser masuk ke layar utama */
-                box-shadow: -5px 0 15px rgba(0,0,0,0.1);
-            }
-
-            /* Desain Tombol Kembali di Header */
-            #btn-mobile-back {
-                display: none;
-                align-items: center;
-                gap: 8px;
-                background: #f4f7f6;
-                color: #1a2b4c;
-                border: 1px solid #ddd;
-                padding: 8px 12px;
-                border-radius: 8px;
-                font-weight: 600;
-                cursor: pointer;
-                margin-right: 15px;
-                font-size: 14px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-                flex-shrink: 0;
-            }
-
-            body.mobile-meeting-active #btn-mobile-back {
-                display: flex;
-            }
-            
-            /* Penyesuaian jarak header agar tombol back muat */
-            .header-actions, header {
-                flex-wrap: wrap;
-                gap: 10px;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-
-    // 2. LOGIKA JAVASCRIPT & EVENT LISTENER
-    document.addEventListener('DOMContentLoaded', () => {
-        
-        // A. Buat Tombol Back Khusus Mobile
-        const backBtn = document.createElement('button');
-        backBtn.id = 'btn-mobile-back';
-        backBtn.type = 'button';
-        backBtn.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            Kembali
-        `;
-        backBtn.onclick = () => {
-            // Tutup halaman penuh, kembali ke sidebar
-            document.body.classList.remove('mobile-meeting-active');
-        };
-
-        // B. Sisipkan Tombol Back ke dalam Header
-        const injectTimer = setInterval(() => {
-            const header = document.querySelector('.main-content header') || document.querySelector('.main-panel header') || document.querySelector('.header-actions');
-            if (header) {
-                header.insertBefore(backBtn, header.firstChild);
-                clearInterval(injectTimer);
-            }
-        }, 1000);
-
-        // C. Smart Detektor 1: Membajak fungsi loadMeeting bawaan (Sangat Aman)
-        if (typeof window.loadMeeting === 'function') {
-            const originalLoad = window.loadMeeting;
-            window.loadMeeting = function(...args) {
-                originalLoad.apply(this, args); // Jalankan fitur asli tanpa rusak
-                if (window.innerWidth <= 1024) {
-                    document.body.classList.add('mobile-meeting-active');
-                }
-            };
-        }
-
-        // TAMBAHAN: Membajak fungsi loadPrivateMeeting untuk Rapat Pribadi
-        if (typeof window.loadPrivateMeeting === 'function') {
-            const originalLoadPrivate = window.loadPrivateMeeting;
-            window.loadPrivateMeeting = function(...args) {
-                originalLoadPrivate.apply(this, args); 
-                if (window.innerWidth <= 1024) {
-                    document.body.classList.add('mobile-meeting-active');
-                }
-            };
-        }
-
-        // D. Smart Detektor 2: Fallback jika rapat diklik manual (Event Listener yang diperluas)
-        document.body.addEventListener('click', (e) => {
-            if (window.innerWidth <= 1024) {
-                // Abaikan klik yang terjadi di dalam panel utama (mencegah trigger salah sasaran)
-                if (e.target.closest('.main-content') || e.target.closest('.main-panel')) {
-                    return;
-                }
-                
-                // Abaikan klik pada tombol aksi pendukung (gear, tambah, hapus, input teks)
-                if (e.target.closest('button') || e.target.classList.contains('gear-icon') || e.target.tagName === 'INPUT') {
-                    return;
-                }
-
-                // Deteksi jika yang diklik adalah elemen List Rapat (Grup maupun Pribadi)
-                const isMeetingItem = e.target.closest('.meeting-item') || 
-                                      e.target.closest('.private-meeting-item') || 
-                                      e.target.closest('[onclick*="loadMeeting"]') ||
-                                      e.target.closest('[onclick*="loadPrivate"]') ||
-                                      (e.target.tagName === 'LI' && !e.target.closest('.workspace-header'));
-                                          
-                if (isMeetingItem) {
-                    // Buka tampilan penuh dengan sedikit delay agar data sempat merender
-                    setTimeout(() => {
-                        document.body.classList.add('mobile-meeting-active');
-                    }, 200);
-                }
-            }
-        });
-        
-        // E. Handle ketika rotasi layar ke landscape (Desktop Mode)
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 1024) {
-                document.body.classList.remove('mobile-meeting-active');
-            }
-        });
-    });
-})();
-</script>
-<!-- END: AUTO-PATCH RESPONSIVE FULL VIEW -->
-
 </body>
 </html>
 
