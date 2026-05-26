@@ -6351,8 +6351,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
-<!-- ... existing code ... -->
-
 <!-- START: AUTO-PATCH RESPONSIVE FULL VIEW MOBILE & TAB (VERSI 2) -->
 <script>
 (function() {
@@ -6664,6 +6662,215 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+
+<!-- START: AUTO-PATCH RESPONSIVE FULL VIEW & RIWAYAT PRIBADI (VERSI 4 - SUPER FINAL) -->
+<script>
+(function() {
+    console.log("🛠️ Inisialisasi Plugin Mobile Full View V4 & Riwayat Pribadi...");
+
+    // 1. INJEKSI CSS DINAMIS (LAYAR PENUH & HILANGKAN TOMBOL DI PC)
+    const style = document.createElement('style');
+    style.innerHTML = `
+        /* 🔴 WAJIB: SEMBUNYIKAN TOMBOL KEMBALI DI LAPTOP/PC SECARA PERMANEN */
+        #btn-mobile-back-float {
+            display: none !important; 
+        }
+
+        /* 📱 KHUSUS UNTUK HP, IPHONE, IPAD, DAN TABLET (Layar <= 1024px) */
+        @media screen and (max-width: 1024px) {
+            
+            /* STATE 1: SAAT AWAL BUKA (HANYA SIDEBAR DAFTAR RAPAT YANG TAMPIL) */
+            body:not(.mobile-meeting-active) .main-content,
+            body:not(.mobile-meeting-active) .main-panel,
+            body:not(.mobile-meeting-active) main {
+                display: none !important; 
+            }
+            body:not(.mobile-meeting-active) .sidebar,
+            body:not(.mobile-meeting-active) #sidebar,
+            body:not(.mobile-meeting-active) aside {
+                width: 100% !important;
+                max-width: 100% !important;
+                display: flex !important;
+                height: 100dvh !important;
+                overflow-y: auto !important;
+            }
+
+            /* STATE 2: SAAT RAPAT DIKLIK (TAMPIL UTUH 1 HALAMAN PENUH PORTRAIT/LANDSCAPE) */
+            body.mobile-meeting-active .sidebar,
+            body.mobile-meeting-active #sidebar,
+            body.mobile-meeting-active aside {
+                display: none !important; 
+            }
+            
+            body.mobile-meeting-active .main-content,
+            body.mobile-meeting-active .main-panel,
+            body.mobile-meeting-active main {
+                display: block !important;
+                position: fixed !important; /* Paksa putus dari kontainer lama */
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100vw !important;
+                height: 100dvh !important; /* dvh memastikan scroll IOS/Android sempurna */
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                -webkit-overflow-scrolling: touch;
+                padding: 15px !important;
+                padding-bottom: 110px !important; /* Jarak aman untuk tombol kembali */
+                background-color: #ffffff !important;
+                z-index: 99999 !important;
+            }
+
+            /* TAMPILKAN TOMBOL KEMBALI MELAYANG (HANYA DI HP SAAT RAPAT TERBUKA) */
+            body.mobile-meeting-active #btn-mobile-back-float {
+                display: flex !important;
+                position: fixed !important;
+                bottom: 25px !important;
+                right: 20px !important;
+                background-color: #e11d48 !important; /* Warna Merah */
+                color: #ffffff !important;
+                border: none !important;
+                border-radius: 50px !important;
+                padding: 14px 22px !important;
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.35) !important;
+                z-index: 999999 !important;
+                cursor: pointer !important;
+                align-items: center !important;
+                gap: 8px !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // 2. LOGIKA JAVASCRIPT & EVENT LISTENER
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // A. Buat Tombol Kembali (Mobile)
+        const backBtn = document.createElement('button');
+        backBtn.id = 'btn-mobile-back-float';
+        backBtn.type = 'button';
+        backBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Kembali ke Daftar
+        `;
+        backBtn.onclick = () => {
+            document.body.classList.remove('mobile-meeting-active');
+        };
+        document.body.appendChild(backBtn);
+
+        // B. Fungsi Pengaktif Layar Penuh
+        const enableMobileView = () => {
+            if (window.innerWidth <= 1024) {
+                setTimeout(() => {
+                    document.body.classList.add('mobile-meeting-active');
+                }, 150);
+            }
+        };
+
+        // C. Smart Detektor 1: Membajak fungsi asli
+        if (typeof window.loadMeeting === 'function') {
+            const originalLoad = window.loadMeeting;
+            window.loadMeeting = function(...args) {
+                originalLoad.apply(this, args);
+                enableMobileView();
+            };
+        }
+        if (typeof window.loadPrivateMeeting === 'function') {
+            const originalLoadPrivate = window.loadPrivateMeeting;
+            window.loadPrivateMeeting = function(...args) {
+                originalLoadPrivate.apply(this, args); 
+                enableMobileView();
+            };
+        }
+
+        // D. Smart Detektor 2: Menangkap klik elemen rapat di Sidebar
+        document.body.addEventListener('click', (e) => {
+            if (window.innerWidth > 1024) return;
+            
+            const isSidebarClick = e.target.closest('.sidebar') || e.target.closest('#sidebar') || e.target.closest('aside');
+            if (!isSidebarClick) return; 
+
+            if (e.target.closest('button') || e.target.classList.contains('gear-icon') || e.target.tagName === 'INPUT') {
+                return;
+            }
+
+            const isMeetingItem = e.target.closest('.meeting-item') || 
+                                  e.target.closest('.private-meeting-item') || 
+                                  e.target.closest('[onclick*="loadMeeting"]') ||
+                                  e.target.closest('[onclick*="loadPrivate"]');
+                                      
+            if (isMeetingItem) {
+                enableMobileView();
+            }
+        });
+        
+        // E. Pencegahan Bug: Reset otomatis jika HP diputar atau dibuka dari layar besar
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                document.body.classList.remove('mobile-meeting-active');
+            }
+        });
+
+        // =========================================================================
+        // F. FITUR BARU: MUNCULKAN TOMBOL RIWAYAT & LOG UNTUK RAPAT PRIBADI & GRUP
+        // =========================================================================
+        setInterval(() => {
+            // Cari lokasi header aksi di panel utama
+            const headerActions = document.querySelector('.main-content header .header-actions') || 
+                                  document.querySelector('.main-panel header .workspace-actions') || 
+                                  document.querySelector('.main-content .header-actions');
+            
+            // Cek apakah ada rapat yang sedang terbuka (Grup maupun Pribadi)
+            const isMeetingActive = document.querySelector('#meeting-title, .meeting-title');
+            
+            if (headerActions && isMeetingActive && isMeetingActive.innerText.trim() !== '') {
+                // Cari apakah tombol riwayat sudah ada
+                let historyBtn = Array.from(headerActions.querySelectorAll('button')).find(btn => btn.innerText.includes('Riwayat'));
+                
+                if (!historyBtn) {
+                    // Jika belum ada, buat tombol baru secara dinamis
+                    historyBtn = document.createElement('button');
+                    historyBtn.type = 'button';
+                    historyBtn.className = 'btn-riwayat-patch'; 
+                    historyBtn.innerHTML = '📜 Riwayat & Log';
+                    historyBtn.style.cssText = 'background: #f3f4f6; color: #1f2937; border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; margin-left: 10px; transition: 0.2s;';
+                    
+                    historyBtn.onmouseover = () => historyBtn.style.background = '#e5e7eb';
+                    historyBtn.onmouseout = () => historyBtn.style.background = '#f3f4f6';
+
+                    // Hubungkan ke Modal Riwayat Anda
+                    historyBtn.onclick = () => {
+                        if (typeof window.openHistoryModal === 'function') {
+                            window.openHistoryModal();
+                        } else if (typeof window.showHistory === 'function') {
+                            window.showHistory();
+                        } else {
+                            const modal = document.getElementById('historyModal') || document.querySelector('.history-modal');
+                            if (modal) {
+                                modal.style.display = 'flex';
+                            } else {
+                                alert('Modal Riwayat belum tersedia untuk sesi ini.');
+                            }
+                        }
+                    };
+                    // Tambahkan ke header
+                    headerActions.appendChild(historyBtn);
+                } else {
+                    // Jika tombol riwayat ada tapi tersembunyi (display: none), paksa munculkan
+                    if (window.getComputedStyle(historyBtn).display === 'none') {
+                        historyBtn.style.display = 'inline-flex';
+                    }
+                }
+            }
+        }, 1500); // Mengecek setiap 1.5 detik dengan sangat ringan
+    });
+})();
+</script>
 </body>
 </html>
 
