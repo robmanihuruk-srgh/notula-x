@@ -5675,6 +5675,759 @@
       }
     }
 
+    /* ===== LANDSCAPE ORIENTATION RESPONSIVE STYLES ===== */
+    /* Untuk semua perangkat mobile dalam posisi landscape */
+    @media (max-width: 1024px) and (max-height: 600px) and (orientation: landscape) {
+      body { height: 100vh; overflow: hidden; }
+      
+      .sidebar {
+        width: 200px !important;
+        height: 100vh !important;
+        position: fixed !important;
+        left: -200px !important;
+        top: 0 !important;
+        z-index: 3000 !important;
+        transition: left 0.3s ease !important;
+        overflow-y: auto !important;
+        box-shadow: 10px 0 20px rgba(0,0,0,0.2) !important;
+        border-bottom: none !important;
+      }
+      
+      .sidebar.mobile-open {
+        left: 0 !important;
+      }
+      
+      .sidebar-hover-trigger { display: none !important; }
+      
+      .sidebar-header { 
+        padding: 12px 16px !important;
+        border-bottom: 1px solid var(--color-border) !important;
+      }
+      
+      .sidebar-header h1 {
+        font-size: 1.2rem !important;
+      }
+      
+      .sidebar-scroll-wrapper {
+        max-height: calc(100vh - 120px) !important;
+      }
+      
+      .workspace-section { 
+        padding: 12px 16px !important;
+        border-bottom: 1px solid var(--color-border) !important;
+      }
+      
+      .workspace-section h3 {
+        font-size: 0.75rem !important;
+        margin-bottom: 8px !important;
+      }
+      
+      .workspace-item { 
+        padding: 8px 10px !important;
+        margin-bottom: 2px !important;
+        font-size: 0.9rem !important;
+      }
+      
+      .workspace-badge { 
+        font-size: 0.65rem !important;
+        padding: 1px 6px !important;
+      }
+      
+      .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default {
+        padding: 8px 12px !important;
+        font-size: 0.85rem !important;
+        margin-top: 6px !important;
+      }
+      
+      .meeting-item { 
+        padding: 10px !important;
+        margin-bottom: 8px !important;
+      }
+      
+      .meeting-title { 
+        font-size: 0.95rem !important;
+      }
+      
+      .meeting-date { 
+        font-size: 0.75rem !important;
+      }
+      
+      .team-item {
+        padding: 8px 10px !important;
+        font-size: 0.85rem !important;
+      }
+      
+      .team-icon {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 0.75rem !important;
+      }
+      
+      .team-name {
+        font-size: 0.85rem !important;
+      }
+      
+      .team-meta {
+        font-size: 0.7rem !important;
+      }
+      
+      .btn-new-team {
+        padding: 8px 12px !important;
+        font-size: 0.85rem !important;
+        margin-top: 6px !important;
+      }
+      
+      .main-panel { 
+        width: calc(100% - 200px) !important;
+        height: 100vh !important;
+        margin-left: 0 !important;
+        margin-top: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      
+      .panel-header { 
+        padding: 12px 16px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        min-height: auto !important;
+        max-height: 70px !important;
+        overflow-y: auto !important;
+      }
+      
+      .header-title h2 {
+        font-size: 1.3rem !important;
+        letter-spacing: -0.3px !important;
+      }
+      
+      .header-title p {
+        font-size: 0.8rem !important;
+        margin-top: 2px !important;
+      }
+      
+      .header-actions {
+        display: flex !important;
+        gap: 6px !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        width: auto !important;
+        margin-top: 0 !important;
+      }
+      
+      .btn-header {
+        padding: 6px 12px !important;
+        font-size: 0.8rem !important;
+        border-radius: 6px !important;
+      }
+      
+      .btn-edit-meeting, .btn-delete-meeting {
+        padding: 6px 12px !important;
+        font-size: 0.8rem !important;
+      }
+      
+      .font-switcher-select {
+        font-size: 0.8rem !important;
+        padding: 6px 8px !important;
+      }
+      
+      .theme-switcher {
+        gap: 4px !important;
+        padding: 3px !important;
+      }
+      
+      .theme-btn {
+        width: 20px !important;
+        height: 20px !important;
+      }
+      
+      .notification-wrapper {
+        display: flex !important;
+      }
+      
+      .notification-btn {
+        padding: 6px 10px !important;
+        font-size: 0.9rem !important;
+      }
+      
+      .user-info {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        font-size: 0.75rem !important;
+      }
+      
+      .user-info span {
+        display: none !important;
+      }
+      
+      .user-info #userRole {
+        display: inline-block !important;
+        padding: 2px 6px !important;
+        font-size: 0.65rem !important;
+      }
+      
+      .logout-btn {
+        padding: 4px 8px !important;
+        font-size: 0.85rem !important;
+      }
+      
+      .content {
+        flex: 1 !important;
+        padding: 12px 16px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+      }
+      
+      .stats-grid, .global-stats {
+        gap: 12px !important;
+        padding: 0 !important;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+      }
+      
+      .stat-card, .global-stat-card {
+        padding: 12px !important;
+      }
+      
+      .stat-value, .global-stat-value {
+        font-size: 1.3rem !important;
+      }
+      
+      .stat-label, .global-stat-label {
+        font-size: 0.75rem !important;
+      }
+      
+      .filter-row {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex-wrap: wrap !important;
+      }
+      
+      .section-filter-select {
+        width: auto !important;
+        flex: 1 !important;
+        min-width: 120px !important;
+        font-size: 0.85rem !important;
+        padding: 6px 8px !important;
+      }
+      
+      .section-header {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 12px !important;
+        flex-wrap: wrap !important;
+      }
+      
+      .section-title h4 {
+        font-size: 1.1rem !important;
+      }
+      
+      .btn-add-section {
+        width: auto !important;
+        padding: 6px 12px !important;
+        font-size: 0.85rem !important;
+      }
+      
+      .task-row {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex-wrap: wrap !important;
+      }
+      
+      .task-status {
+        width: auto !important;
+        margin-left: 0 !important;
+        min-width: 80px !important;
+      }
+      
+      .task-desc {
+        width: auto !important;
+        margin-left: 0 !important;
+        flex: 1 !important;
+        min-width: 150px !important;
+        font-size: 0.9rem !important;
+      }
+      
+      .task-pic {
+        width: auto !important;
+        margin-left: 0 !important;
+        min-width: 60px !important;
+      }
+      
+      .progress-container {
+        width: auto !important;
+        min-width: 100px !important;
+        margin-left: 0 !important;
+      }
+      
+      .task-deadline {
+        width: auto !important;
+        margin-left: 0 !important;
+        min-width: 80px !important;
+        font-size: 0.85rem !important;
+      }
+      
+      .task-actions {
+        width: auto !important;
+        margin-left: 0 !important;
+        gap: 4px !important;
+      }
+      
+      .income-table {
+        font-size: 0.8rem !important;
+      }
+      
+      .income-table th, .income-table td {
+        padding: 6px 8px !important;
+      }
+      
+      .income-header {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 8px !important;
+      }
+      
+      .income-header h4 {
+        font-size: 1rem !important;
+      }
+      
+      .team-members-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+        gap: 10px !important;
+      }
+      
+      .team-member-card {
+        padding: 12px !important;
+      }
+      
+      .member-avatar {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 0.9rem !important;
+      }
+      
+      .member-name {
+        font-size: 0.9rem !important;
+      }
+      
+      .member-email {
+        font-size: 0.75rem !important;
+      }
+      
+      .team-detail-card {
+        padding: 16px !important;
+      }
+      
+      .team-detail-header h3 {
+        font-size: 1.1rem !important;
+      }
+      
+      .assigned-teams-card {
+        padding: 16px !important;
+      }
+      
+      .assigned-teams-header h3 {
+        font-size: 1.05rem !important;
+      }
+      
+      .team-assignment-item {
+        padding: 12px !important;
+      }
+      
+      .team-assignment-header h4 {
+        font-size: 0.95rem !important;
+      }
+      
+      .team-member-row {
+        padding: 6px !important;
+        gap: 8px !important;
+      }
+      
+      .mobile-menu-toggle {
+        display: flex !important;
+        top: 8px !important;
+        left: 8px !important;
+        padding: 8px 12px !important;
+        font-size: 0.9rem !important;
+      }
+    }
+    
+    /* Untuk tablet landscape (iPad, Tab 10") */
+    @media (min-width: 768px) and (max-height: 600px) and (orientation: landscape) {
+      body { height: 100vh; overflow: hidden; }
+      
+      .sidebar {
+        width: 250px !important;
+        height: 100vh !important;
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        z-index: 2000 !important;
+        overflow-y: auto !important;
+        border-right: 1px solid var(--color-border) !important;
+        border-bottom: none !important;
+      }
+      
+      .sidebar:hover, .sidebar:focus-within {
+        left: 0 !important;
+        box-shadow: none !important;
+      }
+      
+      .sidebar-hover-trigger { display: none !important; }
+      
+      .sidebar-header { 
+        padding: 16px 20px !important;
+        border-bottom: 1px solid var(--color-border) !important;
+      }
+      
+      .sidebar-header h1 {
+        font-size: 1.3rem !important;
+      }
+      
+      .sidebar-scroll-wrapper {
+        max-height: calc(100vh - 140px) !important;
+      }
+      
+      .workspace-section { 
+        padding: 14px 16px !important;
+        border-bottom: 1px solid var(--color-border) !important;
+      }
+      
+      .workspace-section h3 {
+        font-size: 0.8rem !important;
+        margin-bottom: 10px !important;
+      }
+      
+      .workspace-item { 
+        padding: 10px 12px !important;
+        margin-bottom: 4px !important;
+        font-size: 0.95rem !important;
+      }
+      
+      .workspace-badge { 
+        font-size: 0.7rem !important;
+        padding: 2px 8px !important;
+      }
+      
+      .btn-new, .btn-delete-selected, .btn-new-workspace, .btn-reset-default {
+        padding: 10px 14px !important;
+        font-size: 0.9rem !important;
+        margin-top: 8px !important;
+      }
+      
+      .meeting-item { 
+        padding: 12px !important;
+        margin-bottom: 10px !important;
+      }
+      
+      .meeting-title { 
+        font-size: 1rem !important;
+      }
+      
+      .meeting-date { 
+        font-size: 0.8rem !important;
+      }
+      
+      .team-item {
+        padding: 10px 12px !important;
+        font-size: 0.9rem !important;
+      }
+      
+      .team-icon {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 0.85rem !important;
+      }
+      
+      .team-name {
+        font-size: 0.9rem !important;
+      }
+      
+      .team-meta {
+        font-size: 0.75rem !important;
+      }
+      
+      .btn-new-team {
+        padding: 10px 14px !important;
+        font-size: 0.9rem !important;
+        margin-top: 8px !important;
+      }
+      
+      .main-panel { 
+        width: calc(100% - 250px) !important;
+        height: 100vh !important;
+        margin-left: 0 !important;
+        margin-top: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      
+      .panel-header { 
+        padding: 14px 20px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+        min-height: auto !important;
+        max-height: 80px !important;
+        overflow-y: auto !important;
+      }
+      
+      .header-title h2 {
+        font-size: 1.4rem !important;
+        letter-spacing: -0.4px !important;
+      }
+      
+      .header-title p {
+        font-size: 0.85rem !important;
+        margin-top: 2px !important;
+      }
+      
+      .header-actions {
+        display: flex !important;
+        gap: 8px !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        width: auto !important;
+        margin-top: 0 !important;
+      }
+      
+      .btn-header {
+        padding: 8px 14px !important;
+        font-size: 0.85rem !important;
+        border-radius: 6px !important;
+      }
+      
+      .btn-edit-meeting, .btn-delete-meeting {
+        padding: 8px 14px !important;
+        font-size: 0.85rem !important;
+      }
+      
+      .font-switcher-select {
+        font-size: 0.85rem !important;
+        padding: 8px 10px !important;
+      }
+      
+      .theme-switcher {
+        gap: 6px !important;
+        padding: 4px !important;
+      }
+      
+      .theme-btn {
+        width: 24px !important;
+        height: 24px !important;
+      }
+      
+      .notification-wrapper {
+        display: flex !important;
+      }
+      
+      .notification-btn {
+        padding: 8px 12px !important;
+        font-size: 0.95rem !important;
+      }
+      
+      .user-info {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        font-size: 0.8rem !important;
+      }
+      
+      .user-info #userRole {
+        display: inline-block !important;
+        padding: 2px 8px !important;
+        font-size: 0.7rem !important;
+      }
+      
+      .logout-btn {
+        padding: 6px 10px !important;
+        font-size: 0.9rem !important;
+      }
+      
+      .content {
+        flex: 1 !important;
+        padding: 16px 20px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+      }
+      
+      .stats-grid, .global-stats {
+        gap: 14px !important;
+        padding: 0 !important;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+      }
+      
+      .stat-card, .global-stat-card {
+        padding: 14px !important;
+      }
+      
+      .stat-value, .global-stat-value {
+        font-size: 1.5rem !important;
+      }
+      
+      .stat-label, .global-stat-label {
+        font-size: 0.8rem !important;
+      }
+      
+      .filter-row {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        flex-wrap: wrap !important;
+      }
+      
+      .section-filter-select {
+        width: auto !important;
+        flex: 1 !important;
+        min-width: 140px !important;
+        font-size: 0.9rem !important;
+        padding: 8px 10px !important;
+      }
+      
+      .section-header {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 14px !important;
+        flex-wrap: wrap !important;
+      }
+      
+      .section-title h4 {
+        font-size: 1.15rem !important;
+      }
+      
+      .btn-add-section {
+        width: auto !important;
+        padding: 8px 14px !important;
+        font-size: 0.9rem !important;
+      }
+      
+      .task-row {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        flex-wrap: wrap !important;
+      }
+      
+      .task-status {
+        width: auto !important;
+        margin-left: 0 !important;
+        min-width: 90px !important;
+      }
+      
+      .task-desc {
+        width: auto !important;
+        margin-left: 0 !important;
+        flex: 1 !important;
+        min-width: 160px !important;
+        font-size: 0.95rem !important;
+      }
+      
+      .task-pic {
+        width: auto !important;
+        margin-left: 0 !important;
+        min-width: 70px !important;
+      }
+      
+      .progress-container {
+        width: auto !important;
+        min-width: 110px !important;
+        margin-left: 0 !important;
+      }
+      
+      .task-deadline {
+        width: auto !important;
+        margin-left: 0 !important;
+        min-width: 90px !important;
+        font-size: 0.9rem !important;
+      }
+      
+      .task-actions {
+        width: auto !important;
+        margin-left: 0 !important;
+        gap: 6px !important;
+      }
+      
+      .income-table {
+        font-size: 0.85rem !important;
+      }
+      
+      .income-table th, .income-table td {
+        padding: 8px 10px !important;
+      }
+      
+      .income-header {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+      }
+      
+      .income-header h4 {
+        font-size: 1.05rem !important;
+      }
+      
+      .team-members-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+        gap: 12px !important;
+      }
+      
+      .team-member-card {
+        padding: 14px !important;
+      }
+      
+      .member-avatar {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 0.95rem !important;
+      }
+      
+      .member-name {
+        font-size: 0.95rem !important;
+      }
+      
+      .member-email {
+        font-size: 0.8rem !important;
+      }
+      
+      .team-detail-card {
+        padding: 18px !important;
+      }
+      
+      .team-detail-header h3 {
+        font-size: 1.15rem !important;
+      }
+      
+      .assigned-teams-card {
+        padding: 18px !important;
+      }
+      
+      .assigned-teams-header h3 {
+        font-size: 1.1rem !important;
+      }
+      
+      .team-assignment-item {
+        padding: 14px !important;
+      }
+      
+      .team-assignment-header h4 {
+        font-size: 1rem !important;
+      }
+      
+      .team-member-row {
+        padding: 8px !important;
+        gap: 10px !important;
+      }
+      
+      .mobile-menu-toggle {
+        display: none !important;
+      }
+    }
+
   </style>
 
 <!-- UI Kalender -->
