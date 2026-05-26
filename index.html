@@ -6480,28 +6480,42 @@ document.addEventListener("DOMContentLoaded", () => {
             };
         }
 
-        // D. Smart Detektor 2: Fallback jika rapat diklik manual (Event Listener)
+        // TAMBAHAN: Membajak fungsi loadPrivateMeeting untuk Rapat Pribadi
+        if (typeof window.loadPrivateMeeting === 'function') {
+            const originalLoadPrivate = window.loadPrivateMeeting;
+            window.loadPrivateMeeting = function(...args) {
+                originalLoadPrivate.apply(this, args); 
+                if (window.innerWidth <= 1024) {
+                    document.body.classList.add('mobile-meeting-active');
+                }
+            };
+        }
+
+        // D. Smart Detektor 2: Fallback jika rapat diklik manual (Event Listener yang diperluas)
         document.body.addEventListener('click', (e) => {
             if (window.innerWidth <= 1024) {
-                const sidebar = document.querySelector('.sidebar') || document.querySelector('#sidebar') || document.querySelector('aside');
+                // Abaikan klik yang terjadi di dalam panel utama (mencegah trigger salah sasaran)
+                if (e.target.closest('.main-content') || e.target.closest('.main-panel')) {
+                    return;
+                }
                 
-                if (sidebar && sidebar.contains(e.target)) {
-                    // Abaikan klik pada tombol aksi (gear, tambah, hapus, input teks)
-                    if (e.target.closest('button') || e.target.classList.contains('gear-icon') || e.target.tagName === 'INPUT') {
-                        return;
-                    }
+                // Abaikan klik pada tombol aksi pendukung (gear, tambah, hapus, input teks)
+                if (e.target.closest('button') || e.target.classList.contains('gear-icon') || e.target.tagName === 'INPUT') {
+                    return;
+                }
 
-                    // Deteksi jika yang diklik adalah elemen List Rapat
-                    const isMeetingItem = e.target.closest('.meeting-item') || 
-                                          e.target.closest('[onclick*="loadMeeting"]') ||
-                                          (e.target.tagName === 'LI' && !e.target.closest('.workspace-header'));
+                // Deteksi jika yang diklik adalah elemen List Rapat (Grup maupun Pribadi)
+                const isMeetingItem = e.target.closest('.meeting-item') || 
+                                      e.target.closest('.private-meeting-item') || 
+                                      e.target.closest('[onclick*="loadMeeting"]') ||
+                                      e.target.closest('[onclick*="loadPrivate"]') ||
+                                      (e.target.tagName === 'LI' && !e.target.closest('.workspace-header'));
                                           
-                    if (isMeetingItem) {
-                        // Buka tampilan penuh dengan sedikit delay agar data sempat merender
-                        setTimeout(() => {
-                            document.body.classList.add('mobile-meeting-active');
-                        }, 200);
-                    }
+                if (isMeetingItem) {
+                    // Buka tampilan penuh dengan sedikit delay agar data sempat merender
+                    setTimeout(() => {
+                        document.body.classList.add('mobile-meeting-active');
+                    }, 200);
                 }
             }
         });
@@ -6515,7 +6529,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 })();
 </script>
-<!-- END: AUTO-PATCH RESPONSIVE FULL VIEW -->      
+<!-- END: AUTO-PATCH RESPONSIVE FULL VIEW -->
+
 </body>
 </html>
 
