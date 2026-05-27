@@ -452,6 +452,108 @@
       .task-status, .task-desc, .task-pic, .progress-container, .task-deadline, .task-actions { width: 100%; margin-left: 0; }
       .progress-container { min-width: 100%; }
     }
+
+    /* ===== FLOATING SIDEBAR: LANDSCAPE MODE (HP/TABLET/IPAD) ===== */
+    @media (max-width: 1024px) and (orientation: landscape) {
+      body {
+        flex-direction: row;
+        overflow: hidden;
+        height: 100vh;
+      }
+      .sidebar {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        width: 280px;
+        height: 100vh;
+        border-right: 1px solid var(--color-border);
+        border-bottom: none;
+        z-index: 2000;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+        box-shadow: none;
+      }
+      .sidebar.landscape-open {
+        left: 0;
+        box-shadow: 4px 0 25px rgba(0,0,0,0.2);
+      }
+      /* Sidebar trigger tab untuk landscape */
+      .sidebar-hover-trigger {
+        display: block !important;
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 20px;
+        height: 100vh;
+        z-index: 1999;
+        cursor: pointer;
+      }
+      .sidebar-hover-trigger::after {
+        content: '\f105';
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+        color: white;
+        background: var(--color-primary);
+        font-size: 1.1rem;
+        padding: 12px 6px 12px 8px;
+        border-radius: 0 8px 8px 0;
+        box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+        transition: opacity 0.3s ease;
+        opacity: 0.85;
+      }
+      .sidebar-hover-trigger:hover::after {
+        opacity: 1;
+        background: var(--color-primary-dark);
+      }
+      /* Sembunyikan ikon trigger saat sidebar terbuka */
+      .sidebar.landscape-open ~ .sidebar-hover-trigger::after,
+      .sidebar-landscape-overlay.active ~ .sidebar-hover-trigger::after {
+        opacity: 0;
+        pointer-events: none;
+      }
+      /* Tombol close di dalam sidebar saat landscape */
+      .sidebar-landscape-close {
+        display: flex !important;
+      }
+      .sidebar-scroll-wrapper {
+        max-height: calc(100vh - 120px);
+      }
+      .main-panel {
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        margin-left: 20px;
+      }
+      .main-panel .content {
+        overflow-y: auto;
+        height: calc(100vh - 80px);
+        padding: 16px 20px;
+      }
+      .panel-header {
+        padding: 12px 20px;
+        flex-wrap: nowrap;
+        gap: 8px;
+      }
+      .header-actions {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      /* Overlay gelap di belakang sidebar landscape */
+      .sidebar-landscape-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.35);
+        z-index: 1998;
+      }
+      .sidebar-landscape-overlay.active {
+        display: block;
+      }
+    }
     
     #install-pwa-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: none; }
     .btn-install-pwa { background-color: var(--color-primary); color: white; border: none; padding: 12px 24px; border-radius: 50px; font-weight: 600; font-family: var(--font-body); box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: transform 0.3s ease, background-color 0.3s; }
@@ -551,6 +653,29 @@
       .team-detail-card { padding: 16px; }
     }
 
+    /* Tombol close sidebar landscape - hidden di luar landscape mode */
+    .sidebar-landscape-close {
+      display: none;
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.08);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1rem;
+      color: var(--color-secondary);
+      transition: background 0.2s;
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .sidebar-landscape-close:hover {
+      background: rgba(0,0,0,0.15);
+    }
   </style>
 </head>
 <body>
@@ -936,6 +1061,8 @@
 
   <!-- SIDEBAR TRIGGER (DESKTOP FLOATING SIDEBAR) -->
   <div class="sidebar-hover-trigger"></div>
+  <!-- OVERLAY untuk menutup sidebar landscape saat klik di luar -->
+  <div class="sidebar-landscape-overlay" id="sidebarLandscapeOverlay"></div>
 
   
 
@@ -985,7 +1112,8 @@
   </div>
 
 <div class="sidebar">
-    <div class="sidebar-header">
+    <div class="sidebar-header" style="position:relative;">
+      <button class="sidebar-landscape-close" id="sidebarLandscapeClose" title="Tutup Sidebar"><i class="fas fa-times"></i></button>
       <h1><img src="pic_ (2).jpg" alt="Logo" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);"> Notula</h1>
       <button class="btn-new" id="newMeetingBtn"><i class="fas fa-plus-circle"></i> Rapat baru</button>
       <button class="btn-new-workspace" id="newWorkspaceBtn" disabled><i class="fas fa-users"></i> Buat Grup</button>
@@ -2004,11 +2132,30 @@
         } catch (e) {
           console.error("Gagal menyimpan log: ", e);
         }
-        // Juga catat ke workspaces/history agar tampil di Riwayat & Log
+        // Catat ke workspaces/history jika ini rapat grup
         if (currentWorkspaceId) {
           window.addWorkspaceLog(message);
+        } else {
+          // Rapat pribadi: catat ke meetings/{meetingId}/history agar tampil di Riwayat & Log
+          window.addPrivateMeetingLog(meetingId, message);
         }
       }
+
+      // Fungsi global untuk mencatat log rapat pribadi ke meetings/{id}/history
+      window.addPrivateMeetingLog = async function(meetingId, action) {
+        const user = currentUser || window.currentUser;
+        if (!meetingId || !user) return;
+        try {
+          await db.collection('meetings').doc(meetingId).collection('history').add({
+            action: action,
+            user: user.email,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            isArchived: false
+          });
+        } catch(e) {
+          console.error("Gagal mencatat riwayat rapat pribadi:", e);
+        }
+      };
 
       // Fungsi global untuk mencatat perubahan ke workspaces/{id}/history (dibaca oleh modal Riwayat & Log)
       window.addWorkspaceLog = async function(action) {
@@ -7092,13 +7239,31 @@ document.addEventListener("DOMContentLoaded", () => {
   // Fungsi Membuka Jendela Riwayat dan Memasang Sinkronisasi Snapshot Firestore
   window.openNotulaHistoryModal = function() {
     const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
-    if(!groupId) {
-        alert("Silakan pilih salah satu nama Grup/Workspace Anda di sidebar kiri terlebih dahulu!");
+    const privateMeetingId = window.currentMeetingId || null;
+    const isPrivate = !groupId && privateMeetingId;
+
+    if(!groupId && !privateMeetingId) {
+        alert("Silakan pilih salah satu Grup/Workspace atau Rapat Pribadi di sidebar kiri terlebih dahulu!");
         return;
     }
 
+    // Update judul modal sesuai konteks
+    const modalTitle = document.querySelector('#notula-history-modal h3');
+    if(modalTitle) {
+      if(isPrivate) {
+        modalTitle.textContent = '📜 Riwayat Aktivitas & Log Rapat Pribadi';
+      } else {
+        modalTitle.textContent = '📜 Riwayat Aktivitas & Log Grup';
+      }
+    }
+
     document.getElementById('notula-history-modal').style.display = 'flex';
-    fetchAndRenderLogs(groupId);
+    
+    if(isPrivate) {
+      fetchAndRenderPrivateLogs(privateMeetingId);
+    } else {
+      fetchAndRenderLogs(groupId);
+    }
   };
 
   function fetchAndRenderLogs(groupId) {
@@ -7110,6 +7275,24 @@ document.addEventListener("DOMContentLoaded", () => {
           renderHistoryRows(snapshot);
       }, (error) => {
           console.error("Gagal memuat snapshot riwayat:", error);
+      });
+  }
+
+  // Fungsi khusus untuk memuat riwayat log Rapat Pribadi (dari meetings/{meetingId}/history)
+  function fetchAndRenderPrivateLogs(meetingId) {
+    if(historyUnsubscribe) historyUnsubscribe();
+
+    historyUnsubscribe = window.db.collection('meetings').doc(meetingId).collection('history')
+      .orderBy('timestamp', 'desc')
+      .onSnapshot((snapshot) => {
+          renderHistoryRows(snapshot);
+      }, (error) => {
+          console.error("Gagal memuat snapshot riwayat rapat pribadi:", error);
+          // Fallback: tampilkan pesan kosong jika sub-collection belum ada
+          const tbody = document.getElementById('history-log-tbody-final');
+          const emptyMsg = document.getElementById('history-empty-final');
+          if(tbody) tbody.innerHTML = '';
+          if(emptyMsg) emptyMsg.style.display = 'block';
       });
   }
 
@@ -7174,12 +7357,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // Fungsi Pemindah Log ke Laci Arsip Elektronik
   window.archiveSingleLog = async function(logId) {
     const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
-    if(!groupId || !logId) return;
+    const privateMeetingId = window.currentMeetingId || null;
+    const isPrivate = !groupId && privateMeetingId;
+
+    if(!logId) return;
+    if(!groupId && !privateMeetingId) return;
 
     try {
-        await (window.db).collection('workspaces').doc(groupId).collection('history').doc(logId).set({
-            isArchived: true
-        }, { merge: true });
+        if(isPrivate) {
+          await (window.db).collection('meetings').doc(privateMeetingId).collection('history').doc(logId).set({
+              isArchived: true
+          }, { merge: true });
+        } else {
+          await (window.db).collection('workspaces').doc(groupId).collection('history').doc(logId).set({
+              isArchived: true
+          }, { merge: true });
+        }
         alert("Sukses: Aktivitas berhasil dipindahkan ke laci arsip rahasia.");
     } catch (error) {
         console.error("Gagal melakukan enkripsi arsip log:", error);
@@ -7195,9 +7388,21 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
-        if(!groupId) return;
+        const privateMeetingId = window.currentMeetingId || null;
+        const isPrivate = !groupId && privateMeetingId;
 
-        const snapshot = await (window.db).collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get();
+        if(!groupId && !privateMeetingId) return;
+
+        let snapshot;
+        let namaFile;
+        if(isPrivate) {
+          snapshot = await (window.db).collection('meetings').doc(privateMeetingId).collection('history').orderBy('timestamp', 'desc').get();
+          namaFile = "Riwayat_Aktivitas_RapatPribadi_Notula.xlsx";
+        } else {
+          snapshot = await (window.db).collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get();
+          namaFile = "Riwayat_Aktivitas_Grup_Notula.xlsx";
+        }
+
         let dataExport = [];
 
         snapshot.forEach(doc => {
@@ -7211,14 +7416,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         if(dataExport.length === 0) {
-            alert("Tidak ditemukan riwayat aktivitas pada database grup ini untuk diekspor.");
+            alert("Tidak ditemukan riwayat aktivitas pada database ini untuk diekspor.");
             return;
         }
 
         const worksheet = XLSX.utils.json_to_sheet(dataExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Log Aktivitas Notula");
-        XLSX.writeFile(workbook, "Riwayat_Aktivitas_Grup_Notula.xlsx");
+        XLSX.writeFile(workbook, namaFile);
     } catch (error) {
         console.error("Crash saat ekspor excel:", error);
         alert("Gagal Export Excel: " + error.message);
@@ -7230,7 +7435,11 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById('btn-export-history-final').onclick = window.exportHistoryToExcelFinal;
   document.getElementById('chk-show-archived-final').onchange = () => {
      const groupId = window.currentWorkspaceId || window.currentGroupId || window.activeWorkspaceId || localStorage.getItem('currentWorkspaceId');
-     if(groupId) {
+     const privateMeetingId = window.currentMeetingId || null;
+     const isPrivate = !groupId && privateMeetingId;
+     if(isPrivate) {
+         window.db.collection('meetings').doc(privateMeetingId).collection('history').orderBy('timestamp', 'desc').get().then(renderHistoryRows);
+     } else if(groupId) {
          window.db.collection('workspaces').doc(groupId).collection('history').orderBy('timestamp', 'desc').get().then(renderHistoryRows);
      }
   };
@@ -7313,253 +7522,67 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
-<style>
-    /* 1. Kondisi Landscape Smartphone / Mobile */
-    @media (max-width: 1024px) and (max-height: 600px) and (orientation: landscape) {
-      body {
-        height: 100vh !important;
-        overflow: hidden !important;
-      }
+<script>
+// ===== LANDSCAPE FLOATING SIDEBAR CONTROLLER =====
+(function() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebarLandscapeOverlay');
+  const closeBtn = document.getElementById('sidebarLandscapeClose');
+  const trigger = document.querySelector('.sidebar-hover-trigger');
 
-      .sidebar {
-        width: 200px !important;
-        height: 100vh !important;
-        position: fixed !important;
-        left: -200px !important;
-        top: 0 !important;
-        z-index: 3000 !important;
-        transition: left 0.3s ease !important;
-        box-shadow: 5px 0 15px rgba(0,0,0,0.15) !important;
-      }
+  function isLandscapeMobile() {
+    // HP/tablet landscape: lebar < 1025px DAN orientasi landscape
+    return window.matchMedia('(max-width: 1024px) and (orientation: landscape)').matches;
+  }
 
-      .sidebar.mobile-open {
-        left: 0 !important;
-      }
+  function openSidebar() {
+    if (!isLandscapeMobile()) return;
+    sidebar.classList.add('landscape-open');
+    overlay.classList.add('active');
+  }
 
-      .main-panel { 
-        width: 100% !important; 
-        height: 100vh !important;
-        margin-left: 0 !important;
-        margin-top: 0 !important;
-        overflow: hidden !important;
-        display: flex !important;
-        flex-direction: column !important;
-      }
-      
-      .panel-header { 
-        padding: 12px 16px 12px 60px !important; 
-        flex-direction: row !important;
-        align-items: center !important;
-        flex-wrap: wrap !important;
-        gap: 8px !important;
-        min-height: auto !important;
-        max-height: 70px !important;
-        overflow-y: auto !important;
-      }
+  function closeSidebar() {
+    sidebar.classList.remove('landscape-open');
+    overlay.classList.remove('active');
+  }
 
-      .mobile-menu-toggle {
-        display: flex !important;
-        position: fixed !important;
-        z-index: 3100 !important;
-        top: 10px !important;
-        left: 10px !important;
-        padding: 6px 10px !important;
-        font-size: 0.85rem !important;
+  // Klik trigger area (strip kiri tipis) → buka sidebar
+  if (trigger) {
+    trigger.addEventListener('click', function(e) {
+      if (isLandscapeMobile()) {
+        e.stopPropagation();
+        if (sidebar.classList.contains('landscape-open')) {
+          closeSidebar();
+        } else {
+          openSidebar();
+        }
       }
+    });
+  }
+
+  // Klik overlay → tutup sidebar
+  if (overlay) {
+    overlay.addEventListener('click', closeSidebar);
+  }
+
+  // Klik tombol X di dalam sidebar → tutup
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeSidebar);
+  }
+
+  // Saat orientasi berubah (rotasi HP) → tutup sidebar otomatis
+  window.addEventListener('orientationchange', function() {
+    closeSidebar();
+  });
+
+  // Saat resize (misalnya desktop → mobile) → pastikan state bersih
+  window.addEventListener('resize', function() {
+    if (!isLandscapeMobile()) {
+      closeSidebar();
     }
-
-    /* 2. Kondisi Landscape Tablet / iPad */
-    @media (min-width: 768px) and (max-height: 600px) and (orientation: landscape) {
-      body {
-        height: 100vh !important;
-        overflow: hidden !important;
-      }
-
-      .sidebar {
-        width: 250px !important;
-        height: 100vh !important;
-        position: fixed !important;
-        left: -250px !important;
-        top: 0 !important;
-        z-index: 3000 !important;
-        overflow-y: auto !important;
-        border-right: none !important;
-        border-bottom: none !important;
-        transition: left 0.3s ease !important;
-        box-shadow: 10px 0 20px rgba(0,0,0,0.2) !important;
-      }
-      
-      .sidebar.mobile-open {
-        left: 0 !important;
-      }
-      
-      .sidebar-hover-trigger { 
-        display: none !important; 
-      }
-      
-      .main-panel { 
-        width: 100% !important;
-        height: 100vh !important;
-        margin-left: 0 !important;
-        margin-top: 0 !important;
-        overflow: hidden !important;
-        display: flex !important;
-        flex-direction: column !important;
-      }
-      
-      .panel-header { 
-        padding: 14px 20px 14px 60px !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        flex-wrap: wrap !important;
-        gap: 10px !important;
-        min-height: auto !important;
-        max-height: 80px !important;
-        overflow-y: auto !important;
-      }
-      
-      .mobile-menu-toggle {
-        display: flex !important;
-        position: fixed !important;
-        z-index: 3100 !important;
-        top: 10px !important;
-        left: 10px !important;
-        padding: 8px 12px !important;
-        font-size: 0.9rem !important;
-      }
-    }
-</style>
-<style>
-    /* 1. Kondisi Landscape Smartphone / Mobile */
-    @media (max-width: 1024px) and (max-height: 600px) and (orientation: landscape) {
-      body {
-        height: 100vh !important;
-        overflow: hidden !important;
-      }
-
-      .sidebar {
-        width: 200px !important;
-        height: 100vh !important;
-        position: fixed !important;
-        left: -200px !important;
-        top: 0 !important;
-        z-index: 3000 !important;
-        transition: left 0.3s ease !important;
-        box-shadow: 5px 0 15px rgba(0,0,0,0.15) !important;
-      }
-
-      .sidebar.mobile-open {
-        left: 0 !important;
-      }
-
-      .main-panel { 
-        width: 100% !important; 
-        height: 100vh !important;
-        margin-left: 0 !important;
-        margin-top: 0 !important;
-        overflow: hidden !important;
-        display: flex !important;
-        flex-direction: column !important;
-      }
-      
-      .panel-header { 
-        padding: 12px 16px 12px 60px !important; 
-        flex-direction: row !important;
-        align-items: center !important;
-        flex-wrap: wrap !important;
-        gap: 8px !important;
-        min-height: auto !important;
-        max-height: 70px !important;
-        overflow-y: auto !important;
-      }
-
-      .mobile-menu-toggle {
-        display: flex !important;
-        position: fixed !important;
-        z-index: 3100 !important;
-        top: 10px !important;
-        left: 10px !important;
-        padding: 6px 10px !important;
-        font-size: 0.85rem !important;
-      }
-    }
-
-    /* 2. Kondisi Landscape Tablet / iPad */
-    @media (min-width: 768px) and (max-height: 600px) and (orientation: landscape) {
-      body {
-        height: 100vh !important;
-        overflow: hidden !important;
-      }
-
-      .sidebar {
-        width: 250px !important;
-        height: 100vh !important;
-        position: fixed !important;
-        left: -250px !important;
-        top: 0 !important;
-        z-index: 3000 !important;
-        overflow-y: auto !important;
-        border-right: none !important;
-        border-bottom: none !important;
-        transition: left 0.3s ease !important;
-        box-shadow: 10px 0 20px rgba(0,0,0,0.2) !important;
-      }
-      
-      .sidebar.mobile-open {
-        left: 0 !important;
-      }
-      
-      .sidebar-hover-trigger { 
-        display: none !important; 
-      }
-      
-      .main-panel { 
-        width: 100% !important;
-        height: 100vh !important;
-        margin-left: 0 !important;
-        margin-top: 0 !important;
-        overflow: hidden !important;
-        display: flex !important;
-        flex-direction: column !important;
-      }
-      
-      .panel-header { 
-        padding: 14px 20px 14px 60px !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        flex-wrap: wrap !important;
-        gap: 10px !important;
-        min-height: auto !important;
-        max-height: 80px !important;
-        overflow-y: auto !important;
-      }
-      
-      .mobile-menu-toggle {
-        display: flex !important;
-        position: fixed !important;
-        z-index: 3100 !important;
-        top: 10px !important;
-        left: 10px !important;
-        padding: 8px 12px !important;
-        font-size: 0.9rem !important;
-      }
-    }
-</style>
-<style>
-    /* Untuk HP posisi Landscape */
-    @media (max-width: 1024px) and (max-height: 600px) and (orientation: landscape) {
-      .panel-header { 
-        padding-left: 110px !important; 
-      }
-    }
-
-    /* Untuk Tablet posisi Landscape */
-    @media (min-width: 768px) and (max-height: 600px) and (orientation: landscape) {
-      .panel-header { 
-        padding-left: 110px !important; 
-      }
-    }
-</style>
+  });
+})();
+</script>
 </body>
 </html>
 
