@@ -7565,41 +7565,56 @@ document.addEventListener("DOMContentLoaded", () => {
 <!-- 🟢 PATCH KHUSUS: RIWAYAT RAPAT PRIBADI & EXCEL 🟢 -->
 <!-- ================================================================= -->
 <script>
+<script>
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("Menyiapkan Patch Riwayat Rapat Pribadi...");
+    console.log("Menyiapkan Patch Riwayat Rapat Pribadi (V3)...");
 
     // Tunggu sampai komponen riwayat bawaan selesai dimuat
     setTimeout(() => {
-        // Simpan fungsi bawaan agar fitur Grup tetap aman 100%
         const originalOpenHistory = window.openNotulaHistoryModal;
         const originalExportHistory = window.exportHistoryToExcelFinal;
 
         // 1. TIMPA FUNGSI BUKA MODAL
         if (typeof originalOpenHistory === 'function') {
             window.openNotulaHistoryModal = async function() {
-                const groupId = window.currentWorkspaceId || window.currentGroupId || localStorage.getItem('currentWorkspaceId');
-                const meetingId = window.currentMeetingId;
+                // Deteksi posisi pengguna berdasarkan UI Sidebar
+                const privateActiveItem = document.querySelector('#privateMeetingList .meeting-item.active');
+                const groupActiveItem = document.querySelector('#workspaceList .workspace-item.active');
 
-                // A. JIKA DI DALAM GRUP (Jalankan sistem bawaan)
-                if (groupId && groupId !== 'private') {
+                // A. JIKA DI DALAM GRUP
+                if (groupActiveItem && !privateActiveItem) {
                     return originalOpenHistory();
                 }
 
                 // B. JIKA DI RAPAT PRIBADI
-                if ((!groupId || groupId === 'private') && meetingId) {
+                if (privateActiveItem) {
+                    // Cari ID Rapat berdasarkan urutan elemen di UI
+                    let meetingId = null;
+                    const items = Array.from(document.getElementById('privateMeetingList').children);
+                    const activeIndex = items.indexOf(privateActiveItem);
+                    
+                    if (activeIndex !== -1 && window.meetings && window.currentUser) {
+                        const privateMeetings = window.meetings.filter(m => !m.workspaceId && m.createdBy === window.currentUser.uid);
+                        if (privateMeetings[activeIndex]) {
+                            meetingId = privateMeetings[activeIndex].id;
+                        }
+                    }
+
+                    if (!meetingId) return alert("Sistem sedang memuat ID Rapat, silakan klik ulang rapat Anda di sidebar.");
+
                     const modal = document.getElementById('notula-history-modal');
                     const tbody = document.getElementById('history-log-tbody-final');
                     const emptyMsg = document.getElementById('history-empty-final');
-                    const showArchived = document.getElementById('chk-show-archived-final').checked;
+                    const showArchived = document.getElementById('chk-show-archived-final');
+                    const isShowArchived = showArchived ? showArchived.checked : false;
 
                     if (!modal || !tbody) return alert("UI Riwayat belum siap.");
 
                     modal.style.display = 'flex';
                     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">⏳ Memuat riwayat rapat pribadi...</td></tr>';
-                    emptyMsg.style.display = 'none';
+                    if (emptyMsg) emptyMsg.style.display = 'none';
 
                     try {
-                        // Tarik log khusus dari document rapat (bukan dari workspaces)
                         const docRef = await window.db.collection('meetings').doc(meetingId).get();
                         if (!docRef.exists) throw new Error("Data rapat tidak ditemukan.");
                         
@@ -7609,21 +7624,21 @@ document.addEventListener("DOMContentLoaded", () => {
                         
                         let allLogs = [];
                         logs.forEach(l => allLogs.push({ ...l, isArchived: false }));
-                        if (showArchived) {
+                        if (isShowArchived) {
                             archivedLogs.forEach(l => allLogs.push({ ...l, isArchived: true }));
                         }
 
-                        // Urutkan dari yang terbaru
                         allLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
 
                         tbody.innerHTML = '';
                         if (allLogs.length === 0) {
-                            emptyMsg.style.display = 'block';
-                            emptyMsg.innerText = "Belum ada catatan riwayat aktivitas di Rapat Pribadi ini.";
+                            if (emptyMsg) {
+                                emptyMsg.style.display = 'block';
+                                emptyMsg.innerText = "Belum ada catatan riwayat aktivitas di Rapat Pribadi ini.";
+                            }
                             return;
                         }
 
-                        // Render tabel
                         allLogs.forEach(log => {
                             const tr = document.createElement('tr');
                             tr.style.borderBottom = '1px solid #e2e8f0';
@@ -7656,17 +7671,30 @@ document.addEventListener("DOMContentLoaded", () => {
             };
         }
 
-        // 2. TIMPA FUNGSI EXCEL AGAR BISA EXPORT RAPAT PRIBADI
+        // 2. TIMPA FUNGSI EXCEL
         if (typeof originalExportHistory === 'function') {
             window.exportHistoryToExcelFinal = async function() {
-                const groupId = window.currentWorkspaceId || window.currentGroupId || localStorage.getItem('currentWorkspaceId');
-                const meetingId = window.currentMeetingId;
+                const privateActiveItem = document.querySelector('#privateMeetingList .meeting-item.active');
+                const groupActiveItem = document.querySelector('#workspaceList .workspace-item.active');
 
-                if (groupId && groupId !== 'private') {
+                if (groupActiveItem && !privateActiveItem) {
                     return originalExportHistory();
                 }
 
-                if ((!groupId || groupId === 'private') && meetingId) {
+                if (privateActiveItem) {
+                    let meetingId = null;
+                    const items = Array.from(document.getElementById('privateMeetingList').children);
+                    const activeIndex = items.indexOf(privateActiveItem);
+                    
+                    if (activeIndex !== -1 && window.meetings && window.currentUser) {
+                        const privateMeetings = window.meetings.filter(m => !m.workspaceId && m.createdBy === window.currentUser.uid);
+                        if (privateMeetings[activeIndex]) {
+                            meetingId = privateMeetings[activeIndex].id;
+                        }
+                    }
+
+                    if (!meetingId) return alert("Sistem sedang memuat ID Rapat, silakan klik ulang rapat Anda.");
+
                     try {
                         if (typeof XLSX === 'undefined') return alert("Pustaka Excel belum dimuat.");
                         const docRef = await window.db.collection('meetings').doc(meetingId).get();
@@ -7689,15 +7717,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     return;
                 }
+                
+                alert("Silakan pilih salah satu Grup/Workspace atau Rapat Pribadi di sidebar kiri terlebih dahulu!");
             };
         }
-    }, 2500); // Waktu jeda dipastikan cukup agar UI modal bawaan selesai ter-injeksi
+    }, 2500);
 });
 </script>
-<!-- ================================================================= -->
-<!-- 🔴 END PATCH KHUSUS 🔴 -->
-<!-- ================================================================= -->
-
 </body>
 </html>
 
