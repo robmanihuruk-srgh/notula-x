@@ -986,6 +986,10 @@
 
 <div class="sidebar">
     <div class="sidebar-header">
+      <!-- Tombol toggle untuk landscape mode (disembunyikan di portrait/desktop via CSS) -->
+      <button id="landscapeSidebarToggle" title="Buka/Tutup Sidebar" style="display:none;">
+        <i class="fas fa-bars"></i>
+      </button>
       <h1><img src="pic_ (2).jpg" alt="Logo" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);"> Notula</h1>
       <button class="btn-new" id="newMeetingBtn"><i class="fas fa-plus-circle"></i> Rapat baru</button>
       <button class="btn-new-workspace" id="newWorkspaceBtn" disabled><i class="fas fa-users"></i> Buat Grup</button>
@@ -1684,6 +1688,61 @@
           }
         });
       }
+
+      // ===== LANDSCAPE SIDEBAR TOGGLE =====
+      (function initLandscapeSidebar() {
+        const toggleBtn = document.getElementById('landscapeSidebarToggle');
+        if (!toggleBtn || !sidebar) return;
+
+        function isLandscapeMode() {
+          return window.matchMedia('(orientation: landscape) and (max-width: 1200px)').matches;
+        }
+
+        function applyLandscapeMode() {
+          if (isLandscapeMode()) {
+            toggleBtn.style.display = 'flex';
+            // Default: sidebar tertutup (compact) saat masuk landscape
+            if (!sidebar.classList.contains('landscape-open')) {
+              sidebar.classList.remove('landscape-open');
+            }
+          } else {
+            toggleBtn.style.display = 'none';
+            sidebar.classList.remove('landscape-open');
+          }
+        }
+
+        toggleBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          sidebar.classList.toggle('landscape-open');
+          // Update ikon tombol
+          const icon = toggleBtn.querySelector('i');
+          if (sidebar.classList.contains('landscape-open')) {
+            icon.className = 'fas fa-times';
+            toggleBtn.title = 'Tutup Sidebar';
+          } else {
+            icon.className = 'fas fa-bars';
+            toggleBtn.title = 'Buka Sidebar';
+          }
+        });
+
+        // Tutup sidebar landscape saat item rapat/workspace dipilih
+        sidebar.addEventListener('click', (e) => {
+          if (isLandscapeMode() && sidebar.classList.contains('landscape-open')) {
+            if (e.target.closest('.meeting-item') || e.target.closest('.workspace-item')) {
+              sidebar.classList.remove('landscape-open');
+              const icon = toggleBtn.querySelector('i');
+              icon.className = 'fas fa-bars';
+            }
+          }
+        });
+
+        // Inisialisasi & tangani perubahan orientasi
+        applyLandscapeMode();
+        window.addEventListener('resize', applyLandscapeMode);
+        window.addEventListener('orientationchange', () => {
+          setTimeout(applyLandscapeMode, 150);
+        });
+      })();
 
 
 
@@ -2481,7 +2540,17 @@
         currentTeamId = null; renderTeamList();
         const container = document.getElementById('privateMeetingList');
         container.innerHTML = '';
-        const privateMeetings = meetings.filter(m => !m.workspaceId && m.createdBy === currentUser?.uid);
+        // Tampilkan rapat pribadi milik sendiri ATAU yang dibagikan ke email user ini
+        const userEmail = currentUser?.email?.toLowerCase() || '';
+        const privateMeetings = meetings.filter(m => {
+          if (m.workspaceId) return false; // bukan rapat pribadi
+          if (m.createdBy === currentUser?.uid) return true; // milik sendiri
+          // Dibagikan: cek field sharedWith (array email)
+          if (m.sharedWith && Array.isArray(m.sharedWith)) {
+            return m.sharedWith.map(e => e.toLowerCase()).includes(userEmail);
+          }
+          return false;
+        });
         privateMeetings.forEach(m => {
           const div = document.createElement('div');
           div.className = `meeting-item ${m.id === currentMeetingId && !currentWorkspaceId ? 'active' : ''}`;
@@ -2502,8 +2571,11 @@
 
           const content = document.createElement('div');
           content.className = 'meeting-content';
+          const isOwner = m.createdBy === currentUser?.uid;
+          const isSharedToMe = !isOwner;
+          const hasShared = isOwner && m.sharedWith && m.sharedWith.length > 0;
           content.innerHTML = `
-            <div class="meeting-title">${escapeHtml(m.title)}</div>
+            <div class="meeting-title">${escapeHtml(m.title)}${hasShared ? ' <span style="font-size:0.65rem;background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:10px;font-weight:600;vertical-align:middle;"><i class="fas fa-share-alt"></i> Dibagikan</span>' : ''}${isSharedToMe ? ' <span style="font-size:0.65rem;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:10px;font-weight:600;vertical-align:middle;"><i class="fas fa-user-friends"></i> Bersama</span>' : ''}</div>
             <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
           `;
 
@@ -2925,6 +2997,8 @@
         const canEditMeeting = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
         const isLatest = isMeetingLatest(meeting);
         const showGlobalReadOnly = !canEditMeeting && !isLatest;
+        const isPrivateMeeting = !meeting.workspaceId;
+        const isMyPrivateMeeting = isPrivateMeeting && meeting.createdBy === currentUser?.uid;
 
         let agendaHtml = meeting.agenda 
             ? `<div class="info-item" style="width:100%; align-items:flex-start; padding-top: 16px; border-top: 1px dashed var(--color-border);">
@@ -2965,6 +3039,46 @@
           </div>
         `;
         html += renderFilteredSections(meeting);
+
+        // === PANEL BERBAGI RAPAT PRIBADI ===
+        if (isMyPrivateMeeting) {
+          const sharedList = (meeting.sharedWith || []).join(', ') || '—';
+          html += `
+            <div id="private-share-panel" style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:20px 24px; margin-top:24px; margin-bottom:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h4 style="margin:0; color:#0369a1; font-family:var(--font-heading); font-size:1.05rem; display:flex; align-items:center; gap:8px;">
+                  <i class="fas fa-share-alt"></i> Bagikan Akses Rapat Pribadi
+                </h4>
+                <span style="font-size:0.8rem; color:#0284c7; background:#e0f2fe; padding:3px 10px; border-radius:20px; font-weight:600;">
+                  ${(meeting.sharedWith || []).length} orang diberi akses
+                </span>
+              </div>
+              <p style="font-size:0.85rem; color:#0369a1; margin-bottom:14px; margin-top:0;">
+                Pengguna yang Anda tambahkan di bawah akan dapat melihat rapat ini di dashboard mereka. 
+                Mereka hanya dapat melihat dan mengedit tugas (sesuai hak akses seksi), tetapi tidak bisa menghapus atau mengubah rapat.
+              </p>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                <input type="email" id="shareEmailInput" placeholder="email@contoh.com" 
+                  style="flex:1; min-width:200px; padding:9px 14px; border:1px solid #7dd3fc; border-radius:8px; font-family:var(--font-body); font-size:0.9rem; background:#fff; color:var(--color-text);">
+                <button onclick="window.addShareEmail('${meeting.id}')" 
+                  style="background:#0369a1; color:white; border:none; padding:9px 18px; border-radius:8px; font-weight:600; font-family:var(--font-body); cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+                  <i class="fas fa-user-plus"></i> Tambahkan
+                </button>
+              </div>
+              <div id="sharedWithList" style="display:flex; flex-wrap:wrap; gap:8px; min-height:24px;">
+                ${(meeting.sharedWith || []).map(email => `
+                  <span style="display:inline-flex; align-items:center; gap:6px; background:#0369a1; color:white; padding:5px 12px; border-radius:20px; font-size:0.83rem; font-weight:500;">
+                    <i class="fas fa-user" style="font-size:0.7rem;"></i> ${escapeHtml(email)}
+                    <button onclick="window.removeShareEmail('${meeting.id}', '${email}')" 
+                      style="background:rgba(255,255,255,0.2); border:none; color:white; cursor:pointer; width:18px; height:18px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.65rem; padding:0; margin-left:2px;" title="Hapus akses">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </span>
+                `).join('') || '<span style="color:#64748b; font-size:0.85rem; font-style:italic;">Belum ada yang diberi akses.</span>'}
+              </div>
+            </div>
+          `;
+        }
 
         content.innerHTML = html;
 
@@ -3376,6 +3490,49 @@
           alert('Gagal menyimpan rapat: ' + error.message);
         }
       }
+
+      // ===== BERBAGI RAPAT PRIBADI =====
+      window.addShareEmail = async function(meetingId) {
+        const input = document.getElementById('shareEmailInput');
+        if (!input) return;
+        const email = input.value.trim().toLowerCase();
+        if (!email) return alert('Silakan masukkan email terlebih dahulu.');
+        if (!email.includes('@')) return alert('Format email tidak valid.');
+
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (!meeting) return;
+        if (email === currentUser?.email?.toLowerCase()) {
+          return alert('Anda tidak perlu menambahkan email Anda sendiri.');
+        }
+
+        const current = meeting.sharedWith || [];
+        if (current.map(e => e.toLowerCase()).includes(email)) {
+          return alert('Email ini sudah memiliki akses.');
+        }
+
+        try {
+          await db.collection('meetings').doc(meetingId).update({
+            sharedWith: firebase.firestore.FieldValue.arrayUnion(email)
+          });
+          await addLog(meetingId, `Membagikan akses rapat ke: ${email}`);
+          input.value = '';
+          // UI langsung update lewat onSnapshot meetings
+        } catch(err) {
+          alert('Gagal menambah akses: ' + err.message);
+        }
+      };
+
+      window.removeShareEmail = async function(meetingId, email) {
+        if (!confirm(\`Cabut akses \${email} dari rapat ini?\`)) return;
+        try {
+          await db.collection('meetings').doc(meetingId).update({
+            sharedWith: firebase.firestore.FieldValue.arrayRemove(email)
+          });
+          await addLog(meetingId, \`Mencabut akses rapat dari: \${email}\`);
+        } catch(err) {
+          alert('Gagal mencabut akses: ' + err.message);
+        }
+      };
 
       async function deleteMeeting(meetingId) {
         const meeting = meetings.find(m => m.id === meetingId);
@@ -6584,238 +6741,180 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <style>
 /* ============================================================
-   LANDSCAPE MODE — HP, iPhone, Android, Tablet, iPad
-   Target: tampilan seperti desktop (sidebar kiri + konten kanan)
-   di semua orientasi landscape pada perangkat mobile/tablet
+   LANDSCAPE MODE — HP, iPhone, Android, Tablet, iPad (v2)
+   Sidebar selalu terlihat sebagai panel kiri yang bisa di-toggle
    ============================================================ */
 
 /* ----------------------------------------------------------
-   A. LANDSCAPE SMARTPHONE (lebar ≤ 900px, tinggi ≤ 500px)
-      Contoh: iPhone landscape, Android landscape
+   SEMUA PERANGKAT DI ORIENTASI LANDSCAPE
+   (max-width 1200px = bukan desktop sungguhan)
    ---------------------------------------------------------- */
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: landscape) and (max-width: 1200px) {
 
-  /* Layout utama: baris horizontal seperti desktop */
+  /* Layout utama: baris horizontal */
   body {
     flex-direction: row !important;
     height: 100vh !important;
     overflow: hidden !important;
   }
 
-  /* Sidebar: posisi tetap di kiri, bisa hover/toggle */
+  /* ---- SIDEBAR: panel kiri dengan lebar tetap ---- */
+  /* Default: sidebar TERSEMBUNYI (compact) hanya tampil ikon */
   .sidebar {
-    position: fixed !important;
-    left: -240px !important;
+    position: relative !important;
+    left: 0 !important;
     top: 0 !important;
-    width: 240px !important;
+    width: 48px !important;          /* lebar compact: hanya ikon */
+    min-width: 48px !important;
+    max-width: 48px !important;
     height: 100vh !important;
-    z-index: 3000 !important;
-    overflow-y: auto !important;
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: none !important;
+    z-index: 100 !important;
+    overflow: hidden !important;
+    transition: width 0.3s cubic-bezier(0.4,0,0.2,1), min-width 0.3s, max-width 0.3s !important;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.08) !important;
     border-right: 1px solid var(--color-border) !important;
     border-bottom: none !important;
+    flex-shrink: 0 !important;
   }
 
-  .sidebar:hover,
-  .sidebar:focus-within,
-  .sidebar.mobile-open {
-    left: 0 !important;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.2) !important;
-  }
-
-  /* Trigger strip kiri seperti desktop */
-  .sidebar-hover-trigger {
-    display: block !important;
-    position: fixed !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 18px !important;
-    height: 100vh !important;
-    z-index: 2999 !important;
-  }
-
-  /* Sembunyikan sidebar-scroll agar tidak tinggi berlebih */
-  .sidebar-scroll-wrapper {
-    max-height: calc(100vh - 120px) !important;
+  /* Sidebar terbuka: klik/tap tombol toggle */
+  .sidebar.landscape-open {
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 260px !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
+    z-index: 200 !important;
   }
 
-  /* Panel utama: ambil sisa lebar */
+  /* Saat ditutup: sembunyikan teks, tampilkan hanya header kecil */
+  .sidebar:not(.landscape-open) .sidebar-header h1 span,
+  .sidebar:not(.landscape-open) .sidebar-header h1 { font-size: 0 !important; }
+  .sidebar:not(.landscape-open) .btn-new,
+  .sidebar:not(.landscape-open) .btn-new-workspace,
+  .sidebar:not(.landscape-open) .btn-delete-selected,
+  .sidebar:not(.landscape-open) .btn-reset-default,
+  .sidebar:not(.landscape-open) .sidebar-scroll-wrapper { display: none !important; }
+
+  /* Header sidebar di mode compact: hanya tombol menu */
+  .sidebar-header {
+    padding: 8px 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    min-height: 48px !important;
+  }
+
+  /* Tombol toggle sidebar landscape */
+  #landscapeSidebarToggle {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    background: var(--color-primary) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    font-size: 1rem !important;
+    flex-shrink: 0 !important;
+    transition: background 0.2s !important;
+    z-index: 10 !important;
+    position: relative !important;
+  }
+  #landscapeSidebarToggle:hover { background: var(--color-primary-dark) !important; }
+
+  /* Konten sidebar saat terbuka */
+  .sidebar.landscape-open .sidebar-header {
+    padding: 12px 16px !important;
+    justify-content: space-between !important;
+    flex-direction: row !important;
+  }
+  .sidebar.landscape-open .sidebar-header h1 { font-size: 1.1rem !important; }
+
+  /* Sidebar scroll wrapper: ambil sisa tinggi */
+  .sidebar-scroll-wrapper {
+    max-height: calc(100vh - 80px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Sembunyikan hover-trigger desktop di landscape */
+  .sidebar-hover-trigger { display: none !important; }
+
+  /* ---- MAIN PANEL: ambil sisa lebar ---- */
   .main-panel {
-    width: 100% !important;
+    flex: 1 !important;
+    min-width: 0 !important;
     height: 100vh !important;
-    margin-left: 18px !important; /* ruang untuk trigger */
+    margin-left: 0 !important;
     margin-top: 0 !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
   }
 
-  /* Header: satu baris, scrollable horizontal jika tombol banyak */
+  /* ---- PANEL HEADER: satu baris, scroll horizontal ---- */
   .panel-header {
-    padding: 8px 12px 8px 8px !important;
+    padding: 6px 10px !important;
     flex-direction: row !important;
     align-items: center !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
     gap: 6px !important;
-    min-height: 48px !important;
+    min-height: 44px !important;
     max-height: none !important;
     flex-shrink: 0 !important;
     -webkit-overflow-scrolling: touch !important;
   }
-
-  /* Scrollbar tipis di header */
-  .panel-header::-webkit-scrollbar { height: 3px; }
+  .panel-header::-webkit-scrollbar { height: 2px; }
   .panel-header::-webkit-scrollbar-thumb { background: var(--color-primary); border-radius: 2px; }
 
-  /* Judul rapat: lebih kecil agar tidak terlalu lebar */
-  .header-title h2 {
-    font-size: 1rem !important;
-    white-space: nowrap !important;
+  .header-title { flex-shrink: 0 !important; }
+  .header-title h2 { font-size: 0.95rem !important; white-space: nowrap !important; }
+  .header-title p  { font-size: 0.7rem !important;  white-space: nowrap !important; }
+
+  .header-actions {
+    flex-wrap: nowrap !important;
+    gap: 5px !important;
+    flex-shrink: 0 !important;
   }
-  .header-title p {
+
+  .btn-header, .btn-edit-meeting, .btn-delete-meeting {
+    padding: 4px 9px !important;
     font-size: 0.75rem !important;
     white-space: nowrap !important;
   }
 
-  /* Tombol-tombol header: lebih kompak */
-  .btn-header, .btn-edit-meeting, .btn-delete-meeting {
-    padding: 5px 10px !important;
-    font-size: 0.78rem !important;
-    white-space: nowrap !important;
-  }
-
-  /* Tema/font switcher: lebih kecil */
   .theme-switcher { padding: 2px !important; }
-  .theme-btn { width: 18px !important; height: 18px !important; }
+  .theme-btn { width: 16px !important; height: 16px !important; }
 
-  /* Area konten: ambil sisa tinggi, bisa scroll */
+  /* ---- CONTENT: ambil sisa tinggi ---- */
   .content {
     flex: 1 !important;
     overflow-y: auto !important;
-    padding: 16px !important;
+    padding: 12px 16px !important;
   }
 
-  /* Sembunyikan mobile-menu-toggle (gunakan hover sidebar) */
-  .mobile-menu-toggle {
-    display: none !important;
-  }
-
-  /* Header actions: baris, tidak wrap agar bisa scroll */
-  .header-actions {
-    flex-wrap: nowrap !important;
-    gap: 6px !important;
-  }
+  /* Sembunyikan mobile-menu-toggle (diganti landscapeSidebarToggle) */
+  .mobile-menu-toggle { display: none !important; }
 }
 
-/* ----------------------------------------------------------
-   B. LANDSCAPE TABLET / iPad (lebar ≥ 601px, tinggi 500–900px)
-      Contoh: iPad landscape, tablet Android landscape
-   ---------------------------------------------------------- */
-@media (orientation: landscape) and (min-height: 501px) and (max-height: 900px) and (max-width: 1200px) {
-
-  body {
-    flex-direction: row !important;
-    height: 100vh !important;
-    overflow: hidden !important;
-  }
-
-  /* Sidebar: floating hover seperti desktop */
-  .sidebar {
-    position: fixed !important;
-    left: -260px !important;
-    top: 0 !important;
-    width: 260px !important;
-    height: 100vh !important;
-    z-index: 2000 !important;
-    overflow-y: auto !important;
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease !important;
-    box-shadow: none !important;
-    border-right: 1px solid var(--color-border) !important;
-    border-bottom: none !important;
-  }
-
-  .sidebar:hover,
-  .sidebar:focus-within,
-  .sidebar.mobile-open {
-    left: 0 !important;
-    box-shadow: 4px 0 25px rgba(0,0,0,0.15) !important;
-  }
-
-  .sidebar-hover-trigger {
-    display: block !important;
-    position: fixed !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 20px !important;
-    height: 100vh !important;
-    z-index: 1999 !important;
-  }
-
-  .sidebar-scroll-wrapper {
-    max-height: calc(100vh - 100px) !important;
-    overflow-y: auto !important;
-  }
-
-  .main-panel {
-    width: 100% !important;
-    height: 100vh !important;
-    margin-left: 20px !important;
-    margin-top: 0 !important;
-    overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-
-  /* Header: satu baris penuh dengan scroll jika perlu */
-  .panel-header {
-    padding: 12px 20px 12px 12px !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    flex-wrap: wrap !important;
-    overflow-x: auto !important;
-    gap: 8px !important;
-    min-height: 56px !important;
-    max-height: none !important;
-    flex-shrink: 0 !important;
-  }
-
-  .header-title h2 {
-    font-size: 1.2rem !important;
-  }
-
-  .btn-header, .btn-edit-meeting, .btn-delete-meeting {
-    padding: 6px 12px !important;
-    font-size: 0.85rem !important;
-  }
-
-  .content {
-    flex: 1 !important;
-    overflow-y: auto !important;
-    padding: 20px !important;
-  }
-
-  .mobile-menu-toggle {
-    display: none !important;
-  }
+/* Tinggi sangat kecil (iPhone landscape): kurangi padding lebih */
+@media (orientation: landscape) and (max-height: 420px) and (max-width: 1200px) {
+  .panel-header { padding: 4px 8px !important; min-height: 38px !important; }
+  .header-title h2 { font-size: 0.85rem !important; }
+  .sidebar.landscape-open { width: 220px !important; min-width: 220px !important; max-width: 220px !important; }
 }
 
-/* ----------------------------------------------------------
-   C. PERBAIKAN KHUSUS iPHONE (notch/safe-area)
-   ---------------------------------------------------------- */
+/* iPhone notch safe-area */
 @supports (padding: max(0px)) {
-  @media (orientation: landscape) and (max-height: 500px) {
-    .panel-header {
-      padding-left: max(8px, env(safe-area-inset-left)) !important;
-      padding-right: max(8px, env(safe-area-inset-right)) !important;
-    }
-    .main-panel {
-      padding-left: env(safe-area-inset-left) !important;
-      padding-right: env(safe-area-inset-right) !important;
-    }
+  @media (orientation: landscape) and (max-width: 1200px) {
+    .main-panel { padding-right: env(safe-area-inset-right, 0px) !important; }
+    .sidebar { padding-left: env(safe-area-inset-left, 0px) !important; }
   }
 }
 </style>
