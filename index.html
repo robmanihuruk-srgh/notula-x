@@ -7545,7 +7545,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 </style>
+<style>
+    /* Untuk HP posisi Landscape */
+    @media (max-width: 1024px) and (max-height: 600px) and (orientation: landscape) {
+      .panel-header { 
+        padding-left: 110px !important; 
+      }
+    }
+
+    /* Untuk Tablet posisi Landscape */
+    @media (min-width: 768px) and (max-height: 600px) and (orientation: landscape) {
+      .panel-header { 
+        padding-left: 110px !important; 
+      }
+    }
+</style>
 </body>
 </html>
-
 
