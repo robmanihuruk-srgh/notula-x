@@ -3522,12 +3522,12 @@
       };
 
       window.removeShareEmail = async function(meetingId, email) {
-        if (!confirm(\`Cabut akses \${email} dari rapat ini?\`)) return;
+        if (!confirm('Cabut akses ' + email + ' dari rapat ini?')) return;
         try {
           await db.collection('meetings').doc(meetingId).update({
             sharedWith: firebase.firestore.FieldValue.arrayRemove(email)
           });
-          await addLog(meetingId, \`Mencabut akses rapat dari: \${email}\`);
+          await addLog(meetingId, 'Mencabut akses rapat dari: ' + email);
         } catch(err) {
           alert('Gagal mencabut akses: ' + err.message);
         }
@@ -7179,5 +7179,4 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
-
 
