@@ -7560,6 +7560,89 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 </style>
+<script>
+(function() {
+    console.log("Notula-X-Note: Menginisialisasi Patch Riwayat Rapat Pribadi...");
+
+    // Menunggu 2 detik hingga seluruh komponen tombol Notula selesai dimuat
+    setTimeout(() => {
+        // 1. Simpan fungsi riwayat lama agar fitur Grup tetap 100% utuh
+        const originalShowHistory = window.showHistoryModal || window.openHistoryModal || window.loadHistory;
+
+        // 2. Timpa dengan fungsi cerdas yang bisa membedakan Grup dan Rapat Pribadi
+        window.showHistoryModal = async function() {
+            
+            // Deteksi di mana pengguna berada saat ini
+            const isPrivateMeeting = (!window.currentWorkspaceId || window.currentWorkspaceId === 'private' || window.currentWorkspaceId === '');
+            const mId = window.currentMeetingId;
+
+            // JIKA DI RAPAT PRIBADI
+            if (isPrivateMeeting && mId) {
+                console.log("Notula: Menarik Riwayat Khusus Rapat Pribadi ->", mId);
+                try {
+                    // Buka antarmuka Modal
+                    const modal = document.getElementById('historyModal') || document.querySelector('.history-modal') || document.getElementById('modal-riwayat');
+                    if (modal) modal.style.display = 'block';
+
+                    const tbody = document.getElementById('historyTableBody') || document.querySelector('.history-tbody') || document.getElementById('riwayat-tbody');
+                    if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">⏳ Memuat riwayat rapat pribadi...</td></tr>';
+
+                    // Tarik data langsung dari dokumen rapat (Bypass Workspace)
+                    let snapshot = null;
+                    try {
+                        snapshot = await db.collection('meetings').doc(mId).collection('history').orderBy('timestamp', 'desc').get();
+                    } catch (err) {
+                        // Fallback jika log disimpan di koleksi global
+                        snapshot = await db.collection('activity_logs').where('meetingId', '==', mId).orderBy('timestamp', 'desc').get();
+                    }
+
+                    // Jika kosong
+                    if (!snapshot || snapshot.empty) {
+                        if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #666;">Belum ada riwayat aktivitas di Rapat Pribadi ini.</td></tr>';
+                        return;
+                    }
+
+                    // Render data ke dalam tabel
+                    let html = '';
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        let timeStr = '-';
+                        if (data.timestamp) {
+                            timeStr = data.timestamp.toDate ? data.timestamp.toDate().toLocaleString('id-ID') : data.timestamp;
+                        }
+                        html += `
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 12px;">${timeStr}</td>
+                                <td style="padding: 12px; font-weight: 500;">${data.user || data.email || 'Sistem'}</td>
+                                <td style="padding: 12px;"><span style="background: #e8f0fe; color: #1a73e8; padding: 3px 8px; border-radius: 4px; font-size: 0.85em;">${data.action || data.aktivitas || '-'}</span></td>
+                                <td style="padding: 12px;">${data.detail || data.keterangan || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    if (tbody) tbody.innerHTML = html;
+
+                } catch (error) {
+                    console.error("Gagal menarik riwayat Rapat Pribadi:", error);
+                    alert("Terjadi kesalahan saat memuat log riwayat Rapat Pribadi.");
+                }
+            } 
+            // JIKA DI GRUP (Jalankan sistem lama)
+            else {
+                if (typeof originalShowHistory === 'function') {
+                    originalShowHistory();
+                } else {
+                    console.warn("Sistem riwayat bawaan Grup tidak ditemukan!");
+                }
+            }
+        };
+
+        // Otomatis menimpa juga jika fungsi dideklarasikan dengan nama berbeda di HTML
+        window.openHistoryModal = window.showHistoryModal;
+        
+    }, 2000);
+})();
+</script>
 </body>
 </html>
 
