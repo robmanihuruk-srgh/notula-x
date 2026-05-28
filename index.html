@@ -990,10 +990,10 @@
         <i class="fas fa-bars"></i>
       </button>
       <h1><img src="pic_ (2).jpg" alt="Logo" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);"> Notula</h1>
-      <button class="btn-new" id="newMeetingBtn"><i class="fas fa-plus-circle"></i> Rapat baru</button>
-      <button class="btn-new-workspace" id="newWorkspaceBtn" disabled><i class="fas fa-users"></i> Buat Grup</button>
-      <button class="btn-delete-selected" id="deleteSelectedBtn" disabled><i class="fas fa-trash"></i> Hapus Terpilih</button>
-      <button class="btn-reset-default" id="resetDefaultDataBtn" disabled><i class="fas fa-database"></i> Reset Default</button>
+      <button class="btn-new" id="newMeetingBtn" title="Rapat Baru"><i class="fas fa-plus-circle"></i> Rapat baru</button>
+      <button class="btn-new-workspace" id="newWorkspaceBtn" disabled title="Buat Grup"><i class="fas fa-users"></i> Buat Grup</button>
+      <button class="btn-delete-selected" id="deleteSelectedBtn" disabled title="Hapus Terpilih"><i class="fas fa-trash"></i> Hapus Terpilih</button>
+      <button class="btn-reset-default" id="resetDefaultDataBtn" disabled title="Reset Default"><i class="fas fa-database"></i> Reset Default</button>
     </div>
     
     <!-- TAMBAHAN WRAPPER SCROLL UNTUK MENYATUKAN GRUP & RAPAT PRIBADI -->
@@ -6768,7 +6768,8 @@ document.addEventListener("DOMContentLoaded", () => {
     max-width: 48px !important;
     height: 100vh !important;
     z-index: 100 !important;
-    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
     transition: width 0.3s cubic-bezier(0.4,0,0.2,1), min-width 0.3s, max-width 0.3s !important;
     box-shadow: 2px 0 8px rgba(0,0,0,0.08) !important;
     border-right: 1px solid var(--color-border) !important;
@@ -6789,20 +6790,50 @@ document.addEventListener("DOMContentLoaded", () => {
   /* Saat ditutup: sembunyikan teks, tampilkan hanya header kecil */
   .sidebar:not(.landscape-open) .sidebar-header h1 span,
   .sidebar:not(.landscape-open) .sidebar-header h1 { font-size: 0 !important; }
+  /* Sembunyikan scroll wrapper saat compact, tapi TAMPILKAN tombol-tombol penting */
+  .sidebar:not(.landscape-open) .sidebar-scroll-wrapper { display: none !important; }
+
+  /* Tombol aksi di mode compact landscape: tampil sebagai ikon kecil */
   .sidebar:not(.landscape-open) .btn-new,
   .sidebar:not(.landscape-open) .btn-new-workspace,
   .sidebar:not(.landscape-open) .btn-delete-selected,
-  .sidebar:not(.landscape-open) .btn-reset-default,
-  .sidebar:not(.landscape-open) .sidebar-scroll-wrapper { display: none !important; }
+  .sidebar:not(.landscape-open) .btn-reset-default {
+    display: flex !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    padding: 0 !important;
+    margin-top: 6px !important;
+    border-radius: 8px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    font-size: 0 !important; /* sembunyikan teks */
+    gap: 0 !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+  }
+  /* Tampilkan hanya ikon (elemen <i>) */
+  .sidebar:not(.landscape-open) .btn-new i,
+  .sidebar:not(.landscape-open) .btn-new-workspace i,
+  .sidebar:not(.landscape-open) .btn-delete-selected i,
+  .sidebar:not(.landscape-open) .btn-reset-default i {
+    font-size: 1rem !important;
+    margin: 0 !important;
+  }
 
-  /* Header sidebar di mode compact: hanya tombol menu */
+  /* Header sidebar di mode compact: kolom ikon */
   .sidebar-header {
     padding: 8px 6px !important;
     display: flex !important;
+    flex-direction: column !important;
     align-items: center !important;
-    justify-content: center !important;
-    border-bottom: 1px solid var(--color-border) !important;
+    justify-content: flex-start !important;
+    border-bottom: none !important;
     min-height: 48px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: 100vh !important;
+    gap: 4px !important;
   }
 
   /* Tombol toggle sidebar landscape */
@@ -6828,10 +6859,32 @@ document.addEventListener("DOMContentLoaded", () => {
   /* Konten sidebar saat terbuka */
   .sidebar.landscape-open .sidebar-header {
     padding: 12px 16px !important;
-    justify-content: space-between !important;
-    flex-direction: row !important;
+    justify-content: flex-start !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
   }
   .sidebar.landscape-open .sidebar-header h1 { font-size: 1.1rem !important; }
+  /* Pulihkan ukuran tombol normal saat sidebar terbuka */
+  .sidebar.landscape-open .btn-new,
+  .sidebar.landscape-open .btn-new-workspace,
+  .sidebar.landscape-open .btn-delete-selected,
+  .sidebar.landscape-open .btn-reset-default {
+    width: 100% !important;
+    height: auto !important;
+    min-width: unset !important;
+    padding: 10px 12px !important;
+    margin-top: 8px !important;
+    font-size: 0.9rem !important;
+    gap: 8px !important;
+    border-radius: 8px !important;
+    justify-content: center !important;
+  }
+  .sidebar.landscape-open .btn-new i,
+  .sidebar.landscape-open .btn-new-workspace i,
+  .sidebar.landscape-open .btn-delete-selected i,
+  .sidebar.landscape-open .btn-reset-default i {
+    font-size: 0.9rem !important;
+  }
 
   /* Sidebar scroll wrapper: ambil sisa tinggi */
   .sidebar-scroll-wrapper {
