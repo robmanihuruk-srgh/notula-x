@@ -6514,6 +6514,9 @@ document.addEventListener("DOMContentLoaded", () => {
         historyUnsubscribe();
         historyUnsubscribe = null;
     }
+    // Hapus toolbar khusus rapat pribadi saat modal ditutup
+    const pt = document.getElementById('notula-history-toolbar-private');
+    if (pt) pt.remove();
   };
 
   // Komponen Renderer untuk Menyusun Baris Tabel Aktivitas
@@ -6940,6 +6943,9 @@ document.addEventListener("DOMContentLoaded", () => {
         // Update judul modal agar jelas ini mode rapat pribadi
         if (modalTitle) modalTitle.innerHTML = '📋 Riwayat Aktivitas & Log Rapat Pribadi';
 
+        // Tampilkan/sembunyikan tombol bulk arsip rapat pribadi
+        _syncPrivateArchiveButtons(meetingId);
+
         modal.style.display = 'flex';
         tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:24px; color:#64748b;">⏳ Memuat riwayat rapat pribadi…</td></tr>';
         if (emptyMsg) emptyMsg.style.display = 'none';
@@ -6951,13 +6957,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const data       = docRef.data();
             const logs       = data.logs         || [];
             const archivedLogs = data.archivedLogs || [];
-            const showArchived = document.getElementById('chk-show-archived-final');
-            const isShowArchived = showArchived ? showArchived.checked : false;
+            const showArchivedEl = document.getElementById('chk-show-archived-final');
+            const isShowArchived = showArchivedEl ? showArchivedEl.checked : false;
 
             let allLogs = [];
-            logs.forEach(l => allLogs.push({ ...l, isArchived: false }));
+            logs.forEach((l, i) => allLogs.push({ ...l, isArchived: false, _idx: i, _src: 'logs' }));
             if (isShowArchived) {
-                archivedLogs.forEach(l => allLogs.push({ ...l, isArchived: true }));
+                archivedLogs.forEach((l, i) => allLogs.push({ ...l, isArchived: true, _idx: i, _src: 'archivedLogs' }));
             }
             allLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
 
@@ -6966,7 +6972,9 @@ document.addEventListener("DOMContentLoaded", () => {
             if (allLogs.length === 0) {
                 if (emptyMsg) {
                     emptyMsg.style.display = 'block';
-                    emptyMsg.innerText = "Belum ada catatan riwayat aktivitas di Rapat Pribadi ini.";
+                    emptyMsg.innerText = logs.length === 0 && archivedLogs.length > 0
+                        ? "Semua log telah diarsipkan. Centang \"Tampilkan Log di-Arsip\" untuk melihat."
+                        : "Belum ada catatan riwayat aktivitas di Rapat Pribadi ini.";
                 }
                 return;
             }
@@ -6979,6 +6987,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 const waktu    = log.time ? new Date(log.time).toLocaleString('id-ID') : '-';
                 const user     = log.user || log.email || '-';
                 const aktivitas = log.msg  || log.action || log.activity || '-';
+                // Encode log untuk dikirim ke fungsi arsip per-item
+                const logEncoded = encodeURIComponent(JSON.stringify({ time: log.time, user: log.user || log.email, msg: log.msg || log.action || log.activity }));
 
                 tr.innerHTML = `
                     <td style="padding:10px; color:#475569;">${waktu}</td>
@@ -6986,18 +6996,135 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td style="padding:10px; color:#334155;">${aktivitas}${log.isArchived ? ' <span style="background:#e2e8f0;color:#475569;font-size:10px;padding:2px 6px;border-radius:4px;">Diarsipkan</span>' : ''}</td>
                     <td style="padding:10px; text-align:center;">
                         ${!log.isArchived
-                            ? '<span style="color:#107c41; font-size:11px; font-weight:bold;">Tersimpan</span>'
+                            ? `<button onclick="window.archiveSinglePrivateLog('${meetingId}','${logEncoded}')" style="background:#e11d48;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:500;">📁 Arsip</button>`
                             : '<span style="color:#94a3b8; font-size:11px;">-</span>'}
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
 
+            // Update jumlah terarsip di badge header
+            if (modalTitle && archivedLogs.length > 0) {
+                modalTitle.innerHTML = `📋 Riwayat Aktivitas & Log Rapat Pribadi <span style="background:#f0fdf4;color:#15803d;font-size:0.7rem;padding:2px 8px;border-radius:10px;border:1px solid #bbf7d0;margin-left:6px;">📦 ${archivedLogs.length} terarsip</span>`;
+            }
+
         } catch (err) {
             console.error("[Riwayat Pribadi] Error:", err);
             tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:red;">⚠️ Gagal memuat: ${err.message}</td></tr>`;
         }
     }
+
+    // ---------------------------------------------------------------
+    // Sinkronkan tombol Arsipkan Semua & Kembalikan di toolbar modal
+    // ---------------------------------------------------------------
+    function _syncPrivateArchiveButtons(meetingId) {
+        const toolbar = document.getElementById('notula-history-toolbar-private');
+        if (toolbar) { toolbar.remove(); }
+
+        // Sisipkan tombol khusus rapat pribadi di baris toolbar modal
+        const toolbarRow = document.querySelector('#notula-history-modal > div > div:nth-child(2)');
+        if (!toolbarRow) return;
+
+        const div = document.createElement('div');
+        div.id = 'notula-history-toolbar-private';
+        div.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;';
+        div.innerHTML = `
+            <button id="btn-private-archive-all" onclick="window.archiveAllPrivateLogs('${meetingId}')"
+                style="background:#b8860b;color:white;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;display:flex;align-items:center;gap:5px;">
+                📦 Arsipkan Semua Log
+            </button>
+            <button id="btn-private-restore-all" onclick="window.restoreAllPrivateLogs('${meetingId}')"
+                style="background:#0f766e;color:white;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;display:flex;align-items:center;gap:5px;">
+                ↩️ Kembalikan dari Arsip
+            </button>
+        `;
+        toolbarRow.appendChild(div);
+    }
+
+    // ---------------------------------------------------------------
+    // Arsip 1 log rapat pribadi berdasarkan konten log
+    // ---------------------------------------------------------------
+    window.archiveSinglePrivateLog = async function(meetingId, logEncoded) {
+        try {
+            const logData = JSON.parse(decodeURIComponent(logEncoded));
+            const docRef  = window.db.collection('meetings').doc(meetingId);
+            const snap    = await docRef.get();
+            if (!snap.exists) throw new Error("Data rapat tidak ditemukan.");
+
+            const data       = snap.data();
+            let   logs       = data.logs         ? [...data.logs]         : [];
+            const archivedLogs = data.archivedLogs ? [...data.archivedLogs] : [];
+
+            // Cari log yang cocok berdasarkan time+user+msg
+            const idx = logs.findIndex(l =>
+                l.time === logData.time &&
+                (l.user || l.email || '') === (logData.user || '') &&
+                (l.msg  || l.action || '') === (logData.msg || '')
+            );
+            if (idx === -1) { alert("Log tidak ditemukan (mungkin sudah diarsipkan)."); return; }
+
+            const [toArchive] = logs.splice(idx, 1);
+            archivedLogs.push({ ...toArchive, archivedAt: new Date().toISOString() });
+
+            await docRef.update({ logs, archivedLogs });
+            alert("✅ Log berhasil dipindahkan ke arsip.");
+            renderPrivateLogs(meetingId);
+        } catch (err) {
+            console.error("[Arsip Log Pribadi]", err);
+            alert("Gagal mengarsipkan log: " + err.message);
+        }
+    };
+
+    // ---------------------------------------------------------------
+    // Arsipkan SEMUA log aktif rapat pribadi
+    // ---------------------------------------------------------------
+    window.archiveAllPrivateLogs = async function(meetingId) {
+        try {
+            const docRef = window.db.collection('meetings').doc(meetingId);
+            const snap   = await docRef.get();
+            if (!snap.exists) throw new Error("Data rapat tidak ditemukan.");
+
+            const data = snap.data();
+            const logs = data.logs || [];
+            if (logs.length === 0) { alert("Tidak ada log aktif untuk diarsipkan."); return; }
+            if (!confirm(`Arsipkan ${logs.length} log aktif? Log akan tersimpan di arsip dan bisa dikembalikan kapan saja.`)) return;
+
+            const archivedAt  = new Date().toISOString();
+            const toArchive   = logs.map(l => ({ ...l, archivedAt }));
+            const existing    = data.archivedLogs || [];
+            await docRef.update({ logs: [], archivedLogs: [...existing, ...toArchive] });
+            alert(`✅ ${logs.length} log berhasil diarsipkan.`);
+            renderPrivateLogs(meetingId);
+        } catch (err) {
+            console.error("[Arsip Semua Pribadi]", err);
+            alert("Gagal mengarsipkan: " + err.message);
+        }
+    };
+
+    // ---------------------------------------------------------------
+    // Kembalikan SEMUA log dari arsip ke aktif (rapat pribadi)
+    // ---------------------------------------------------------------
+    window.restoreAllPrivateLogs = async function(meetingId) {
+        try {
+            const docRef = window.db.collection('meetings').doc(meetingId);
+            const snap   = await docRef.get();
+            if (!snap.exists) throw new Error("Data rapat tidak ditemukan.");
+
+            const data        = snap.data();
+            const archivedLogs = data.archivedLogs || [];
+            if (archivedLogs.length === 0) { alert("Tidak ada log terarsip untuk dikembalikan."); return; }
+            if (!confirm(`Kembalikan ${archivedLogs.length} log dari arsip ke log aktif?`)) return;
+
+            const restored = archivedLogs.map(l => { const { archivedAt, ...rest } = l; return rest; });
+            const existing = data.logs || [];
+            await docRef.update({ logs: [...existing, ...restored], archivedLogs: [] });
+            alert(`✅ ${archivedLogs.length} log berhasil dikembalikan dari arsip.`);
+            renderPrivateLogs(meetingId);
+        } catch (err) {
+            console.error("[Restore Arsip Pribadi]", err);
+            alert("Gagal mengembalikan arsip: " + err.message);
+        }
+    };
 
     // ---------------------------------------------------------------
     // TIMPA openNotulaHistoryModal — tunggu sampai fungsi asli siap
@@ -7043,6 +7170,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (window.currentWorkspaceId) {
                 // --- MODE GRUP --- gunakan fungsi asli
+                // Hapus toolbar khusus rapat pribadi jika ada
+                const pt = document.getElementById('notula-history-toolbar-private');
+                if (pt) pt.remove();
+                // Kembalikan judul modal ke mode grup
+                const mt = document.querySelector('#notula-history-modal h3');
+                if (mt) mt.innerHTML = '📜 Riwayat Aktivitas & Log Grup';
                 if (typeof originalOpenHistory === 'function') {
                     // Kembalikan handler checkbox ke mode grup
                     const chk = document.getElementById('chk-show-archived-final');
