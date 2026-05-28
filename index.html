@@ -1661,15 +1661,22 @@
       const mobileMenuToggle = document.getElementById('mobileMenuToggle');
       const sidebar = document.querySelector('.sidebar');
       
+      // Deteksi apakah mode mobile (portrait ≤768px atau landscape ≤1200px)
+      function isMobileMode() {
+        if (window.innerWidth <= 768) return true;
+        if (window.matchMedia('(orientation: landscape) and (max-width: 1200px)').matches) return true;
+        return false;
+      }
+
       if (mobileMenuToggle && sidebar) {
         mobileMenuToggle.addEventListener('click', (e) => {
           e.stopPropagation();
           sidebar.classList.toggle('mobile-open');
         });
         
-        // Close sidebar when clicking outside on mobile
+        // Close sidebar when clicking outside on mobile/landscape
         document.addEventListener('click', (e) => {
-          if (window.innerWidth <= 768) {
+          if (isMobileMode()) {
             if (sidebar.classList.contains('mobile-open')) {
               if (!sidebar.contains(e.target) && e.target !== mobileMenuToggle && !mobileMenuToggle.contains(e.target)) {
                 sidebar.classList.remove('mobile-open');
@@ -1681,7 +1688,7 @@
         // Close sidebar when a workspace or meeting is clicked
         sidebar.addEventListener('click', (e) => {
           if (e.target.closest('.workspace-item') || e.target.closest('.meeting-item')) {
-            if (window.innerWidth <= 768) {
+            if (isMobileMode()) {
               sidebar.classList.remove('mobile-open');
             }
           }
@@ -1689,31 +1696,11 @@
       }
 
       // ===== LANDSCAPE SIDEBAR TOGGLE =====
+      // (Tidak dipakai lagi - landscape menggunakan mobile-open yang sama dengan portrait)
       (function initLandscapeSidebar() {
         const toggleBtn = document.getElementById('landscapeSidebarToggle');
-        if (!toggleBtn || !sidebar) return;
-
-        function isLandscapeMode() {
-          return window.matchMedia('(orientation: landscape) and (max-width: 1200px)').matches;
-        }
-
-        function applyLandscapeMode() {
-          if (isLandscapeMode()) {
-            // Landscape = tampilan PC: sidebar selalu terbuka penuh, toggle disembunyikan via CSS
-            toggleBtn.style.display = 'none';
-            sidebar.classList.remove('landscape-open'); // class ini tidak dipakai lagi di landscape
-          } else {
-            toggleBtn.style.display = 'none';
-            sidebar.classList.remove('landscape-open');
-          }
-        }
-
-        // Inisialisasi & tangani perubahan orientasi
-        applyLandscapeMode();
-        window.addEventListener('resize', applyLandscapeMode);
-        window.addEventListener('orientationchange', () => {
-          setTimeout(applyLandscapeMode, 150);
-        });
+        if (!toggleBtn) return;
+        toggleBtn.style.display = 'none';
       })();
 
 
@@ -5680,7 +5667,7 @@
       .main-panel { 
         width: 100% !important;
         margin-left: 0 !important;
-        margin-top: 60px !important;
+        margin-top: 44px !important;
       }
       
       .panel-header { 
@@ -5804,21 +5791,30 @@
       background: var(--color-primary) !important;
       color: white !important;
       border: none !important;
-      padding: 10px 16px !important;
-      border-radius: 6px !important;
+      padding: 10px 14px !important;
+      border-radius: 0 0 8px 0 !important;
       cursor: pointer !important;
-      font-size: 1rem !important;
+      font-size: 0.9rem !important;
       position: fixed !important;
-      top: 10px !important;
-      left: 10px !important;
+      top: 0 !important;
+      left: 0 !important;
       z-index: 3100 !important;
       align-items: center !important;
-      gap: 8px !important;
+      gap: 6px !important;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.15) !important;
     }
     
     @media (max-width: 768px) {
       .mobile-menu-toggle {
         display: flex !important;
+      }
+      /* Geser konten main panel ke bawah agar tidak tertutup tombol Menu */
+      .main-panel {
+        margin-top: 44px !important;
+      }
+      /* Sidebar: beri padding atas agar logo Notula tidak tertutup tombol Menu */
+      .sidebar .sidebar-header {
+        padding-top: 52px !important;
       }
     }
 
@@ -6721,75 +6717,83 @@ document.addEventListener("DOMContentLoaded", () => {
    SEMUA PERANGKAT DI ORIENTASI LANDSCAPE
    (max-width 1200px = bukan desktop sungguhan)
    ---------------------------------------------------------- */
+/* ============================================================
+   LANDSCAPE MODE UNTUK HP/TABLET (max-width: 1200px)
+   Perilaku SAMA PERSIS dengan portrait mobile:
+   - Sidebar slide dari kiri (off-canvas)
+   - Tombol Menu (hamburger) selalu tampil di pojok kiri atas
+   - Semua konten sidebar (Grup, Rapat Pribadi, Tim, tombol aksi) tampil penuh saat dibuka
+============================================================ */
 @media (orientation: landscape) and (max-width: 1200px) {
 
-  /* ============================================================
-     LANDSCAPE MODE = Tampilan PC/Laptop
-     Sidebar selalu terbuka penuh di sisi kiri, konten di kanan.
-     Semua menu (Rapat Baru, Buat Grup, Hapus, Reset,
-     Grup Saya, Rapat Pribadi, Tim Saya) langsung terlihat.
-  ============================================================ */
-
-  /* Layout utama: baris horizontal seperti desktop */
+  /* Layout: kolom seperti portrait, konten mengisi layar */
   body {
-    flex-direction: row !important;
-    height: 100vh !important;
-    overflow: hidden !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: auto !important;
   }
 
-  /* ---- SIDEBAR: selalu terbuka, mirip PC ---- */
+  /* Sidebar off-canvas: tersembunyi di kiri, muncul saat mobile-open */
   .sidebar {
-    position: relative !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 260px !important;
-    min-width: 260px !important;
-    max-width: 260px !important;
+    width: 280px !important;
     height: 100vh !important;
-    z-index: 100 !important;
-    overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
-    box-shadow: 2px 0 8px rgba(0,0,0,0.08) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: -100% !important;
+    z-index: 3000 !important;
+    transition: left 0.3s ease !important;
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.2) !important;
     border-right: 1px solid var(--color-border) !important;
     border-bottom: none !important;
-    flex-shrink: 0 !important;
-    /* Nonaktifkan transisi hover dari desktop */
-    transition: none !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
-  /* Pastikan hover desktop TIDAK menggeser sidebar di landscape */
+  /* Sidebar terbuka */
+  .sidebar.mobile-open {
+    left: 0 !important;
+  }
+
+  /* Pastikan hover desktop tidak aktif di landscape */
   .sidebar:hover,
   .sidebar:focus-within {
+    left: -100% !important;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.2) !important;
+  }
+  .sidebar.mobile-open:hover,
+  .sidebar.mobile-open:focus-within {
     left: 0 !important;
-    box-shadow: 2px 0 8px rgba(0,0,0,0.08) !important;
   }
 
-  /* Sembunyikan hover-trigger desktop (tidak dipakai di landscape) */
+  /* Sembunyikan hover-trigger desktop */
   .sidebar-hover-trigger { display: none !important; }
 
-  /* ---- SIDEBAR HEADER: tampil normal seperti PC ---- */
+  /* Sembunyikan tombol toggle landscape lama */
+  #landscapeSidebarToggle { display: none !important; }
+
+  /* ---- Tombol Menu: tampil di landscape ---- */
+  .mobile-menu-toggle {
+    display: flex !important;
+  }
+
+  /* Sidebar header: normal seperti portrait */
   .sidebar-header {
     padding: 16px !important;
+    padding-top: 52px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    justify-content: flex-start !important;
     border-bottom: 1px solid var(--color-border) !important;
     flex-shrink: 0 !important;
     height: auto !important;
-    overflow: visible !important;
   }
+  .sidebar-header h1 { font-size: 1.3rem !important; }
 
-  /* Sembunyikan tombol toggle landscape (tidak diperlukan) */
-  #landscapeSidebarToggle { display: none !important; }
-
-  /* Judul sidebar tampil normal */
-  .sidebar-header h1 {
-    font-size: 1.3rem !important;
-  }
-
-  /* Tombol-tombol aksi: tampil penuh dengan teks */
+  /* Tombol aksi: tampil penuh */
   .btn-new,
   .btn-new-workspace,
   .btn-delete-selected,
@@ -6798,21 +6802,15 @@ document.addEventListener("DOMContentLoaded", () => {
     height: auto !important;
     padding: 10px 12px !important;
     margin-top: 8px !important;
-    font-size: 0.85rem !important;
+    font-size: 0.88rem !important;
     gap: 8px !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
     border-radius: 8px !important;
   }
-  .btn-new i,
-  .btn-new-workspace i,
-  .btn-delete-selected i,
-  .btn-reset-default i {
-    font-size: 0.85rem !important;
-  }
 
-  /* ---- SIDEBAR SCROLL WRAPPER: tampil & scrollable ---- */
+  /* Sidebar scroll wrapper: tampil penuh, scrollable */
   .sidebar-scroll-wrapper {
     flex: 1 !important;
     display: flex !important;
@@ -6822,38 +6820,35 @@ document.addEventListener("DOMContentLoaded", () => {
     max-height: none !important;
   }
 
-  /* ---- MAIN PANEL: ambil sisa lebar ---- */
+  /* Main panel: mengisi layar, beri ruang atas untuk tombol Menu */
   .main-panel {
-    flex: 1 !important;
-    min-width: 0 !important;
-    width: auto !important;
-    height: 100vh !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
     margin-left: 0 !important;
-    margin-top: 0 !important;
-    overflow: hidden !important;
+    margin-top: 44px !important;
     display: flex !important;
     flex-direction: column !important;
   }
 
-  /* ---- PANEL HEADER: satu baris, bisa scroll horizontal ---- */
+  /* Panel header: bisa scroll horizontal agar tombol tidak terpotong */
   .panel-header {
-    padding: 8px 12px !important;
+    padding: 10px 14px !important;
     flex-direction: row !important;
     align-items: center !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
     gap: 6px !important;
-    min-height: 48px !important;
-    flex-shrink: 0 !important;
     -webkit-overflow-scrolling: touch !important;
   }
   .panel-header::-webkit-scrollbar { height: 2px; }
   .panel-header::-webkit-scrollbar-thumb { background: var(--color-primary); border-radius: 2px; }
 
   .header-title { flex-shrink: 0 !important; }
-  .header-title h2 { font-size: 1rem !important; white-space: nowrap !important; }
-  .header-title p  { font-size: 0.75rem !important; white-space: nowrap !important; }
+  .header-title h2 { font-size: 1.1rem !important; white-space: nowrap !important; }
+  .header-title p  { font-size: 0.78rem !important; white-space: nowrap !important; }
 
   .header-actions {
     flex-wrap: nowrap !important;
@@ -6862,40 +6857,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   .btn-header, .btn-edit-meeting, .btn-delete-meeting {
-    padding: 5px 10px !important;
+    padding: 6px 10px !important;
     font-size: 0.78rem !important;
     white-space: nowrap !important;
   }
 
-  .theme-switcher { padding: 2px !important; }
+  .theme-switcher { padding: 2px !important; margin-left: 0 !important; }
   .theme-btn { width: 18px !important; height: 18px !important; }
 
-  /* ---- CONTENT: ambil sisa tinggi ---- */
   .content {
     flex: 1 !important;
     overflow-y: auto !important;
-    padding: 16px 20px !important;
+    padding: 16px !important;
   }
-
-  /* Sembunyikan mobile-menu-toggle */
-  .mobile-menu-toggle { display: none !important; }
-}
-
-/* Tinggi sangat kecil (iPhone landscape): sidebar lebih ramping */
-@media (orientation: landscape) and (max-height: 420px) and (max-width: 1200px) {
-  .sidebar {
-    width: 220px !important;
-    min-width: 220px !important;
-    max-width: 220px !important;
-  }
-  .sidebar-header { padding: 8px 10px !important; }
-  .btn-new, .btn-new-workspace, .btn-delete-selected, .btn-reset-default {
-    padding: 7px 10px !important;
-    font-size: 0.78rem !important;
-  }
-  .sidebar-header h1 { font-size: 1.1rem !important; }
-  .panel-header { padding: 4px 8px !important; min-height: 38px !important; }
-  .header-title h2 { font-size: 0.85rem !important; }
 }
 
 /* iPhone notch safe-area */
