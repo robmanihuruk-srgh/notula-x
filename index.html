@@ -7327,7 +7327,7 @@ document.addEventListener("DOMContentLoaded", () => {
         window.open(url, '_blank');
     };
 
-    // 2. API: WhatsApp Router
+   // 2. API: WhatsApp Router (Diperbarui dengan Smart Routing)
     window.sendToWhatsApp = function(phone, message) {
         // Membersihkan nomor telepon (memastikan mulai dengan 62)
         let cleanPhone = phone.replace(/\D/g,'');
@@ -7335,10 +7335,21 @@ document.addEventListener("DOMContentLoaded", () => {
             cleanPhone = '62' + cleanPhone.substring(1);
         }
         
-        let url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        // Deteksi apakah pengguna menggunakan HP atau PC/Laptop
+        let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        let url = "";
+
+        if (isMobile) {
+            // Jalur HP: Langsung memanggil aplikasi WhatsApp (Bypass Browser)
+            url = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+        } else {
+            // Jalur PC/Laptop: Langsung menuju WhatsApp Web (Bypass api.whatsapp.com)
+            url = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+        }
+        
+        // Eksekusi buka tab/aplikasi
         window.open(url, '_blank');
     };
-
     // 3. UI Injector: Menambahkan Tombol ke Layar (Smart Observer)
     function injectEcosystemButtons() {
         // Mencari tempat strategis di area header aplikasi Anda
