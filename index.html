@@ -674,7 +674,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
           <div class="dtab" onclick="showDTab('todo',this)">To Do List</div>
           <div class="dtab" onclick="showDTab('progress',this)">Progress Seksi</div>
           <div class="dtab" onclick="showDTab('kendala-tab',this)">Kendala</div>
-          <div class="dtab" onclick="showDTab('absensi',this);renderAbsensiTab(currentRapatId)">👥 Absensi</div>
+          <div class="dtab" onclick="showDTab('absensi',this);if(currentRapatId)renderAbsensiTab(currentRapatId)">👥 Absensi</div>
         </div>
         <div class="detail-body">
           <div class="tab-content active" id="dtab-agenda"></div>
@@ -1757,7 +1757,7 @@ function viewRapat(id) {
   document.getElementById('dp-actions').innerHTML = canEditThisRapat
     ? '<button class="btn btn-ghost btn-sm" onclick="editRapat(\'' + r.id + '\')">✏ Edit Rapat</button>'    + (isThisCreator || currentProfile.role==='admin' ? '<button class="btn btn-danger btn-sm" style="margin-left:8px;" onclick="deleteRapat(\'' + r.id + '\')">✕ Hapus</button>' : '')
     : '';
-  renderAgendaTab(id); renderTodoTab(id); renderProgressTab(id); renderKendalaTab(id);
+  renderAgendaTab(id); renderTodoTab(id); renderProgressTab(id); renderKendalaTab(id); renderAbsensiTab(id);
   dp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -3170,6 +3170,10 @@ function exportReportExcel(type) {
 function renderAbsensiTab(rid) {
   var cont = document.getElementById('dtab-absensi');
   if (!cont || !rid) return;
+  // Tampilkan loading sementara data dimuat
+  if (!cont.innerHTML || cont.innerHTML === '') {
+    cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">Memuat data absensi...</div>';
+  }
   var rapat = localRapat.filter(function(r){ return r.id === rid; })[0];
   var canEdit = currentProfile.role === 'admin' || currentProfile.role === 'notulen'
     || (rapat && rapat.createdBy === currentUser.uid)
@@ -3195,8 +3199,10 @@ function renderAbsensiTab(rid) {
     + '</div></div>';
 
   if (!localUsers.length) {
-    html += '<div class="empty"><div class="empty-text">Data pengguna belum dimuat.</div></div>';
-    cont.innerHTML = html;
+    cont.innerHTML = '<div style="padding:20px;text-align:center;">'
+      + '<div style="font-size:13px;color:var(--text3);">Data pengguna belum dimuat.</div>'
+      + '<button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="renderAbsensiTab(currentRapatId)">🔄 Muat Ulang</button>'
+      + '</div>';
     return;
   }
 
