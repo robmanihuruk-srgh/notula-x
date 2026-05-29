@@ -765,6 +765,7 @@
       </div>
       <div class="modal-actions">
         <button class="btn-secondary" id="cancelCommentModal">Tutup</button>
+        <button class="btn-secondary" id="cancelEditCommentBtn" style="display:none; background:#fef2f2; color:#ef4444; border-color:#fecaca;"><i class="fas fa-times"></i> Batal Edit</button>
         <button class="btn-primary" id="saveCommentBtn"><i class="fas fa-paper-plane"></i> Kirim Komentar</button>
       </div>
     </div>
@@ -3642,6 +3643,76 @@
       // FITUR KOMENTAR / DISKUSI LINTAS SEKSI
       // =====================================================
       let _commentMeetingId = null, _commentSectionId = null, _commentTaskId = null;
+      let _editingCommentIndex = null; // null = mode tambah baru; angka = mode edit komentar ke-index
+
+      // Boleh mengelola (edit/hapus) komentar tertentu:
+      // admin, pembuat rapat, atau pemilik komentar itu sendiri
+      function canManageComment(meeting, comment) {
+        if (!comment) return false;
+        if (userRole === 'admin') return true;
+        if (meeting && meeting.createdBy === currentUser?.uid) return true;
+        return comment.user && comment.user === (currentUser?.email || 'Anonim');
+      }
+
+      // Simpan perubahan komentar ke Firestore & re-render modal + kartu seksi
+      async function persistCommentsChange(successMsg) {
+        const meeting = meetings.find(m => m.id === _commentMeetingId);
+        if (!meeting) return;
+        const section = meeting.sections?.find(s => s.id === _commentSectionId);
+        if (!section) return;
+        await db.collection('meetings').doc(_commentMeetingId).update({ sections: meeting.sections });
+        window.openCommentModal(_commentMeetingId, _commentSectionId, _commentTaskId);
+        const cardEl = document.getElementById(`section-card-${_commentSectionId}`);
+        if (cardEl) cardEl.outerHTML = renderSectionCard(_commentMeetingId, section);
+      }
+
+      // Masuk ke mode edit: isi textarea dengan teks komentar dan ubah label tombol
+      window.startEditComment = function(idx) {
+        const meeting = meetings.find(m => m.id === _commentMeetingId);
+        const section = meeting?.sections?.find(s => s.id === _commentSectionId);
+        const task = section?.tasks?.find(t => t.id === _commentTaskId);
+        if (!task || !task.comments || !task.comments[idx]) return;
+        const comment = task.comments[idx];
+        if (!canManageComment(meeting, comment)) return alert('Anda tidak punya izin untuk mengedit komentar ini.');
+
+        _editingCommentIndex = idx;
+        const input = document.getElementById('commentTextInput');
+        input.value = comment.text;
+        input.focus();
+        const btn = document.getElementById('saveCommentBtn');
+        btn.innerHTML = '<i class="fas fa-save"></i> Simpan Perubahan';
+        document.getElementById('cancelEditCommentBtn').style.display = 'inline-flex';
+      };
+
+      // Batalkan mode edit, kembali ke mode tambah komentar baru
+      window.cancelEditComment = function() {
+        _editingCommentIndex = null;
+        document.getElementById('commentTextInput').value = '';
+        const btn = document.getElementById('saveCommentBtn');
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Komentar';
+        document.getElementById('cancelEditCommentBtn').style.display = 'none';
+      };
+
+      // Hapus komentar ke-idx
+      window.deleteComment = async function(idx) {
+        const meeting = meetings.find(m => m.id === _commentMeetingId);
+        if (!meeting) return;
+        const section = meeting.sections?.find(s => s.id === _commentSectionId);
+        if (!section) return;
+        const task = section.tasks?.find(t => t.id === _commentTaskId);
+        if (!task || !task.comments || !task.comments[idx]) return;
+        if (!canManageComment(meeting, task.comments[idx])) return alert('Anda tidak punya izin untuk menghapus komentar ini.');
+        if (!confirm('Hapus komentar ini? Tindakan ini tidak dapat dibatalkan.')) return;
+
+        task.comments.splice(idx, 1);
+        try {
+          await persistCommentsChange();
+        } catch (err) {
+          alert('Gagal menghapus komentar: ' + err.message);
+          // muat ulang state dari sumber agar konsisten
+          window.openCommentModal(_commentMeetingId, _commentSectionId, _commentTaskId);
+        }
+      };
 
       window.openCommentModal = function(meetingId, sectionId, taskId) {
         const meeting = meetings.find(m => m.id === meetingId);
@@ -3662,25 +3733,51 @@
         const list = document.getElementById('commentList');
         list.innerHTML = '';
         if (task.comments && task.comments.length > 0) {
-          task.comments.forEach(c => {
+          task.comments.forEach((c, idx) => {
+            const canManage = canManageComment(meeting, c);
             const div = document.createElement('div');
             div.style.cssText = 'background:#f1f5ff; border-radius:8px; padding:8px 12px; font-size:0.875rem;';
-            div.innerHTML = `<span style="font-weight:600; color:#3730a3;">${escapeHtml(c.user)}</span>
-              <span style="color:#94a3b8; margin-left:8px; font-size:0.75rem;">${c.time ? new Date(c.time).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</span>
-              <div style="margin-top:4px; color:#334155;">${escapeHtml(c.text)}</div>`;
+            const editedTag = c.editedAt ? ` <span style="color:#94a3b8; font-style:italic; font-size:0.72rem;">(diedit)</span>` : '';
+            const actionsHtml = canManage
+              ? `<span style="float:right; display:flex; gap:6px;">
+                   <button title="Edit komentar" data-cmt-edit="${idx}" style="background:transparent; border:none; color:#6366f1; cursor:pointer; font-size:0.8rem; padding:2px;"><i class="fas fa-pencil-alt"></i></button>
+                   <button title="Hapus komentar" data-cmt-del="${idx}" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:0.8rem; padding:2px;"><i class="fas fa-trash"></i></button>
+                 </span>`
+              : '';
+            div.innerHTML = `${actionsHtml}<span style="font-weight:600; color:#3730a3;">${escapeHtml(c.user)}</span>
+              <span style="color:#94a3b8; margin-left:8px; font-size:0.75rem;">${c.time ? new Date(c.time).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</span>${editedTag}
+              <div style="margin-top:4px; color:#334155;" data-cmt-text="${idx}">${escapeHtml(c.text)}</div>`;
             list.appendChild(div);
+          });
+          // Pasang handler edit/hapus
+          list.querySelectorAll('[data-cmt-edit]').forEach(btn => {
+            btn.addEventListener('click', () => startEditComment(parseInt(btn.dataset.cmtEdit, 10)));
+          });
+          list.querySelectorAll('[data-cmt-del]').forEach(btn => {
+            btn.addEventListener('click', () => deleteComment(parseInt(btn.dataset.cmtDel, 10)));
           });
           list.scrollTop = list.scrollHeight;
         } else {
           list.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:16px; font-size:0.875rem;">Belum ada komentar. Jadilah yang pertama!</div>';
         }
 
+        // Reset ke mode tambah komentar baru setiap kali modal dirender
+        _editingCommentIndex = null;
         document.getElementById('commentTextInput').value = '';
+        const _saveBtn = document.getElementById('saveCommentBtn');
+        if (_saveBtn) _saveBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Komentar';
+        const _cancelEditBtn = document.getElementById('cancelEditCommentBtn');
+        if (_cancelEditBtn) _cancelEditBtn.style.display = 'none';
         document.getElementById('commentModal').classList.add('active');
       };
 
       document.getElementById('cancelCommentModal').addEventListener('click', () => {
+        window.cancelEditComment();
         document.getElementById('commentModal').classList.remove('active');
+      });
+
+      document.getElementById('cancelEditCommentBtn').addEventListener('click', () => {
+        window.cancelEditComment();
       });
 
       document.getElementById('saveCommentBtn').addEventListener('click', async () => {
@@ -3694,7 +3791,29 @@
         const task = section.tasks?.find(t => t.id === _commentTaskId);
         if (!task) return;
 
+        const btn = document.getElementById('saveCommentBtn');
+        const isEditing = _editingCommentIndex !== null;
+
+        // Mode edit komentar yang sudah ada
+        if (isEditing) {
+          const comment = task.comments && task.comments[_editingCommentIndex];
+          if (!comment) { window.cancelEditComment(); return; }
+          if (!canManageComment(meeting, comment)) return alert('Anda tidak punya izin untuk mengedit komentar ini.');
+          comment.text = text;
+          comment.editedAt = new Date().toISOString();
+          try {
+            btn.disabled = true; btn.innerText = 'Menyimpan...';
+            await persistCommentsChange();
+          } catch (err) {
+            alert('Gagal menyimpan perubahan: ' + err.message);
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Simpan Perubahan';
+          }
+          return;
+        }
+
+        // Mode tambah komentar baru
         const newComment = {
+          id: 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
           user: currentUser?.email || 'Anonim',
           text: text,
           time: new Date().toISOString()
@@ -3704,7 +3823,6 @@
         task.comments.push(newComment);
 
         try {
-          const btn = document.getElementById('saveCommentBtn');
           btn.disabled = true; btn.innerText = 'Mengirim...';
           await db.collection('meetings').doc(_commentMeetingId).update({ sections: meeting.sections });
           // Re-render komentar di modal
