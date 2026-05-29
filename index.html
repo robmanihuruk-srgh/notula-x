@@ -6882,6 +6882,88 @@ document.addEventListener("DOMContentLoaded", () => {
     .sidebar { padding-left: env(safe-area-inset-left, 0px) !important; }
   }
 }
+
+/* ============================================================
+   LANDSCAPE FIX — KARTU LOGIN PROPORSIONAL & TIDAK TERPOTONG
+   Di orientasi landscape pada HP/tablet, tinggi kartu login
+   melebihi tinggi layar yang pendek. Overlay yang memusatkan
+   konten secara vertikal membuat bagian atas (logo) dan bawah
+   ("Lupa password?") terpotong. Perbaikan: overlay dapat
+   di-scroll dan menyejajarkan kartu dari atas, sementara
+   jarak/ukuran elemen kartu dirampingkan agar muat penuh.
+   Tidak mengubah perilaku/fitur yang sudah ada.
+============================================================ */
+@media (orientation: landscape) and (max-width: 1200px) {
+  #loginOverlay {
+    align-items: flex-start !important;        /* jangan paksa center vertikal */
+    overflow-y: auto !important;               /* boleh di-scroll bila perlu */
+    -webkit-overflow-scrolling: touch !important;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom, 0px)) 16px !important;
+  }
+
+  .login-card {
+    padding: 20px 24px !important;             /* lebih ramping dari 40px */
+    margin: auto 0 !important;                 /* tetap tengah jika muat */
+    width: 380px !important;
+    max-width: 92% !important;
+    border-radius: 14px !important;
+  }
+
+  .login-card h2 {
+    font-size: 1.4rem !important;
+    margin-bottom: 14px !important;
+    gap: 8px !important;
+  }
+  .login-card h2 img {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .login-card input {
+    padding: 10px 14px !important;
+    margin: 6px 0 !important;
+  }
+
+  .login-card button {
+    padding: 11px !important;
+    margin-top: 10px !important;
+  }
+  /* tombol Register memakai inline margin-top:12px; rampingkan via override */
+  .login-card #registerBtn {
+    margin-top: 8px !important;
+  }
+
+  .login-card .forgot-password {
+    margin-top: 12px !important;
+  }
+}
+
+/* Layar landscape sangat pendek (mis. HP biasa) — rampingkan ekstra */
+@media (orientation: landscape) and (max-width: 1200px) and (max-height: 480px) {
+  .login-card {
+    padding: 14px 22px !important;
+  }
+  .login-card h2 {
+    font-size: 1.25rem !important;
+    margin-bottom: 10px !important;
+  }
+  .login-card h2 img {
+    width: 30px !important;
+    height: 30px !important;
+  }
+  .login-card input {
+    padding: 9px 12px !important;
+    margin: 5px 0 !important;
+  }
+  .login-card button {
+    padding: 10px !important;
+    margin-top: 8px !important;
+  }
+  .login-card .forgot-password {
+    margin-top: 10px !important;
+    font-size: 0.85rem !important;
+  }
+}
 </style>
 
 <!-- ================================================================= -->
