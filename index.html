@@ -7384,6 +7384,57 @@ document.addEventListener("DOMContentLoaded", () => {
       transform: translateY(-2px);
       filter: brightness(1.1);
   }
+  /* ===== MODAL BROADCAST WHATSAPP ===== */
+  #waModalOverlay {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.6);
+      backdrop-filter: blur(3px); z-index: 5000;
+      display: none; align-items: center; justify-content: center; padding: 16px;
+  }
+  #waModalOverlay.active { display: flex; }
+  .wa-modal {
+      background: #fff; width: 100%; max-width: 520px; border-radius: 14px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3); overflow: hidden;
+      font-family: inherit; max-height: 90vh; display: flex; flex-direction: column;
+      animation: waPop .2s ease;
+  }
+  @keyframes waPop { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .wa-modal-head {
+      background: linear-gradient(135deg, #25D366, #128C7E); color: #fff;
+      padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .wa-modal-head h3 { margin: 0; font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .wa-modal-close { background: rgba(255,255,255,0.2); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; line-height: 1; transition: .2s; }
+  .wa-modal-close:hover { background: rgba(255,255,255,0.35); }
+  .wa-modal-body { padding: 18px 20px; overflow-y: auto; }
+  .wa-modal-body label { display: block; font-weight: 600; font-size: 0.85rem; margin: 12px 0 6px; color: #334155; }
+  .wa-modal-body label:first-child { margin-top: 0; }
+  .wa-modal-body textarea {
+      width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px;
+      padding: 10px 12px; font-family: inherit; font-size: 0.9rem; resize: vertical;
+  }
+  .wa-modal-body textarea:focus { outline: none; border-color: #25D366; box-shadow: 0 0 0 3px rgba(37,211,102,0.15); }
+  .wa-hint { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+  .wa-pick-btn {
+      margin-top: 8px; background: #f0fdf4; border: 1px dashed #25D366; color: #128C7E;
+      padding: 8px 12px; border-radius: 8px; font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: .2s;
+  }
+  .wa-pick-btn:hover { background: #dcfce7; }
+  .wa-pic-list { margin-top: 10px; display: none; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; }
+  .wa-pic-list.active { display: flex; }
+  .wa-pic-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; padding: 4px 2px; }
+  .wa-pic-row input[type=checkbox] { width: 16px; height: 16px; accent-color: #25D366; cursor: pointer; flex-shrink: 0; }
+  .wa-pic-row .wa-pic-name { font-weight: 600; color: #334155; }
+  .wa-pic-row .wa-pic-meta { color: #64748b; font-size: 0.78rem; }
+  .wa-pic-row.no-num { opacity: 0.65; }
+  .wa-pic-badge { font-size: 0.68rem; padding: 1px 6px; border-radius: 10px; font-weight: 700; margin-left: auto; flex-shrink: 0; }
+  .wa-pic-badge.ok { background: #dcfce7; color: #128C7E; }
+  .wa-pic-badge.no { background: #fee2e2; color: #b91c1c; }
+  .wa-modal-foot { padding: 14px 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; justify-content: flex-end; }
+  .wa-btn-cancel { background: #f1f5f9; border: none; color: #475569; padding: 9px 16px; border-radius: 8px; font-family: inherit; font-weight: 600; cursor: pointer; }
+  .wa-btn-send { background: linear-gradient(135deg, #25D366, #128C7E); border: none; color: #fff; padding: 9px 18px; border-radius: 8px; font-family: inherit; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .wa-btn-send:hover { filter: brightness(1.08); }
+  .wa-count-info { font-size: 0.78rem; color: #128C7E; font-weight: 600; margin-top: 6px; }
 </style>
 
 <script>
@@ -7480,6 +7531,171 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 300);
         }
     };
+    // 2c. Helper: Ambil daftar PIC dari tugas pada rapat aktif
+    function collectTaskPics() {
+        let result = [];
+        try {
+            let meetingsArr = window.meetings || [];
+            let mid = window.currentMeetingId;
+            let meeting = meetingsArr.find(function(m) { return m.id === mid; });
+            if (!meeting || !Array.isArray(meeting.sections)) return result;
+
+            let seen = {};
+            meeting.sections.forEach(function(section) {
+                (section.tasks || []).forEach(function(task) {
+                    let raw = (task.pic || '').trim();
+                    if (!raw || raw === '-' || raw === '\u2014') return;
+                    // Deteksi nomor telepon di dalam teks PIC
+                    let digits = raw.replace(/\D/g, '');
+                    let hasNumber = digits.length >= 8;
+                    let key = raw.toLowerCase();
+                    if (seen[key]) return;
+                    seen[key] = true;
+                    result.push({
+                        label: raw,
+                        section: section.name || '',
+                        taskDesc: task.desc || '',
+                        number: hasNumber ? digits : '',
+                        hasNumber: hasNumber
+                    });
+                });
+            });
+        } catch (e) {
+            console.warn('[Notula-X-Note] Gagal membaca PIC tugas:', e);
+        }
+        return result;
+    }
+
+    // 2d. Build modal broadcast WhatsApp (sekali saja)
+    function buildWaModal() {
+        if (document.getElementById('waModalOverlay')) return;
+        let overlay = document.createElement('div');
+        overlay.id = 'waModalOverlay';
+        overlay.innerHTML =
+            '<div class="wa-modal" role="dialog" aria-modal="true">' +
+              '<div class="wa-modal-head">' +
+                '<h3>💬 Kirim Notifikasi WhatsApp</h3>' +
+                '<button class="wa-modal-close" id="waModalClose" title="Tutup">&times;</button>' +
+              '</div>' +
+              '<div class="wa-modal-body">' +
+                '<label>Nomor WhatsApp Tujuan</label>' +
+                '<textarea id="waPhones" rows="3" placeholder="Pisahkan banyak nomor dengan koma, titik koma, atau baris baru.&#10;Contoh:&#10;08123456789, 08234567890"></textarea>' +
+                '<div class="wa-hint">Format bebas (08xx / 62xx / +62xx). Duplikat otomatis dibuang.</div>' +
+                '<div class="wa-count-info" id="waCountInfo"></div>' +
+                '<button class="wa-pick-btn" id="waPickBtn"><i class="fas fa-users"></i> Ambil Nomor PIC dari Daftar Tugas</button>' +
+                '<div class="wa-pic-list" id="waPicList"></div>' +
+                '<label>Isi Pesan</label>' +
+                '<textarea id="waMessage" rows="4">Halo! Ada tugas/rapat baru dari sistem Notula yang membutuhkan perhatian Anda. Mohon segera dicek. Terima kasih!</textarea>' +
+              '</div>' +
+              '<div class="wa-modal-foot">' +
+                '<button class="wa-btn-cancel" id="waCancelBtn">Batal</button>' +
+                '<button class="wa-btn-send" id="waSendBtn"><i class="fab fa-whatsapp"></i> Kirim</button>' +
+              '</div>' +
+            '</div>';
+        document.body.appendChild(overlay);
+
+        let phonesEl = overlay.querySelector('#waPhones');
+        let countEl = overlay.querySelector('#waCountInfo');
+        let picListEl = overlay.querySelector('#waPicList');
+
+        function updateCount() {
+            let valid = phonesEl.value.split(/[\n,;]+/)
+                .map(function(s){ return s.replace(/\D/g,''); })
+                .filter(function(d){ return d.length >= 8; });
+            // unik
+            valid = valid.filter(function(v,i,a){ return a.indexOf(v)===i; });
+            countEl.textContent = valid.length ? (valid.length + ' nomor valid siap dikirim') : '';
+        }
+        phonesEl.addEventListener('input', updateCount);
+
+        // Tutup modal
+        function closeModal() { overlay.classList.remove('active'); }
+        overlay.querySelector('#waModalClose').onclick = closeModal;
+        overlay.querySelector('#waCancelBtn').onclick = closeModal;
+        overlay.addEventListener('click', function(e){ if (e.target === overlay) closeModal(); });
+
+        // Ambil PIC dari daftar tugas
+        overlay.querySelector('#waPickBtn').onclick = function() {
+            let pics = collectTaskPics();
+            picListEl.innerHTML = '';
+            if (pics.length === 0) {
+                picListEl.innerHTML = '<div style="font-size:0.83rem;color:#64748b;padding:6px;">Tidak ada PIC pada rapat aktif, atau belum ada rapat yang dipilih.</div>';
+                picListEl.classList.add('active');
+                return;
+            }
+            pics.forEach(function(p, idx) {
+                let row = document.createElement('label');
+                row.className = 'wa-pic-row' + (p.hasNumber ? '' : ' no-num');
+                let badge = p.hasNumber
+                    ? '<span class="wa-pic-badge ok">ada nomor</span>'
+                    : '<span class="wa-pic-badge no">tanpa nomor</span>';
+                let meta = p.taskDesc ? (' \u00b7 ' + escapeShort(p.taskDesc)) : '';
+                row.innerHTML =
+                    '<input type="checkbox" data-num="' + p.number + '" ' + (p.hasNumber ? 'checked' : 'disabled') + '>' +
+                    '<span><span class="wa-pic-name">' + escapeShort(p.label) + '</span>' +
+                    '<span class="wa-pic-meta">' + meta + '</span></span>' + badge;
+                picListEl.appendChild(row);
+            });
+            picListEl.classList.add('active');
+
+            // Sinkronkan checkbox -> textarea
+            picListEl.querySelectorAll('input[type=checkbox]').forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    let nums = [];
+                    picListEl.querySelectorAll('input[type=checkbox]:checked').forEach(function(c) {
+                        if (c.dataset.num) nums.push(c.dataset.num);
+                    });
+                    // Gabungkan dengan nomor manual yang sudah diketik (yang bukan dari PIC tetap dijaga sulit, jadi timpa daftar PIC)
+                    phonesEl.value = nums.join(', ');
+                    updateCount();
+                });
+            });
+            // Langsung isi yang sudah tercentang
+            let preNums = [];
+            picListEl.querySelectorAll('input[type=checkbox]:checked').forEach(function(c){ if(c.dataset.num) preNums.push(c.dataset.num); });
+            if (preNums.length) { phonesEl.value = preNums.join(', '); updateCount(); }
+        };
+
+        // Kirim
+        overlay.querySelector('#waSendBtn').onclick = function() {
+            let phones = phonesEl.value.trim();
+            let msg = overlay.querySelector('#waMessage').value.trim();
+            if (!phones) { alert('Mohon isi minimal satu nomor WhatsApp.'); return; }
+            if (!msg) { alert('Mohon isi pesan yang akan dikirim.'); return; }
+
+            let count = phones.split(/[\n,;]+/).filter(function(s){ return s.replace(/\D/g,'').length >= 8; }).length;
+            closeModal();
+            if (count > 1) {
+                window.sendToWhatsAppMultiple(phones, msg);
+            } else {
+                // Tetap memakai fungsi lama untuk 1 nomor (fitur lama tidak diubah)
+                window.sendToWhatsApp(phones, msg);
+            }
+        };
+    }
+
+    // Escape ringan untuk teks PIC/tugas
+    function escapeShort(str) {
+        return String(str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Buka modal (bangun jika belum ada, lalu reset & tampilkan)
+    function openWaModal() {
+        buildWaModal();
+        let overlay = document.getElementById('waModalOverlay');
+        // Reset isian setiap kali dibuka
+        overlay.querySelector('#waPhones').value = '';
+        overlay.querySelector('#waCountInfo').textContent = '';
+        let picList = overlay.querySelector('#waPicList');
+        picList.innerHTML = '';
+        picList.classList.remove('active');
+        overlay.querySelector('#waMessage').value = 'Halo! Ada tugas/rapat baru dari sistem Notula yang membutuhkan perhatian Anda. Mohon segera dicek. Terima kasih!';
+        overlay.classList.add('active');
+        setTimeout(function(){ overlay.querySelector('#waPhones').focus(); }, 50);
+    }
+
     // 3. UI Injector: Menambahkan Tombol ke Layar (Smart Observer)
     function injectEcosystemButtons() {
         // Mencari tempat strategis di area header aplikasi Anda
@@ -7495,20 +7711,7 @@ document.addEventListener("DOMContentLoaded", () => {
             waBtn.className = 'btn-eco-action';
             waBtn.innerHTML = '💬 Notif WA';
             waBtn.onclick = function() {
-                let targetPhone = prompt("Masukkan No WhatsApp Anggota Tim.\nBisa lebih dari 1 nomor — pisahkan dengan koma, titik koma, atau baris baru.\n\nContoh:\n08123456789, 08234567890\natau\n08123456789\n08234567890");
-                if (!targetPhone) return;
-                
-                let targetMsg = prompt("Ketik pesan/pengingat tugas untuk dikirim:", "Halo! Ada tugas/rapat baru dari sistem Notula yang membutuhkan perhatian Anda. Mohon segera dicek. Terima kasih!");
-                if (targetPhone && targetMsg) {
-                    // Cek apakah ada lebih dari 1 nomor
-                    let count = targetPhone.split(/[\n,;]+/).filter(function(s){ return s.replace(/\D/g,'').length >= 8; }).length;
-                    if (count > 1) {
-                        window.sendToWhatsAppMultiple(targetPhone, targetMsg);
-                    } else {
-                        // Tetap pakai fungsi lama untuk 1 nomor (fitur lama tidak diubah)
-                        window.sendToWhatsApp(targetPhone, targetMsg);
-                    }
-                }
+                openWaModal();
             };
 
             // Tombol G-Cal
