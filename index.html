@@ -7432,6 +7432,54 @@ document.addEventListener("DOMContentLoaded", () => {
         // Eksekusi buka tab/aplikasi
         window.open(url, '_blank');
     };
+
+    // 2b. API: WhatsApp Multi-Recipient (Kirim ke banyak nomor sekaligus)
+    // Catatan: WhatsApp tidak mendukung 1 link untuk banyak nomor,
+    // jadi tiap nomor dibuka berurutan dengan jeda agar tidak diblokir popup.
+    window.sendToWhatsAppMultiple = function(phones, message, delayMs) {
+        // Normalisasi input menjadi array nomor yang bersih & unik
+        if (typeof phones === 'string') {
+            phones = phones.split(/[\n,;]+/);
+        }
+        let cleanList = (phones || [])
+            .map(function(p) {
+                let c = String(p).replace(/\D/g, '');
+                if (c.startsWith('0')) c = '62' + c.substring(1);
+                return c;
+            })
+            .filter(function(c) { return c.length >= 8; });
+
+        // Hilangkan duplikat
+        cleanList = cleanList.filter(function(v, i, a) { return a.indexOf(v) === i; });
+
+        if (cleanList.length === 0) {
+            alert('Tidak ada nomor WhatsApp yang valid. Periksa kembali format nomor Anda.');
+            return;
+        }
+
+        let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        let gap = (typeof delayMs === 'number' && delayMs > 0) ? delayMs : 1500;
+
+        // Di HP, mengirim ke banyak nomor sekaligus sulit (aplikasi WA hanya
+        // bisa fokus 1 chat). Beri tahu user dan kirim satu per satu manual-friendly.
+        cleanList.forEach(function(cleanPhone, index) {
+            setTimeout(function() {
+                let url = isMobile
+                    ? `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`
+                    : `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+                window.open(url, '_blank');
+            }, index * gap);
+        });
+
+        // Info ringkas ke user
+        if (cleanList.length > 1) {
+            setTimeout(function() {
+                alert('Membuka ' + cleanList.length + ' chat WhatsApp secara berurutan.\n\n' +
+                      'Jika ada tab yang tidak terbuka, izinkan pop-up untuk situs ini, lalu kirim ulang.\n' +
+                      'Di HP, kirim pesan ke satu nomor lalu kembali ke aplikasi untuk nomor berikutnya.');
+            }, 300);
+        }
+    };
     // 3. UI Injector: Menambahkan Tombol ke Layar (Smart Observer)
     function injectEcosystemButtons() {
         // Mencari tempat strategis di area header aplikasi Anda
@@ -7447,11 +7495,20 @@ document.addEventListener("DOMContentLoaded", () => {
             waBtn.className = 'btn-eco-action';
             waBtn.innerHTML = '💬 Notif WA';
             waBtn.onclick = function() {
-                let targetPhone = prompt("Masukkan No WhatsApp Anggota Tim (Contoh: 08123456...):");
+                let targetPhone = prompt("Masukkan No WhatsApp Anggota Tim.\nBisa lebih dari 1 nomor — pisahkan dengan koma, titik koma, atau baris baru.\n\nContoh:\n08123456789, 08234567890\natau\n08123456789\n08234567890");
                 if (!targetPhone) return;
                 
                 let targetMsg = prompt("Ketik pesan/pengingat tugas untuk dikirim:", "Halo! Ada tugas/rapat baru dari sistem Notula yang membutuhkan perhatian Anda. Mohon segera dicek. Terima kasih!");
-                if (targetPhone && targetMsg) window.sendToWhatsApp(targetPhone, targetMsg);
+                if (targetPhone && targetMsg) {
+                    // Cek apakah ada lebih dari 1 nomor
+                    let count = targetPhone.split(/[\n,;]+/).filter(function(s){ return s.replace(/\D/g,'').length >= 8; }).length;
+                    if (count > 1) {
+                        window.sendToWhatsAppMultiple(targetPhone, targetMsg);
+                    } else {
+                        // Tetap pakai fungsi lama untuk 1 nomor (fitur lama tidak diubah)
+                        window.sendToWhatsApp(targetPhone, targetMsg);
+                    }
+                }
             };
 
             // Tombol G-Cal
@@ -7479,162 +7536,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(injectEcosystemButtons, 1500);
 })();
 </script>
-<!-- ======================================================= -->
-<!-- SUNTIKAN FITUR: SISTEM NOTIFIKASI IN-APP (LONCENG)      -->
-<!-- ======================================================= -->
-<script>
-(function() {
-    console.log("[Notula-X-Note] Modul Sistem Notifikasi In-App Aktif!");
-
-    // 1. Injeksi UI: Membuat Ikon Lonceng di Header
-    function injectNotificationUI() {
-        const headerActions = document.querySelector('.header-actions') || document.querySelector('.panel-header');
-        if (headerActions && !document.getElementById('notifWrapper')) {
-            const notifHTML = `
-            <div class="notification-wrapper" id="notifWrapper" style="position: relative; margin-right: 15px; display: flex; align-items: center; order: -1;">
-                <button class="notification-btn" id="notifBtn" style="background: none; border: none; color: var(--color-secondary); font-size: 1.3rem; cursor: pointer; position: relative; transition: 0.2s;">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge" id="notifBadge" style="position: absolute; top: -5px; right: -5px; background: #dc3545; color: white; font-size: 0.65rem; font-weight: bold; padding: 2px 5px; border-radius: 50%; display: none;">0</span>
-                </button>
-                <div class="notification-dropdown" id="notifDropdown" style="position: absolute; top: 100%; right: 0; width: 320px; background: white; border: 1px solid var(--color-border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: none; flex-direction: column; z-index: 1000; max-height: 400px; overflow-y: auto; margin-top: 15px;">
-                    <div class="notification-header" style="padding: 12px 16px; border-bottom: 1px solid var(--color-border); font-weight: 600; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-                        <span><i class="fas fa-bell"></i> Notifikasi</span>
-                        <span id="markAllReadBtn" style="font-size: 0.8rem; color: var(--color-primary); cursor: pointer; font-weight: 500;">Tandai Dibaca</span>
-                    </div>
-                    <ul class="notification-list" id="notifList" style="list-style: none; padding: 0; margin: 0;">
-                        <div style="padding: 20px; text-align: center; color: var(--color-text-light); font-size: 0.9rem;">Belum ada notifikasi.</div>
-                    </ul>
-                </div>
-            </div>`;
-            
-            // Masukkan lonceng ke dalam header
-            headerActions.insertAdjacentHTML('afterbegin', notifHTML);
-
-            // Logika Buka/Tutup Dropdown
-            const notifBtn = document.getElementById('notifBtn');
-            const notifDropdown = document.getElementById('notifDropdown');
-            notifBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                notifDropdown.style.display = notifDropdown.style.display === 'flex' ? 'none' : 'flex';
-            });
-            document.addEventListener('click', (e) => {
-                if (!notifDropdown.contains(e.target) && e.target !== notifBtn) {
-                    notifDropdown.style.display = 'none';
-                }
-            });
-
-            // Logika Tandai Semua Dibaca
-            document.getElementById('markAllReadBtn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                if(window.notulaUnreadDocs && window.notulaUnreadDocs.length > 0) {
-                    window.notulaUnreadDocs.forEach(docId => {
-                        window.db.collection('notifications').doc(docId).update({ isRead: true });
-                    });
-                }
-            });
-        }
-    }
-
-    // 2. Observer Firestore: Membaca Notifikasi secara Real-time
-    let notifUnsubscribe = null;
-    function listenToNotifications() {
-        if (!window.currentUser || !window.db) return;
-        if (notifUnsubscribe) notifUnsubscribe();
-
-        const userEmail = window.currentUser.email.toLowerCase();
-        notifUnsubscribe = window.db.collection('notifications')
-            .where('targetEmail', '==', userEmail)
-            .orderBy('createdAt', 'desc')
-            .onSnapshot(snapshot => {
-                const notifList = document.getElementById('notifList');
-                const notifBadge = document.getElementById('notifBadge');
-                if (!notifList || !notifBadge) return;
-
-                let unreadCount = 0;
-                window.notulaUnreadDocs = [];
-                notifList.innerHTML = '';
-
-                if (snapshot.empty) {
-                    notifList.innerHTML = '<div style="padding: 20px; text-align: center; color: #64748b; font-size: 0.9rem;">Belum ada notifikasi.</div>';
-                    notifBadge.style.display = 'none';
-                    return;
-                }
-
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (!data.isRead) {
-                        unreadCount++;
-                        window.notulaUnreadDocs.push(doc.id);
-                    }
-
-                    const timeStr = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Baru saja';
-                    const li = document.createElement('li');
-                    li.style.cssText = `padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: 0.2s; ${!data.isRead ? 'background: #f0fdf4; border-left: 3px solid #16a34a;' : 'background: #fff;'}`;
-                    
-                    li.innerHTML = `
-                        <div style="font-weight: 600; font-size: 0.9rem; color: #1e293b;">${data.title}</div>
-                        <div style="font-size: 0.85rem; color: #475569; margin-top: 4px; line-height: 1.4;">${data.body}</div>
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 6px;">${timeStr}</div>
-                    `;
-
-                    li.addEventListener('click', () => {
-                        if (!data.isRead) window.db.collection('notifications').doc(doc.id).update({ isRead: true });
-                        alert("Notifikasi: " + data.body); // Bisa dikembangkan untuk auto-scroll ke tugas
-                    });
-
-                    notifList.appendChild(li);
-                });
-
-                if (unreadCount > 0) {
-                    notifBadge.innerText = unreadCount;
-                    notifBadge.style.display = 'block';
-                } else {
-                    notifBadge.style.display = 'none';
-                }
-            });
-    }
-
-    // 3. Interceptor: Membuat Notifikasi saat "Simpan Tugas" Ditekan
-    function setupTaskAssignmentInterceptor() {
-        // Mencegat tombol simpan tugas bawaan
-        document.body.addEventListener('click', function(e) {
-            if (e.target && (e.target.id === 'saveTaskModal' || e.target.closest('#saveTaskModal'))) {
-                const picInput = document.getElementById('taskPicInput');
-                const descInput = document.getElementById('taskDescInput');
-                
-                if (picInput && picInput.value.includes('@') && window.currentUser && picInput.value.trim().toLowerCase() !== window.currentUser.email.toLowerCase()) {
-                    // Jika PIC adalah email (dan bukan diri sendiri), kirim notifikasi ke database
-                    if (window.db) {
-                        window.db.collection('notifications').add({
-                            targetEmail: picInput.value.trim().toLowerCase(),
-                            title: '📌 Tugas Baru Diberikan',
-                            body: `Anda telah ditunjuk sebagai PIC untuk tugas: "${descInput.value}"`,
-                            isRead: false,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            sender: window.currentUser.email
-                        }).catch(err => console.error("Gagal mengirim notif:", err));
-                    }
-                }
-            }
-        });
-    }
-
-    // Inisialisasi setelah delay agar HTML bawaan selesai dimuat
-    setTimeout(() => {
-        injectNotificationUI();
-        setupTaskAssignmentInterceptor();
-        // Cek login status secara berkala untuk menyalakan listener
-        const checkAuth = setInterval(() => {
-            if (window.currentUser && window.db) {
-                listenToNotifications();
-                clearInterval(checkAuth);
-            }
-        }, 1000);
-    }, 1500);
-
-})();
-</script>
-<!-- ======================================================= -->
 </body>
 </html>
 
