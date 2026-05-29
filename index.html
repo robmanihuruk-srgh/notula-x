@@ -7273,6 +7273,119 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(applyHistoryPatch, 1000);
 });
 </script>
+<style>
+  .btn-ecosystem-wrapper {
+      display: inline-block;
+      margin-left: 10px;
+  }
+  .btn-eco-action {
+      background: linear-gradient(135deg, #25D366, #128C7E); /* WA Colors */
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+  }
+  .btn-eco-action.gcal {
+      background: linear-gradient(135deg, #4285F4, #0F9D58); /* G-Cal Colors */
+      box-shadow: 0 4px 6px rgba(66, 133, 244, 0.3);
+  }
+  .btn-eco-action:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+  }
+</style>
+
+<script>
+(function() {
+    console.log("[Notula-X-Note] Modul Integrasi Ekosistem Aktif!");
+
+    // 1. API: Google Calendar Generator
+    window.syncToGoogleCalendar = function(title, description) {
+        // Mengatur waktu rapat ke besok hari (sebagai contoh default dinamis)
+        let startDate = new Date();
+        startDate.setDate(startDate.getDate() + 1);
+        startDate.setHours(09, 00, 00); // Set default jam 09:00 pagi
+        
+        let endDate = new Date(startDate.getTime() + (2 * 60 * 60 * 1000)); // Durasi 2 jam
+        
+        // Format ISO 8601 tanpa karakter spesial (YYYYMMDDTHHMMSSZ)
+        let formatDate = (d) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
+        
+        // Membangun URL Smart Template Google Calendar
+        let url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatDate(startDate)}/${formatDate(endDate)}&details=${encodeURIComponent(description)}&sf=true&output=xml`;
+        
+        // Membuka tab baru langsung ke Google Calendar
+        window.open(url, '_blank');
+    };
+
+    // 2. API: WhatsApp Router
+    window.sendToWhatsApp = function(phone, message) {
+        // Membersihkan nomor telepon (memastikan mulai dengan 62)
+        let cleanPhone = phone.replace(/\D/g,'');
+        if(cleanPhone.startsWith('0')) {
+            cleanPhone = '62' + cleanPhone.substring(1);
+        }
+        
+        let url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    };
+
+    // 3. UI Injector: Menambahkan Tombol ke Layar (Smart Observer)
+    function injectEcosystemButtons() {
+        // Mencari tempat strategis di area header aplikasi Anda
+        let headerArea = document.querySelector('.header-actions') || document.querySelector('.panel-header') || document.querySelector('header');
+        
+        if (headerArea && !document.getElementById('wrapper-ekosistem')) {
+            let wrapper = document.createElement('div');
+            wrapper.id = 'wrapper-ekosistem';
+            wrapper.className = 'btn-ecosystem-wrapper';
+            
+            // Tombol WA
+            let waBtn = document.createElement('button');
+            waBtn.className = 'btn-eco-action';
+            waBtn.innerHTML = '💬 Notif WA';
+            waBtn.onclick = function() {
+                let targetPhone = prompt("Masukkan No WhatsApp Anggota Tim (Contoh: 08123456...):");
+                if (!targetPhone) return;
+                
+                let targetMsg = prompt("Ketik pesan/pengingat tugas untuk dikirim:", "Halo! Ada tugas/rapat baru dari sistem Notula yang membutuhkan perhatian Anda. Mohon segera dicek. Terima kasih!");
+                if (targetPhone && targetMsg) window.sendToWhatsApp(targetPhone, targetMsg);
+            };
+
+            // Tombol G-Cal
+            let calBtn = document.createElement('button');
+            calBtn.className = 'btn-eco-action gcal';
+            calBtn.style.marginTop = '5px'; // Jarak antar tombol
+            calBtn.innerHTML = '📅 Sync G-Cal';
+            calBtn.onclick = function() {
+                let meetTitle = prompt("Masukkan Judul Rapat untuk di-sinkronisasi ke Kalender:", "Rapat Evaluasi Tim");
+                if (!meetTitle) return;
+                
+                let meetDesc = prompt("Deskripsi singkat/Agenda rapat:", "Jadwal rapat otomatis dibuat melalui Notula App.");
+                if (meetTitle) window.syncToGoogleCalendar(meetTitle, meetDesc);
+            };
+
+            wrapper.appendChild(waBtn);
+            wrapper.appendChild(calBtn);
+            
+            // Masukkan ke dalam layar
+            headerArea.appendChild(wrapper);
+        }
+    }
+
+    // Jalankan pemantau layar setiap 1,5 detik (menghindari tombol hilang saat pindah grup)
+    setInterval(injectEcosystemButtons, 1500);
+})();
+</script>
 </body>
 </html>
 
