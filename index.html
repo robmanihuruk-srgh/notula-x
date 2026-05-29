@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!-- BUILD:1780030120 -->
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -339,6 +339,25 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   .topbar{padding:10px 12px;}
 }
 
+/* ═══ ABSENSI STYLES ═══ */
+.abs-table{width:100%;border-collapse:collapse;}
+.abs-table th{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--border);}
+.abs-table td{padding:9px 10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+.abs-table tr:last-child td{border-bottom:none;}
+.abs-user{display:flex;align-items:center;gap:9px;}
+.abs-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+.abs-btn-group{display:flex;gap:5px;}
+.abs-btn{padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:all .15s;}
+.abs-btn.hadir {background:rgba(52,211,153,.12);color:var(--green);  border-color:rgba(52,211,153,.3);}
+.abs-btn.izin  {background:rgba(251,191,36,.12); color:var(--yellow); border-color:rgba(251,191,36,.3);}
+.abs-btn.alpa  {background:rgba(248,113,113,.12);color:var(--red);   border-color:rgba(248,113,113,.3);}
+.abs-btn.hadir.active{background:var(--green); color:#fff;border-color:var(--green);}
+.abs-btn.izin.active {background:var(--yellow);color:#fff;border-color:var(--yellow);}
+.abs-btn.alpa.active {background:var(--red);   color:#fff;border-color:var(--red);}
+.abs-summary{display:flex;gap:14px;padding:12px 16px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:14px;font-size:13px;flex-wrap:wrap;}
+.abs-sum-item{display:flex;align-items:center;gap:5px;}
+.abs-dot{width:8px;height:8px;border-radius:50%;}
+
 /* ═══ MULTI-RAPAT STYLES ═══ */
 /* WORKSPACE / TIM SELECTOR */
 .ws-selector{display:flex;align-items:center;gap:10px;padding:12px 20px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;flex-wrap:nowrap;}
@@ -611,6 +630,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
         <div class="stat-card"><div class="stat-label">Total Rapat</div><div class="stat-value c-blue" id="st-rapat">0</div><div class="stat-delta" id="st-rapat-sub">—</div></div>
         <div class="stat-card"><div class="stat-label">To Do Selesai</div><div class="stat-value c-green" id="st-done">0</div><div class="stat-delta">dari <span id="st-total-todo">0</span> item</div></div>
         <div class="stat-card"><div class="stat-label">Kendala Aktif</div><div class="stat-value c-yellow" id="st-kendala">0</div><div class="stat-delta">Perlu penanganan</div></div>
+        <div class="stat-card"><div class="stat-label">Kehadiran Rapat</div><div class="stat-value c-teal" id="st-hadir">—</div><div class="stat-delta"><span id="st-hadir-sub">Belum ada data</span></div></div>
         <div class="stat-card"><div class="stat-label">Avg. Progress</div><div class="stat-value c-purple" id="st-avg">0%</div><div class="stat-delta">Semua seksi</div></div>
       </div>
       <div class="grid-2">
@@ -654,12 +674,14 @@ input[type=range]{flex:1;accent-color:var(--accent);}
           <div class="dtab" onclick="showDTab('todo',this)">To Do List</div>
           <div class="dtab" onclick="showDTab('progress',this)">Progress Seksi</div>
           <div class="dtab" onclick="showDTab('kendala-tab',this)">Kendala</div>
+          <div class="dtab" onclick="showDTab('absensi',this);renderAbsensiTab(currentRapatId)">👥 Absensi</div>
         </div>
         <div class="detail-body">
           <div class="tab-content active" id="dtab-agenda"></div>
           <div class="tab-content" id="dtab-todo"></div>
           <div class="tab-content" id="dtab-progress"></div>
           <div class="tab-content" id="dtab-kendala-tab"></div>
+          <div class="tab-content" id="dtab-absensi"></div>
         </div>
       </div>
     </div>
@@ -773,6 +795,16 @@ input[type=range]{flex:1;accent-color:var(--accent);}
             <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();exportReportExcel('todo')">📊 Excel</button>
             <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();exportReportPDF('todo')">📄 PDF</button>
             <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();printReport('todo')">🖨 Print</button>
+          </div>
+        </div>
+        <div class="card card-pad" style="cursor:pointer;" onclick="generateReport('absensi')">
+          <div style="font-size:28px;margin-bottom:10px;">👥</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Laporan Absensi</div>
+          <div style="font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:14px;">Rekap kehadiran semua rapat: hadir, izin, alpa per peserta.</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();exportReportExcel('absensi')">📊 Excel</button>
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();exportReportPDF('absensi')">📄 PDF</button>
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();printReport('absensi')">🖨 Print</button>
           </div>
         </div>
         <div class="card card-pad" style="cursor:pointer;" onclick="generateReport('kendala')">
@@ -1100,6 +1132,7 @@ var localUsers      = [];
 var localAnggota    = [];
 var localAktivitas  = [];
 var localWorkspaces = [];
+var localAbsensi    = [];
 var localNotifsDocs = [];
 var isFirstAktLoad  = true;
 var isFirstNotifLoad = true;
@@ -1405,6 +1438,17 @@ function startListeners() {
       renderAktivitas();
     })
   );
+  // Absensi listener
+  unsubListeners.push(
+    db.collection('absensi').onSnapshot(function(snap) {
+      localAbsensi = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+      // Re-render tab absensi jika sedang terbuka
+      if (currentRapatId) renderAbsensiTab(currentRapatId);
+      updateStats();
+    }, function(e) {
+      console.warn('[NOTULA] Absensi listener: ' + e.message);
+    })
+  );
   // Workspaces listener
   unsubListeners.push(
     db.collection('workspaces').onSnapshot(function(snap) {
@@ -1502,6 +1546,21 @@ function updateStats() {
   var pcts = SEKSI_LIST.map(function(s) { return (localProgress[s] && localProgress[s].pct) || 0; });
   var avg  = pcts.length ? Math.round(pcts.reduce(function(a, b) { return a + b; }, 0) / pcts.length) : 0;
   document.getElementById('st-avg').textContent = avg + '%';
+  // Stat kehadiran
+  var hadirEl = document.getElementById('st-hadir');
+  var hadirSubEl = document.getElementById('st-hadir-sub');
+  if (hadirEl) {
+    var totalAbs = localAbsensi.length;
+    if (!totalAbs) {
+      hadirEl.textContent = '—';
+      if (hadirSubEl) hadirSubEl.textContent = 'Belum ada data';
+    } else {
+      var hadirCount = localAbsensi.filter(function(a){ return a.status === 'hadir'; }).length;
+      var pctHadir = Math.round(hadirCount / totalAbs * 100);
+      hadirEl.textContent = pctHadir + '%';
+      if (hadirSubEl) hadirSubEl.textContent = hadirCount + ' hadir dari ' + totalAbs + ' catatan';
+    }
+  }
 }
 
 function updateBadges() {
@@ -2745,7 +2804,7 @@ function statusStr(s) {
 
 function buildReportHTML(type) {
   var now = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  var titles = { lengkap:'LAPORAN LENGKAP', pengguna:'LAPORAN PENGGUNA & ANGGOTA SEKSI', progress:'LAPORAN MONITOR PROGRESS SEKSI', todo:'LAPORAN TO DO LIST', kendala:'LAPORAN KENDALA' };
+  var titles = { lengkap:'LAPORAN LENGKAP', pengguna:'LAPORAN PENGGUNA & ANGGOTA SEKSI', progress:'LAPORAN MONITOR PROGRESS SEKSI', todo:'LAPORAN TO DO LIST', kendala:'LAPORAN KENDALA', absensi:'LAPORAN ABSENSI & KEHADIRAN RAPAT' };
   var css = '<style>'
     + '.rpt{font-family:Arial,sans-serif;color:#111;font-size:13px;line-height:1.5;}'
     + '.rpt-hdr{text-align:center;border-bottom:2px solid #2563eb;padding-bottom:14px;margin-bottom:20px;}'
@@ -2760,6 +2819,7 @@ function buildReportHTML(type) {
     + '.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;}'
     + '.b-selesai{background:#dcfce7;color:#166534;}.b-berlangsung{background:#dbeafe;color:#1e40af;}'
     + '.b-rencana{background:#fef9c3;color:#854d0e;}.b-terkendala,.b-aktif{background:#fee2e2;color:#991b1b;}'
+    + '.b-hadir{background:#dcfce7;color:#166534;}.b-izin{background:#fef9c3;color:#854d0e;}.b-alpa{background:#fee2e2;color:#991b1b;}.b-belum{background:#f3f4f6;color:#374151;}'
     + '.b-admin{background:#dbeafe;color:#1e40af;}.b-notulen{background:#ccfbf1;color:#065f46;}'
     + '.b-seksi{background:#fef9c3;color:#854d0e;}.b-viewer{background:#f3f4f6;color:#374151;}'
     + '.pct-bar{display:inline-block;width:60px;height:7px;background:#e5e7eb;border-radius:4px;vertical-align:middle;margin-right:5px;overflow:hidden;}'
@@ -2886,6 +2946,53 @@ function buildReportHTML(type) {
     html += '</tbody></table></div>';
   }
 
+    // ── ABSENSI SECTION ──
+  if (type === 'absensi' || type === 'lengkap') {
+    // Ringkasan keseluruhan
+    var totalHadir = localAbsensi.filter(function(a){ return a.status==='hadir'; }).length;
+    var totalIzin  = localAbsensi.filter(function(a){ return a.status==='izin'; }).length;
+    var totalAlpa  = localAbsensi.filter(function(a){ return a.status==='alpa'; }).length;
+    var totalAbs   = localAbsensi.length;
+    var pctHadirAll = totalAbs ? Math.round(totalHadir/totalAbs*100) : 0;
+
+    html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Ringkasan Kehadiran</div>'
+      + '<table><thead><tr><th>Indikator</th><th>Jumlah</th><th>%</th></tr></thead><tbody>'
+      + '<tr><td>✓ Hadir</td><td>' + totalHadir + '</td><td>' + (totalAbs ? Math.round(totalHadir/totalAbs*100) : 0) + '%</td></tr>'
+      + '<tr><td>~ Izin</td><td>' + totalIzin  + '</td><td>' + (totalAbs ? Math.round(totalIzin/totalAbs*100)  : 0) + '%</td></tr>'
+      + '<tr><td>✗ Alpa</td><td>' + totalAlpa  + '</td><td>' + (totalAbs ? Math.round(totalAlpa/totalAbs*100)  : 0) + '%</td></tr>'
+      + '<tr><td><strong>Total catatan</strong></td><td><strong>' + totalAbs + '</strong></td><td><strong>' + pctHadirAll + '% kehadiran</strong></td></tr>'
+      + '</tbody></table></div>';
+
+    // Absensi per rapat
+    var rapatDenganAbsensi = localRapat.filter(function(r){ return localAbsensi.some(function(a){ return a.rapatId===r.id; }); });
+    if (rapatDenganAbsensi.length) {
+      rapatDenganAbsensi.forEach(function(r) {
+        var absRapat = localAbsensi.filter(function(a){ return a.rapatId===r.id; });
+        var absMap   = {};
+        absRapat.forEach(function(a){ absMap[a.userId] = a; });
+        var hR = absRapat.filter(function(a){ return a.status==='hadir'; }).length;
+        var iR = absRapat.filter(function(a){ return a.status==='izin'; }).length;
+        var aR = absRapat.filter(function(a){ return a.status==='alpa'; }).length;
+        html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Absensi — ' + r.nama + ' (' + fmtDate(r.tanggal) + ')</div>'
+          + '<div style="font-size:11px;color:#6b7280;margin-bottom:8px;">Hadir: ' + hR + ' · Izin: ' + iR + ' · Alpa: ' + aR + ' · Total terisi: ' + absRapat.length + '/' + localUsers.length + '</div>'
+          + '<table><thead><tr><th>#</th><th>Nama</th><th>Role</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>';
+        localUsers.forEach(function(u, i) {
+          var abs  = absMap[u.uid];
+          var stat = abs ? abs.status : 'belum diisi';
+          var cls  = abs ? 'b-'+stat : 'b-belum';
+          html += '<tr><td>' + (i+1) + '</td>'
+            + '<td><strong>' + (u.nama||u.email) + '</strong></td>'
+            + '<td>' + (u.role||'—') + '</td>'
+            + '<td><span class="badge ' + cls + '">' + stat + '</span></td>'
+            + '<td style="font-size:11px;color:#6b7280;">' + (abs&&abs.keterangan ? abs.keterangan : '') + '</td></tr>';
+        });
+        html += '</tbody></table></div>';
+      });
+    } else if (type === 'absensi') {
+      html += '<div class="rpt-sec"><div style="color:#6b7280;font-size:13px;padding:16px 0;">Belum ada data absensi yang tercatat.</div></div>';
+    }
+  }
+
   html += '<div class="rpt-footer">Laporan dihasilkan oleh NOTULA — Sistem Monitor Rapat · ' + now + '</div></div>';
   return html;
 }
@@ -2942,6 +3049,22 @@ function exportReportExcel(type) {
     // Row heights
     ws['!rows'] = [{ hpt:22 }, { hpt:18 }];
     return ws;
+  }
+
+  if (type === 'absensi') {
+    var absRows = [['No','Nama','Role','Rapat','Tanggal Rapat','Status','Keterangan']];
+    localUsers.forEach(function(u, i) {
+      var userAbs = localAbsensi.filter(function(a){ return a.userId===u.uid; });
+      if (!userAbs.length) {
+        absRows.push([i+1, u.nama||u.email, u.role||'—', '—', '—', 'belum diisi', '']);
+      } else {
+        userAbs.forEach(function(a) {
+          var r = localRapat.filter(function(x){ return x.id===a.rapatId; })[0];
+          absRows.push([i+1, u.nama||u.email, u.role||'—', r?r.nama:'—', r?fmtDate(r.tanggal):'—', a.status, a.keterangan||'']);
+        });
+      }
+    });
+    XLSX.utils.book_append_sheet(wb, makeSheet('ABSENSI RAPAT — Dicetak: '+dateStr, ['No','Nama','Role','Rapat','Tanggal Rapat','Status','Keterangan'], absRows), 'Absensi');
   }
 
   if (type === 'lengkap') {
@@ -3016,6 +3139,22 @@ function exportReportExcel(type) {
       return [i+1, a.nama||'—', a.jabatan||'—', a.kontak||'—'];
     });
     XLSX.utils.book_append_sheet(wb, makeSheet('DAFTAR ANGGOTA TIM — Dicetak: '+dateStr, ['No','Nama','Jabatan / Seksi','Kontak'], anggotaRows), 'Anggota Tim');
+
+    // Sheet Absensi (di dalam lengkap)
+    var absRowsL = [['No','Nama','Role','Rapat','Tanggal Rapat','Status','Keterangan']];
+    var rIdx = 1;
+    localUsers.forEach(function(u) {
+      var userAbsL = localAbsensi.filter(function(a){ return a.userId===u.uid; });
+      if (!userAbsL.length) {
+        absRowsL.push([rIdx++, u.nama||u.email, u.role||'—', '—', '—', 'belum diisi', '']);
+      } else {
+        userAbsL.forEach(function(a) {
+          var r = localRapat.filter(function(x){ return x.id===a.rapatId; })[0];
+          absRowsL.push([rIdx++, u.nama||u.email, u.role||'—', r?r.nama:'—', r?fmtDate(r.tanggal):'—', a.status, a.keterangan||'']);
+        });
+      }
+    });
+    XLSX.utils.book_append_sheet(wb, makeSheet('ABSENSI RAPAT — Dicetak: '+dateStr, ['No','Nama','Role','Rapat','Tanggal Rapat','Status','Keterangan'], absRowsL), 'Absensi');
   }
 
   var fileName = 'laporan-notula-' + type + '-' + new Date().toISOString().split('T')[0] + '.xlsx';
@@ -3023,6 +3162,207 @@ function exportReportExcel(type) {
   notify('File Excel (.xlsx) berhasil diunduh!', 'success');
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// ABSENSI
+// ═══════════════════════════════════════════════════════════════
+
+function renderAbsensiTab(rid) {
+  var cont = document.getElementById('dtab-absensi');
+  if (!cont || !rid) return;
+  var rapat = localRapat.filter(function(r){ return r.id === rid; })[0];
+  var canEdit = currentProfile.role === 'admin' || currentProfile.role === 'notulen'
+    || (rapat && rapat.createdBy === currentUser.uid)
+    || (rapat && rapat.anggotaIds && rapat.anggotaIds.indexOf(currentUser.uid) >= 0);
+
+  // Ambil absensi rapat ini
+  var absRapat = localAbsensi.filter(function(a){ return a.rapatId === rid; });
+  var absMap   = {};
+  absRapat.forEach(function(a){ absMap[a.userId] = a; });
+
+  // Hitung ringkasan
+  var hadirN = absRapat.filter(function(a){ return a.status==='hadir'; }).length;
+  var izinN  = absRapat.filter(function(a){ return a.status==='izin'; }).length;
+  var alpaN  = absRapat.filter(function(a){ return a.status==='alpa'; }).length;
+  var total  = localUsers.length;
+
+  var html = '<div class="abs-summary">'
+    + '<div class="abs-sum-item"><div class="abs-dot" style="background:var(--green);"></div><strong>' + hadirN + '</strong>&nbsp;Hadir</div>'
+    + '<div class="abs-sum-item"><div class="abs-dot" style="background:var(--yellow);"></div><strong>' + izinN + '</strong>&nbsp;Izin</div>'
+    + '<div class="abs-sum-item"><div class="abs-dot" style="background:var(--red);"></div><strong>' + alpaN + '</strong>&nbsp;Alpa</div>'
+    + '<div class="abs-sum-item" style="margin-left:auto;color:var(--text3);font-size:12px;">'
+    + (total ? Math.round((hadirN/total)*100) + '% kehadiran' : '—')
+    + '</div></div>';
+
+  if (!localUsers.length) {
+    html += '<div class="empty"><div class="empty-text">Data pengguna belum dimuat.</div></div>';
+    cont.innerHTML = html;
+    return;
+  }
+
+  html += '<table class="abs-table"><thead><tr>'
+    + '<th>Peserta</th><th>Role</th><th style="text-align:center;">Status</th>'
+    + '</tr></thead><tbody>';
+
+  localUsers.forEach(function(u) {
+    var abs   = absMap[u.uid];
+    var stat  = abs ? abs.status : '';
+    var ket   = abs && abs.keterangan ? abs.keterangan : '';
+    var color = getRoleColor(u.role || 'viewer');
+    var ini   = initials(u.nama || u.email);
+    var roleLabel = { admin:'Admin', notulen:'Notulen', seksi:'Seksi', viewer:'Viewer' }[u.role] || (u.role||'—');
+
+    html += '<tr>'
+      + '<td><div class="abs-user">'
+      + '<div class="abs-avatar" style="background:' + color + ';">' + ini + '</div>'
+      + '<div><div style="font-size:13px;font-weight:600;">' + (u.nama||u.email) + '</div>'
+      + (ket ? '<div style="font-size:11px;color:var(--text3);">' + ket + '</div>' : '')
+      + '</div></div></td>'
+      + '<td><span style="font-size:11px;color:var(--text3);">' + roleLabel + '</span></td>'
+      + '<td style="text-align:center;">';
+
+    if (canEdit) {
+      html += '<div class="abs-btn-group" style="justify-content:center;">'
+        + '<button class="abs-btn hadir' + (stat==='hadir'?' active':'') + '" onclick="setAbsensi(\'' + rid + '\',\'' + u.uid + '\',\'hadir\')">Hadir</button>'
+        + '<button class="abs-btn izin'  + (stat==='izin' ?' active':'') + '" onclick="setAbsensi(\'' + rid + '\',\'' + u.uid + '\',\'izin\')">Izin</button>'
+        + '<button class="abs-btn alpa'  + (stat==='alpa' ?' active':'') + '" onclick="setAbsensi(\'' + rid + '\',\'' + u.uid + '\',\'alpa\')">Alpa</button>'
+        + '</div>';
+    } else {
+      if (!stat) {
+        html += '<span style="font-size:12px;color:var(--text3);">Belum diisi</span>';
+      } else {
+        var badgeColor = stat==='hadir' ? 'var(--green)' : stat==='izin' ? 'var(--yellow)' : 'var(--red)';
+        var badgeLabel = stat==='hadir' ? 'Hadir' : stat==='izin' ? 'Izin' : 'Alpa';
+        html += '<span style="font-size:12px;font-weight:600;color:' + badgeColor + ';">' + badgeLabel + '</span>';
+      }
+    }
+    html += '</td></tr>';
+  });
+
+  html += '</tbody></table>';
+
+  // Tombol export absensi rapat ini
+  if (canEdit) {
+    html += '<div style="margin-top:14px;display:flex;gap:8px;">'
+      + '<button class="btn btn-ghost btn-sm" onclick="exportAbsensiExcel(\'' + rid + '\')" style="font-size:12px;">📊 Export Excel</button>'
+      + '<button class="btn btn-ghost btn-sm" onclick="printAbsensi(\'' + rid + '\')" style="font-size:12px;">🖨 Print</button>'
+      + '</div>';
+  }
+
+  cont.innerHTML = html;
+}
+
+function setAbsensi(rapatId, userId, status) {
+  var user = localUsers.filter(function(u){ return u.uid === userId; })[0];
+  var existing = localAbsensi.filter(function(a){ return a.rapatId===rapatId && a.userId===userId; })[0];
+  var data = {
+    rapatId:    rapatId,
+    userId:     userId,
+    nama:       user ? (user.nama || user.email) : userId,
+    status:     status,
+    updatedBy:  currentUser.uid,
+    updatedAt:  firebase.firestore.FieldValue.serverTimestamp()
+  };
+  if (existing) {
+    // Toggle: klik status yang sama = hapus pilihan
+    if (existing.status === status) {
+      db.collection('absensi').doc(existing.id).delete().catch(function(e){
+        if (e.code==='permission-denied') { notify('⚠ Perlu update Firestore Rules untuk absensi.', 'error'); showAbsensiRulesHint(); }
+        else notify('Gagal: ' + e.message, 'error');
+      });
+    } else {
+      db.collection('absensi').doc(existing.id).update(data).catch(function(e){
+        if (e.code==='permission-denied') { notify('⚠ Perlu update Firestore Rules untuk absensi.', 'error'); showAbsensiRulesHint(); }
+        else notify('Gagal: ' + e.message, 'error');
+      });
+    }
+  } else {
+    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    db.collection('absensi').add(data).catch(function(e){
+      if (e.code==='permission-denied') { notify('⚠ Perlu update Firestore Rules untuk absensi.', 'error'); showAbsensiRulesHint(); }
+      else notify('Gagal: ' + e.message, 'error');
+    });
+  }
+}
+
+function showAbsensiRulesHint() {
+  notify('Tambahkan rules koleksi "absensi" di Firebase Console → Firestore → Rules', 'error');
+  console.log('[NOTULA] Tambahkan ke Firestore Rules:\n\nmatch /absensi/{docId} {\n  allow read: if request.auth != null;\n  allow create, update: if request.auth != null;\n  allow delete: if request.auth != null;\n}');
+}
+
+function exportAbsensiExcel(rapatId) {
+  var rapat  = localRapat.filter(function(r){ return r.id===rapatId; })[0];
+  var absRap = localAbsensi.filter(function(a){ return a.rapatId===rapatId; });
+  var absMap = {};
+  absRap.forEach(function(a){ absMap[a.userId] = a; });
+  var rows = [['No','Nama','Role','Status','Keterangan']];
+  localUsers.forEach(function(u, i){
+    var abs = absMap[u.uid];
+    rows.push([
+      i+1,
+      u.nama || u.email,
+      u.role || '—',
+      abs ? abs.status : 'belum diisi',
+      abs ? (abs.keterangan||'') : ''
+    ]);
+  });
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'Absensi');
+  var namaRapat = rapat ? rapat.nama.replace(/[^a-z0-9]/gi,'_').substring(0,40) : rapatId;
+  XLSX.writeFile(wb, 'Absensi_' + namaRapat + '.xlsx');
+  notify('Export Excel berhasil!', 'success');
+}
+
+function printAbsensi(rapatId) {
+  var rapat  = localRapat.filter(function(r){ return r.id===rapatId; })[0];
+  var absRap = localAbsensi.filter(function(a){ return a.rapatId===rapatId; });
+  var absMap = {};
+  absRap.forEach(function(a){ absMap[a.userId] = a; });
+  var now    = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  var hadirN = absRap.filter(function(a){ return a.status==='hadir'; }).length;
+  var izinN  = absRap.filter(function(a){ return a.status==='izin'; }).length;
+  var alpaN  = absRap.filter(function(a){ return a.status==='alpa'; }).length;
+
+  var rows = localUsers.map(function(u, i){
+    var abs = absMap[u.uid];
+    var stat = abs ? abs.status : '—';
+    var badge = stat==='hadir' ? 'background:#dcfce7;color:#166534;'
+              : stat==='izin'  ? 'background:#fef9c3;color:#854d0e;'
+              : stat==='alpa'  ? 'background:#fee2e2;color:#991b1b;'
+              : 'background:#f3f4f6;color:#374151;';
+    return '<tr><td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;">' + (i+1) + '</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-weight:600;">' + (u.nama||u.email) + '</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">' + (u.role||'—') + '</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;"><span style="' + badge + 'padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">' + stat + '</span></td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:11px;">' + (abs && abs.keterangan ? abs.keterangan : '') + '</td></tr>';
+  }).join('');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Absensi - ' + (rapat?rapat.nama:'') + '</title>'
+    + '<style>body{font-family:Arial,sans-serif;color:#111;font-size:13px;}h1{font-size:18px;color:#2563eb;margin:0 0 4px;}table{width:100%;border-collapse:collapse;}th{background:#1e40af;color:#fff;padding:7px 10px;text-align:left;font-size:11px;}@media print{button{display:none}}</style>'
+    + '</head><body>'
+    + '<div style="text-align:center;border-bottom:2px solid #2563eb;padding-bottom:12px;margin-bottom:18px;">'
+    + '<h1>DAFTAR HADIR RAPAT</h1>'
+    + '<p style="font-size:13px;font-weight:700;margin:4px 0;">' + (rapat?rapat.nama:'') + '</p>'
+    + '<p style="font-size:12px;color:#555;margin:2px 0;">' + (rapat?formatTanggal(rapat.tanggal):'') + (rapat&&rapat.waktu?' · '+rapat.waktu:'') + (rapat&&rapat.lokasi?' · '+rapat.lokasi:'') + '</p>'
+    + '<p style="font-size:11px;color:#9ca3af;margin-top:6px;">Dicetak: ' + now + '</p>'
+    + '</div>'
+    + '<div style="display:flex;gap:24px;margin-bottom:16px;font-size:13px;">'
+    + '<span style="color:#166534;font-weight:700;">✓ Hadir: ' + hadirN + '</span>'
+    + '<span style="color:#854d0e;font-weight:700;">~ Izin: ' + izinN + '</span>'
+    + '<span style="color:#991b1b;font-weight:700;">✗ Alpa: ' + alpaN + '</span>'
+    + '<span style="color:#6b7280;margin-left:auto;">Total: ' + localUsers.length + ' peserta</span>'
+    + '</div>'
+    + '<table><thead><tr><th style="width:40px;">#</th><th>Nama</th><th>Role</th><th style="width:80px;">Status</th><th>Keterangan</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table>'
+    + '<div style="margin-top:40px;display:flex;justify-content:space-around;font-size:12px;color:#6b7280;">'
+    + '<div style="text-align:center;"><div style="border-top:1px solid #374151;width:160px;margin:0 auto 4px;"></div><div>Pimpinan Rapat</div><div style="font-weight:700;color:#111;">' + (rapat&&rapat.pimpinan?rapat.pimpinan:'......................') + '</div></div>'
+    + '<div style="text-align:center;"><div style="border-top:1px solid #374151;width:160px;margin:0 auto 4px;"></div><div>Notulen</div><div style="font-weight:700;color:#111;">' + (rapat&&rapat.notulen?rapat.notulen:'......................') + '</div></div>'
+    + '</div></body></html>';
+
+  var w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(function(){w.print();}, 400); }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MULTI-RAPAT: WORKSPACE, INVITE, NOTIF, STATUS FLOW
