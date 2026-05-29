@@ -1411,26 +1411,38 @@ function startListeners() {
       localWorkspaces = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
       renderWorkspaceSelector();
       updateWorkspaceDropdown();
+    }, function(e) {
+      console.warn('[NOTULA] Workspaces: ' + e.message);
+      // Jika permission error, tetap render selector kosong
+      renderWorkspaceSelector();
+      updateWorkspaceDropdown();
     })
   );
   // Personal notifications listener
+  // Gunakan query sederhana dulu (tanpa orderBy) untuk hindari missing index error
   unsubListeners.push(
     db.collection('notifikasi')
       .where('toUid', '==', currentUser.uid)
-      .orderBy('createdAt', 'desc')
       .limit(30)
       .onSnapshot(function(snap) {
         var prevCount = localNotifsDocs.filter(function(n){ return !n.read; }).length;
         localNotifsDocs = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+        // Sort client-side by createdAt desc
+        localNotifsDocs.sort(function(a,b){
+          var ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+          var tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+          return tb - ta;
+        });
         var newUnread = localNotifsDocs.filter(function(n){ return !n.read; }).length;
         renderNotifDropdown();
         updateNotifBadge();
-        // Pop toast for brand new notif
         if (!isFirstNotifLoad && newUnread > prevCount) {
           var newest = localNotifsDocs[0];
           if (newest && !newest.read) notify('🔔 ' + newest.pesan, 'info');
         }
         isFirstNotifLoad = false;
+      }, function(e) {
+        console.warn('[NOTULA] Notifikasi listener: ' + e.message);
       })
   );
 }
@@ -2339,7 +2351,7 @@ function saveRapat() {
           if (uid !== currentUser.uid) sendNotif(uid, 'Anda diundang ke rapat: ' + data.nama, 'rapat', editId);
         });
       })
-      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+      .catch(function(e) { notify('Gagal simpan rapat: ' + e.message, 'error'); });
   } else {
     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
     data.createdBy = currentUser.uid;
@@ -2351,12 +2363,19 @@ function saveRapat() {
         closeModal('modal-rapat');
         notify('Rapat baru berhasil dibuat!', 'success');
         logAktivitas('create_rapat', 'Membuat rapat baru: ' + data.nama, data.nama);
-        // Send notif to invited members
+        // Send notif to invited members (silently fail if rules missing)
         anggotaIds.forEach(function(uid) {
           if (uid !== currentUser.uid) sendNotif(uid, 'Anda diundang ke rapat: ' + data.nama, 'rapat', ref.id);
         });
       })
-      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+      .catch(function(e) {
+        if (e.code === 'permission-denied' || (e.message && e.message.toLowerCase().indexOf('permission') >= 0)) {
+          notify('⚠ Perlu update Firestore Rules untuk fitur baru. Lihat panduan.', 'error');
+          showFirestoreRulesHint();
+        } else {
+          notify('Gagal: ' + e.message, 'error');
+        }
+      });
   }
 }
 
@@ -3089,17 +3108,26 @@ function saveWorkspace() {
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   var editId = document.getElementById('mw-id').value;
+
+  function handlePermError(e) {
+    if (e.code === 'permission-denied' || (e.message && e.message.toLowerCase().indexOf('permission') >= 0)) {
+      notify('⚠ Perlu update Firestore Rules. Lihat panduan di bawah.', 'error');
+      showFirestoreRulesHint();
+    } else {
+      notify('Gagal: ' + e.message, 'error');
+    }
+  }
+
   if (editId) {
     db.collection('workspaces').doc(editId).update(data)
       .then(function() {
         closeModal('modal-workspace');
         notify('Tim diperbarui!', 'success');
-        // Notify new members
         anggotaIds.forEach(function(uid) {
           if (uid !== currentUser.uid) sendNotif(uid, 'Anda ditambahkan ke tim: ' + data.nama, 'workspace', editId);
         });
       })
-      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+      .catch(handlePermError);
   } else {
     db.collection('workspaces').add(data)
       .then(function(ref) {
@@ -3109,8 +3137,33 @@ function saveWorkspace() {
           if (uid !== currentUser.uid) sendNotif(uid, 'Anda ditambahkan ke tim: ' + data.nama, 'workspace', ref.id);
         });
       })
-      .catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+      .catch(handlePermError);
   }
+}
+
+function showFirestoreRulesHint() {
+  // Remove old hint if exists
+  var old = document.getElementById('rules-hint-panel');
+  if (old) { old.remove(); return; }
+  var panel = document.createElement('div');
+  panel.id = 'rules-hint-panel';
+  panel.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--bg2);border-top:2px solid var(--yellow);border-radius:16px 16px 0 0;padding:0;box-shadow:0 -8px 40px rgba(0,0,0,0.6);max-height:80vh;overflow-y:auto;animation:slideUpPanel .3s ease;';
+  panel.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 14px;border-bottom:1px solid var(--border);">'    + '<div style="font-size:15px;font-weight:700;color:var(--yellow);">⚠ Perlu Update Firestore Security Rules</div>'    + '<button onclick="document.getElementById('rules-hint-panel').remove()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:18px;">×</button>'    + '</div>'    + '<div style="padding:16px 20px 24px;">'    + '<p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">Collection <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;">workspaces</code> dan <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;">notifikasi</code> belum ada izinnya di Firestore Rules.<br>Ikuti langkah berikut:</p>'    + '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;">'    + '<div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px;letter-spacing:1px;">LANGKAH-LANGKAH:</div>'    + '<div style="font-size:12.5px;color:var(--text2);line-height:2;">'    + '1. Buka <a href="https://console.firebase.google.com/project/notulax-1/firestore/rules" target="_blank" style="color:var(--accent);">Firebase Console → Firestore → Rules</a><br>'    + '2. Tambahkan rules berikut (sebelum tanda <code>}</code> penutup):<br></div>'    + '<pre style="background:var(--bg4,#0a0c14);border:1px solid var(--border2);border-radius:6px;padding:12px;font-size:11.5px;overflow-x:auto;color:#a8d8a8;line-height:1.7;margin-top:8px;">match /workspaces/{docId} {
+  allow read: if request.auth != null;
+  allow create: if request.auth != null;
+  allow update, delete: if request.auth != null
+    && (resource.data.createdBy == request.auth.uid
+        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+}
+
+match /notifikasi/{docId} {
+  allow read: if request.auth != null
+    && resource.data.toUid == request.auth.uid;
+  allow create: if request.auth != null;
+  allow update: if request.auth != null
+    && resource.data.toUid == request.auth.uid;
+}</pre>'    + '</div>'    + '<div style="background:rgba(91,138,240,0.08);border:1px solid rgba(91,138,240,0.2);border-radius:8px;padding:12px;font-size:12px;color:var(--text3);">'    + '💡 Setelah publish rules, refresh halaman dan coba lagi. Fitur Tim & Notifikasi akan langsung berfungsi.'    + '</div></div>';
+  document.body.appendChild(panel);
 }
 
 // ── INVITE HELPERS ──
