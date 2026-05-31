@@ -7573,6 +7573,45 @@ document.addEventListener("DOMContentLoaded", () => {
   .wa-btn-send { background: linear-gradient(135deg, #25D366, #128C7E); border: none; color: #fff; padding: 9px 18px; border-radius: 8px; font-family: inherit; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
   .wa-btn-send:hover { filter: brightness(1.08); }
   .wa-count-info { font-size: 0.78rem; color: #128C7E; font-weight: 600; margin-top: 6px; }
+
+  /* ===== PANEL ANTRIAN KIRIM WA ===== */
+  .wa-tools-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .wa-tool-btn {
+    flex: 1; min-width: 130px; background: #f1f5f9; border: 1px solid #e2e8f0; color: #334155;
+    padding: 9px 12px; border-radius: 8px; font-family: inherit; font-weight: 600; font-size: 0.82rem;
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; transition: .15s;
+  }
+  .wa-tool-btn:hover { background: #e2e8f0; }
+  .wa-tool-btn.group { background: #dcfce7; border-color: #bbf7d0; color: #128C7E; }
+  .wa-tool-btn.group:hover { background: #bbf7d0; }
+
+  .wa-queue { margin-top: 14px; border-top: 1px dashed #e2e8f0; padding-top: 14px; display: none; }
+  .wa-queue.active { display: block; }
+  .wa-queue-title { font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .wa-queue-progress { font-size: 0.76rem; color: #128C7E; font-weight: 600; margin-bottom: 10px; }
+  .wa-queue-list { display: flex; flex-direction: column; gap: 7px; max-height: 230px; overflow-y: auto; }
+  .wa-q-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+    border: 1px solid #e2e8f0; border-radius: 9px; background: #fff; transition: .2s;
+  }
+  .wa-q-row.sent { background: #f0fdf4; border-color: #bbf7d0; }
+  .wa-q-num { font-weight: 600; color: #334155; font-size: 0.86rem; flex-shrink: 0; }
+  .wa-q-status { font-size: 0.74rem; color: #94a3b8; margin-left: auto; flex-shrink: 0; font-weight: 600; }
+  .wa-q-row.sent .wa-q-status { color: #16a34a; }
+  .wa-q-send {
+    background: linear-gradient(135deg, #25D366, #128C7E); border: none; color: #fff;
+    padding: 7px 14px; border-radius: 7px; font-family: inherit; font-weight: 700; font-size: 0.8rem;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; transition: .15s;
+  }
+  .wa-q-send:hover { filter: brightness(1.08); }
+  .wa-q-row.sent .wa-q-send { background: #94a3b8; }
+  .wa-q-send.resend { background: #64748b; }
+  .wa-group-note {
+    margin-top: 10px; font-size: 0.78rem; color: #475569; background: #f8fafc;
+    border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; line-height: 1.5; display: none;
+  }
+  .wa-group-note.active { display: block; }
+  .wa-group-note b { color: #128C7E; }
 </style>
 
 <script>
@@ -7622,11 +7661,15 @@ document.addEventListener("DOMContentLoaded", () => {
         window.open(url, '_blank');
     };
 
-    // 2b. API: WhatsApp Multi-Recipient (Kirim ke banyak nomor sekaligus)
-    // Catatan: WhatsApp tidak mendukung 1 link untuk banyak nomor,
-    // jadi tiap nomor dibuka berurutan dengan jeda agar tidak diblokir popup.
-    window.sendToWhatsAppMultiple = function(phones, message, delayMs) {
-        // Normalisasi input menjadi array nomor yang bersih & unik
+    // 2b. Helper: Normalisasi daftar nomor (bersih, format 62, unik)
+    // Catatan penting: WhatsApp TIDAK menyediakan API publik untuk
+    // (1) mengirim 1 link ke banyak nomor sekaligus, atau
+    // (2) membuat grup + memasukkan anggota secara otomatis dari web/link.
+    // Hal itu hanya bisa lewat WhatsApp Business API (server, berbayar).
+    // Karena itu pendekatan paling andal di sisi browser adalah ANTRIAN:
+    // tiap nomor dikirim lewat klik tombol langsung (tidak diblokir popup),
+    // ditambah opsi SALIN NOMOR + BUKA GRUP BARU untuk pembuatan grup manual.
+    window.normalizeWaList = function(phones) {
         if (typeof phones === 'string') {
             phones = phones.split(/[\n,;]+/);
         }
@@ -7637,36 +7680,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 return c;
             })
             .filter(function(c) { return c.length >= 8; });
-
         // Hilangkan duplikat
-        cleanList = cleanList.filter(function(v, i, a) { return a.indexOf(v) === i; });
+        return cleanList.filter(function(v, i, a) { return a.indexOf(v) === i; });
+    };
 
-        if (cleanList.length === 0) {
-            alert('Tidak ada nomor WhatsApp yang valid. Periksa kembali format nomor Anda.');
-            return;
-        }
-
+    // 2b-ii. Buka 1 chat WA (dipakai oleh tombol antrian — selalu hasil klik user)
+    window.openWaChat = function(cleanPhone, message) {
         let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        let gap = (typeof delayMs === 'number' && delayMs > 0) ? delayMs : 1500;
+        let url = isMobile
+            ? `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`
+            : `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    };
 
-        // Di HP, mengirim ke banyak nomor sekaligus sulit (aplikasi WA hanya
-        // bisa fokus 1 chat). Beri tahu user dan kirim satu per satu manual-friendly.
-        cleanList.forEach(function(cleanPhone, index) {
-            setTimeout(function() {
-                let url = isMobile
-                    ? `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`
-                    : `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
-                window.open(url, '_blank');
-            }, index * gap);
-        });
-
-        // Info ringkas ke user
-        if (cleanList.length > 1) {
-            setTimeout(function() {
-                alert('Membuka ' + cleanList.length + ' chat WhatsApp secara berurutan.\n\n' +
-                      'Jika ada tab yang tidak terbuka, izinkan pop-up untuk situs ini, lalu kirim ulang.\n' +
-                      'Di HP, kirim pesan ke satu nomor lalu kembali ke aplikasi untuk nomor berikutnya.');
-            }, 300);
+    // 2b-iii. (Kompatibilitas) Fungsi lama tetap ada bila dipanggil di tempat lain.
+    window.sendToWhatsAppMultiple = function(phones, message) {
+        let list = window.normalizeWaList(phones);
+        if (list.length === 0) { alert('Tidak ada nomor WhatsApp yang valid.'); return; }
+        // Alihkan ke modal antrian agar tidak diblokir popup.
+        if (typeof window.openWaQueue === 'function') {
+            window.openWaQueue(list, message);
+        } else {
+            window.openWaChat(list[0], message);
         }
     };
     // 2c. Helper: Ambil daftar PIC dari tugas pada rapat aktif
@@ -7724,9 +7759,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 '<div class="wa-pic-list" id="waPicList"></div>' +
                 '<label>Isi Pesan</label>' +
                 '<textarea id="waMessage" rows="4">Halo! Ada tugas/rapat baru dari sistem Notula yang membutuhkan perhatian Anda. Mohon segera dicek. Terima kasih!</textarea>' +
+                // Alat bantu untuk pembuatan grup manual
+                '<div class="wa-tools-row">' +
+                  '<button class="wa-tool-btn" id="waCopyBtn"><i class="fas fa-copy"></i> Salin Semua Nomor</button>' +
+                  '<button class="wa-tool-btn group" id="waGroupBtn"><i class="fas fa-users"></i> Buat Grup Baru</button>' +
+                '</div>' +
+                '<div class="wa-group-note" id="waGroupNote"></div>' +
+                // Panel antrian pengiriman per-nomor (anti-blokir popup)
+                '<div class="wa-queue" id="waQueue">' +
+                  '<div class="wa-queue-title"><i class="fab fa-whatsapp" style="color:#25D366"></i> Antrian Pengiriman</div>' +
+                  '<div class="wa-queue-progress" id="waQueueProgress"></div>' +
+                  '<div class="wa-queue-list" id="waQueueList"></div>' +
+                '</div>' +
               '</div>' +
               '<div class="wa-modal-foot">' +
-                '<button class="wa-btn-cancel" id="waCancelBtn">Batal</button>' +
+                '<button class="wa-btn-cancel" id="waCancelBtn">Tutup</button>' +
                 '<button class="wa-btn-send" id="waSendBtn"><i class="fab fa-whatsapp"></i> Kirim</button>' +
               '</div>' +
             '</div>';
@@ -7794,21 +7841,131 @@ document.addEventListener("DOMContentLoaded", () => {
             if (preNums.length) { phonesEl.value = preNums.join(', '); updateCount(); }
         };
 
-        // Kirim
+        // Kirim -> bangun ANTRIAN (klik per nomor agar tidak diblokir popup)
+        let queueEl = overlay.querySelector('#waQueue');
+        let queueListEl = overlay.querySelector('#waQueueList');
+        let queueProgEl = overlay.querySelector('#waQueueProgress');
+        let groupNoteEl = overlay.querySelector('#waGroupNote');
+
+        function getCurrentMsg() {
+            return overlay.querySelector('#waMessage').value.trim();
+        }
+        function getCurrentList() {
+            return window.normalizeWaList(phonesEl.value.trim());
+        }
+        function fmtDisplay(num) {
+            // 6281234567890 -> +62 812-3456-7890 (tampilan saja)
+            return '+' + num;
+        }
+        function updateProgress() {
+            let total = queueListEl.querySelectorAll('.wa-q-row').length;
+            let sent = queueListEl.querySelectorAll('.wa-q-row.sent').length;
+            queueProgEl.textContent = total
+                ? (sent + ' dari ' + total + ' nomor sudah dibuka' + (sent === total ? ' \u2705 selesai!' : ''))
+                : '';
+        }
+
+        // Bangun & tampilkan antrian dari daftar nomor + pesan
+        function buildQueue(list, msg) {
+            queueListEl.innerHTML = '';
+            list.forEach(function(num) {
+                let row = document.createElement('div');
+                row.className = 'wa-q-row';
+                row.dataset.num = num;
+                row.innerHTML =
+                    '<span class="wa-q-num">' + fmtDisplay(num) + '</span>' +
+                    '<button class="wa-q-send"><i class="fab fa-whatsapp"></i> Kirim</button>' +
+                    '<span class="wa-q-status">belum</span>';
+                let btn = row.querySelector('.wa-q-send');
+                btn.addEventListener('click', function() {
+                    // Klik langsung user -> window.open tidak diblokir
+                    window.openWaChat(num, getCurrentMsg());
+                    row.classList.add('sent');
+                    row.querySelector('.wa-q-status').textContent = 'terkirim';
+                    btn.classList.add('resend');
+                    btn.innerHTML = '<i class="fas fa-rotate-right"></i> Ulang';
+                    updateProgress();
+                });
+                queueListEl.appendChild(row);
+            });
+            queueEl.classList.add('active');
+            updateProgress();
+        }
+        // Expose agar bisa dipanggil dari fungsi global lain
+        window.openWaQueue = function(list, msg) {
+            if (overlay.querySelector('#waMessage').value.trim() === '' && msg) {
+                overlay.querySelector('#waMessage').value = msg;
+            }
+            buildQueue(list, msg || getCurrentMsg());
+            queueEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
+
         overlay.querySelector('#waSendBtn').onclick = function() {
             let phones = phonesEl.value.trim();
-            let msg = overlay.querySelector('#waMessage').value.trim();
+            let msg = getCurrentMsg();
             if (!phones) { alert('Mohon isi minimal satu nomor WhatsApp.'); return; }
             if (!msg) { alert('Mohon isi pesan yang akan dikirim.'); return; }
 
-            let count = phones.split(/[\n,;]+/).filter(function(s){ return s.replace(/\D/g,'').length >= 8; }).length;
-            closeModal();
-            if (count > 1) {
-                window.sendToWhatsAppMultiple(phones, msg);
+            let list = getCurrentList();
+            if (list.length === 0) { alert('Tidak ada nomor WhatsApp yang valid.'); return; }
+
+            if (list.length === 1) {
+                // 1 nomor: langsung buka (klik user -> tidak diblokir)
+                window.openWaChat(list[0], msg);
             } else {
-                // Tetap memakai fungsi lama untuk 1 nomor (fitur lama tidak diubah)
-                window.sendToWhatsApp(phones, msg);
+                // Banyak nomor: tampilkan antrian, kirim per klik
+                buildQueue(list, msg);
             }
+        };
+
+        // Salin semua nomor (untuk paste saat bikin grup manual)
+        overlay.querySelector('#waCopyBtn').onclick = function() {
+            let list = getCurrentList();
+            if (list.length === 0) { alert('Belum ada nomor valid untuk disalin.'); return; }
+            let text = list.map(function(n){ return '+' + n; }).join('\n');
+            let done = function() {
+                let b = overlay.querySelector('#waCopyBtn');
+                let old = b.innerHTML;
+                b.innerHTML = '<i class="fas fa-check"></i> Tersalin (' + list.length + ')';
+                setTimeout(function(){ b.innerHTML = old; }, 1800);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done, function(){ fallbackCopy(text); done(); });
+            } else { fallbackCopy(text); done(); }
+        };
+
+        function fallbackCopy(text) {
+            let ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta);
+        }
+
+        // Buat grup baru (panduan manual + buka WA, karena WA tak izinkan otomatis)
+        overlay.querySelector('#waGroupBtn').onclick = function() {
+            let list = getCurrentList();
+            if (list.length < 2) { alert('Untuk grup, isi minimal 2 nomor terlebih dulu.'); return; }
+            let numsText = list.map(function(n){ return '+' + n; }).join('\n');
+            let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+            // Salin nomor otomatis supaya tinggal paste/cari di WA
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(numsText).catch(function(){ fallbackCopy(numsText); });
+            } else { fallbackCopy(numsText); }
+
+            groupNoteEl.innerHTML =
+                '<b>' + list.length + ' nomor</b> sudah disalin ke clipboard. Langkah membuat grup:' +
+                '<br>1. WhatsApp akan dibuka di tab/aplikasi.' +
+                '<br>2. Pilih menu <b>Grup Baru</b>.' +
+                '<br>3. Tambahkan anggota — nomor sudah tersalin, tinggal cari satu per satu (' + numsText.replace(/\n/g, ', ') + ').' +
+                '<br>4. Beri nama grup, lalu kirim pesan Anda di sana.' +
+                '<br><i style="color:#94a3b8">Catatan: WhatsApp tidak mengizinkan pembuatan grup &amp; penambahan anggota otomatis lewat link demi alasan keamanan, jadi langkah ini dibantu semi-otomatis.</i>';
+            groupNoteEl.classList.add('active');
+
+            let waUrl = isMobile ? 'whatsapp://' : 'https://web.whatsapp.com/';
+            window.open(waUrl, '_blank');
+            groupNoteEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         };
     }
 
@@ -7830,6 +7987,11 @@ document.addEventListener("DOMContentLoaded", () => {
         picList.innerHTML = '';
         picList.classList.remove('active');
         overlay.querySelector('#waMessage').value = 'Halo! Ada tugas/rapat baru dari sistem Notula yang membutuhkan perhatian Anda. Mohon segera dicek. Terima kasih!';
+        // Reset panel antrian & catatan grup
+        let q = overlay.querySelector('#waQueue');
+        if (q) { q.classList.remove('active'); overlay.querySelector('#waQueueList').innerHTML = ''; overlay.querySelector('#waQueueProgress').textContent = ''; }
+        let gn = overlay.querySelector('#waGroupNote');
+        if (gn) { gn.classList.remove('active'); gn.innerHTML = ''; }
         overlay.classList.add('active');
         setTimeout(function(){ overlay.querySelector('#waPhones').focus(); }, 50);
     }
