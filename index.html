@@ -3787,15 +3787,20 @@
       });
 
       document.getElementById('saveCommentBtn').addEventListener('click', async () => {
+        console.log('[Komentar] Tombol kirim diklik. State:', {
+          meetingId: _commentMeetingId, sectionId: _commentSectionId, taskId: _commentTaskId,
+          editingId: _editingCommentId, jumlahMeetings: meetings.length
+        });
         const text = document.getElementById('commentTextInput').value.trim();
-        if (!text) return alert('Tulis komentar terlebih dahulu.');
+        if (!text) { console.warn('[Komentar] Berhenti: teks kosong.'); return alert('Tulis komentar terlebih dahulu.'); }
 
         const meeting = meetings.find(m => m.id === _commentMeetingId);
-        if (!meeting) return;
+        if (!meeting) { console.warn('[Komentar] Berhenti: meeting tidak ditemukan untuk id', _commentMeetingId); return; }
         const section = meeting.sections?.find(s => s.id === _commentSectionId);
-        if (!section) return;
+        if (!section) { console.warn('[Komentar] Berhenti: section tidak ditemukan untuk id', _commentSectionId); return; }
         const task = section.tasks?.find(t => t.id === _commentTaskId);
-        if (!task) return;
+        if (!task) { console.warn('[Komentar] Berhenti: task tidak ditemukan untuk id', _commentTaskId); return; }
+        console.log('[Komentar] meeting/section/task ditemukan, lanjut menyimpan...');
 
         const btn = document.getElementById('saveCommentBtn');
         const isEditing = _editingCommentId !== null;
@@ -3814,7 +3819,8 @@
             if (cardEl) cardEl.outerHTML = renderSectionCard(_commentMeetingId, section);
             window.openCommentModal(_commentMeetingId, _commentSectionId, _commentTaskId);
           } catch (err) {
-            alert('Gagal menyimpan perubahan: ' + err.message);
+            console.error('[Komentar] Gagal menyimpan perubahan:', err);
+            alert('Gagal menyimpan perubahan: ' + (err.code ? '[' + err.code + '] ' : '') + err.message);
           } finally {
             btn.disabled = false;
             btn.innerHTML = _editingCommentId !== null
@@ -3844,7 +3850,8 @@
           // Re-render komentar di modal
           window.openCommentModal(_commentMeetingId, _commentSectionId, _commentTaskId);
         } catch(err) {
-          alert('Gagal mengirim komentar: ' + err.message);
+          console.error('[Komentar] Gagal mengirim komentar:', err);
+          alert('Gagal mengirim komentar: ' + (err.code ? '[' + err.code + '] ' : '') + err.message);
         } finally {
           btn.disabled = false;
           btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Komentar';
