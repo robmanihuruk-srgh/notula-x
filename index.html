@@ -3643,7 +3643,6 @@
       // FITUR KOMENTAR / DISKUSI LINTAS SEKSI
       // =====================================================
       let _commentMeetingId = null, _commentSectionId = null, _commentTaskId = null;
-      let _editingCommentIndex = null; // null = mode tambah baru; angka = mode edit komentar ke-index
 
       // Boleh mengelola (edit/hapus) komentar tertentu:
       // admin, pembuat rapat, atau pemilik komentar itu sendiri
@@ -3666,16 +3665,19 @@
         if (cardEl) cardEl.outerHTML = renderSectionCard(_commentMeetingId, section);
       }
 
+      let _editingCommentId = null; // id komentar yang sedang diedit
+
       // Masuk ke mode edit: isi textarea dengan teks komentar dan ubah label tombol
-      window.startEditComment = function(idx) {
+      window.startEditComment = function(commentId) {
         const meeting = meetings.find(m => m.id === _commentMeetingId);
         const section = meeting?.sections?.find(s => s.id === _commentSectionId);
         const task = section?.tasks?.find(t => t.id === _commentTaskId);
-        if (!task || !task.comments || !task.comments[idx]) return;
-        const comment = task.comments[idx];
+        if (!task || !task.comments) return;
+        const comment = task.comments.find(c => c.id === commentId);
+        if (!comment) return;
         if (!canManageComment(meeting, comment)) return alert('Anda tidak punya izin untuk mengedit komentar ini.');
 
-        _editingCommentIndex = idx;
+        _editingCommentId = commentId;
         const input = document.getElementById('commentTextInput');
         input.value = comment.text;
         input.focus();
@@ -3686,25 +3688,27 @@
 
       // Batalkan mode edit, kembali ke mode tambah komentar baru
       window.cancelEditComment = function() {
-        _editingCommentIndex = null;
+        _editingCommentId = null;
         document.getElementById('commentTextInput').value = '';
         const btn = document.getElementById('saveCommentBtn');
         btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Komentar';
         document.getElementById('cancelEditCommentBtn').style.display = 'none';
       };
 
-      // Hapus komentar ke-idx
-      window.deleteComment = async function(idx) {
+      // Hapus komentar berdasarkan id
+      window.deleteComment = async function(commentId) {
         const meeting = meetings.find(m => m.id === _commentMeetingId);
         if (!meeting) return;
         const section = meeting.sections?.find(s => s.id === _commentSectionId);
         if (!section) return;
         const task = section.tasks?.find(t => t.id === _commentTaskId);
-        if (!task || !task.comments || !task.comments[idx]) return;
-        if (!canManageComment(meeting, task.comments[idx])) return alert('Anda tidak punya izin untuk menghapus komentar ini.');
+        if (!task || !task.comments) return;
+        const pos = task.comments.findIndex(c => c.id === commentId);
+        if (pos === -1) return;
+        if (!canManageComment(meeting, task.comments[pos])) return alert('Anda tidak punya izin untuk menghapus komentar ini.');
         if (!confirm('Hapus komentar ini? Tindakan ini tidak dapat dibatalkan.')) return;
 
-        task.comments.splice(idx, 1);
+        task.comments.splice(pos, 1);
         try {
           await persistCommentsChange();
         } catch (err) {
@@ -3734,27 +3738,29 @@
         list.innerHTML = '';
         if (task.comments && task.comments.length > 0) {
           task.comments.forEach((c, idx) => {
+            // Pastikan setiap komentar punya id stabil (komentar lama mungkin belum punya)
+            if (!c.id) c.id = 'legacy_' + idx + '_' + (c.time || '') + '_' + (c.user || '');
             const canManage = canManageComment(meeting, c);
             const div = document.createElement('div');
             div.style.cssText = 'background:#f1f5ff; border-radius:8px; padding:8px 12px; font-size:0.875rem;';
             const editedTag = c.editedAt ? ` <span style="color:#94a3b8; font-style:italic; font-size:0.72rem;">(diedit)</span>` : '';
             const actionsHtml = canManage
               ? `<span style="float:right; display:flex; gap:6px;">
-                   <button title="Edit komentar" data-cmt-edit="${idx}" style="background:transparent; border:none; color:#6366f1; cursor:pointer; font-size:0.8rem; padding:2px;"><i class="fas fa-pencil-alt"></i></button>
-                   <button title="Hapus komentar" data-cmt-del="${idx}" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:0.8rem; padding:2px;"><i class="fas fa-trash"></i></button>
+                   <button title="Edit komentar" data-cmt-edit="${escapeHtml(c.id)}" style="background:transparent; border:none; color:#6366f1; cursor:pointer; font-size:0.8rem; padding:2px;"><i class="fas fa-pencil-alt"></i></button>
+                   <button title="Hapus komentar" data-cmt-del="${escapeHtml(c.id)}" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:0.8rem; padding:2px;"><i class="fas fa-trash"></i></button>
                  </span>`
               : '';
             div.innerHTML = `${actionsHtml}<span style="font-weight:600; color:#3730a3;">${escapeHtml(c.user)}</span>
               <span style="color:#94a3b8; margin-left:8px; font-size:0.75rem;">${c.time ? new Date(c.time).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</span>${editedTag}
-              <div style="margin-top:4px; color:#334155;" data-cmt-text="${idx}">${escapeHtml(c.text)}</div>`;
+              <div style="margin-top:4px; color:#334155;">${escapeHtml(c.text)}</div>`;
             list.appendChild(div);
           });
-          // Pasang handler edit/hapus
+          // Pasang handler edit/hapus (berbasis id komentar, bukan indeks)
           list.querySelectorAll('[data-cmt-edit]').forEach(btn => {
-            btn.addEventListener('click', () => startEditComment(parseInt(btn.dataset.cmtEdit, 10)));
+            btn.addEventListener('click', () => startEditComment(btn.dataset.cmtEdit));
           });
           list.querySelectorAll('[data-cmt-del]').forEach(btn => {
-            btn.addEventListener('click', () => deleteComment(parseInt(btn.dataset.cmtDel, 10)));
+            btn.addEventListener('click', () => deleteComment(btn.dataset.cmtDel));
           });
           list.scrollTop = list.scrollHeight;
         } else {
@@ -3762,7 +3768,7 @@
         }
 
         // Reset ke mode tambah komentar baru setiap kali modal dirender
-        _editingCommentIndex = null;
+        _editingCommentId = null;
         document.getElementById('commentTextInput').value = '';
         const _saveBtn = document.getElementById('saveCommentBtn');
         if (_saveBtn) _saveBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Komentar';
@@ -3792,11 +3798,11 @@
         if (!task) return;
 
         const btn = document.getElementById('saveCommentBtn');
-        const isEditing = _editingCommentIndex !== null;
+        const isEditing = _editingCommentId !== null;
 
         // Mode edit komentar yang sudah ada
         if (isEditing) {
-          const comment = task.comments && task.comments[_editingCommentIndex];
+          const comment = task.comments && task.comments.find(c => c.id === _editingCommentId);
           if (!comment) { window.cancelEditComment(); return; }
           if (!canManageComment(meeting, comment)) return alert('Anda tidak punya izin untuk mengedit komentar ini.');
           comment.text = text;
