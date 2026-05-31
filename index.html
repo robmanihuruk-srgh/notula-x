@@ -3807,12 +3807,19 @@
           if (!canManageComment(meeting, comment)) return alert('Anda tidak punya izin untuk mengedit komentar ini.');
           comment.text = text;
           comment.editedAt = new Date().toISOString();
+          btn.disabled = true; btn.innerText = 'Menyimpan...';
           try {
-            btn.disabled = true; btn.innerText = 'Menyimpan...';
-            await persistCommentsChange();
+            await db.collection('meetings').doc(_commentMeetingId).update({ sections: meeting.sections });
+            const cardEl = document.getElementById(`section-card-${_commentSectionId}`);
+            if (cardEl) cardEl.outerHTML = renderSectionCard(_commentMeetingId, section);
+            window.openCommentModal(_commentMeetingId, _commentSectionId, _commentTaskId);
           } catch (err) {
             alert('Gagal menyimpan perubahan: ' + err.message);
-            btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Simpan Perubahan';
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = _editingCommentId !== null
+              ? '<i class="fas fa-save"></i> Simpan Perubahan'
+              : '<i class="fas fa-paper-plane"></i> Kirim Komentar';
           }
           return;
         }
@@ -3828,19 +3835,19 @@
         if (!task.comments) task.comments = [];
         task.comments.push(newComment);
 
+        btn.disabled = true; btn.innerText = 'Mengirim...';
         try {
-          btn.disabled = true; btn.innerText = 'Mengirim...';
           await db.collection('meetings').doc(_commentMeetingId).update({ sections: meeting.sections });
-          // Re-render komentar di modal
-          window.openCommentModal(_commentMeetingId, _commentSectionId, _commentTaskId);
-          btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Komentar';
           // Re-render kartu seksi agar komentar muncul
           const cardEl = document.getElementById(`section-card-${_commentSectionId}`);
           if (cardEl) cardEl.outerHTML = renderSectionCard(_commentMeetingId, section);
+          // Re-render komentar di modal
+          window.openCommentModal(_commentMeetingId, _commentSectionId, _commentTaskId);
         } catch(err) {
           alert('Gagal mengirim komentar: ' + err.message);
-          document.getElementById('saveCommentBtn').disabled = false;
-          document.getElementById('saveCommentBtn').innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Komentar';
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Komentar';
         }
       });
 
