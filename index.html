@@ -2646,6 +2646,26 @@
               items.forEach(item => {
                   listHtml += `<li><strong><i class="fas fa-wallet" style="color:${item.color}; margin-right:4px;"></i> ${escapeHtml(item.name)}</strong> <span style="font-weight:700; color:${item.color};">${formatRupiah(item.amount)}</span></li>`;
               });
+          } else if (['selesai','berlangsung','rencana','kendala'].includes(statType)) {
+              // Tampilkan daftar tugas per seksi (selesai / berlangsung / rencana / kendala)
+              const statusColorMap = { selesai: '#1e7e34', berlangsung: '#b07d00', rencana: '#0c5460', kendala: '#dc3545' };
+              const accent = statusColorMap[statType] || 'var(--color-primary)';
+              items.forEach(item => {
+                listHtml += `<li style="flex-direction: column; align-items: stretch; gap: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">`;
+                listHtml += `<div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-weight:600; color:var(--color-secondary);"><span>${escapeHtml(item.name)}</span> <span style="font-size:0.8rem; color:${accent}; font-weight:600;">${item.count} tugas</span></div>`;
+                if (item.tasks && item.tasks.length > 0) {
+                  listHtml += `<ul style="list-style:none; padding-left:0; margin-top:2px;">`;
+                  item.tasks.forEach(t => {
+                    const picStr = t.pic ? ` <span style="color:#94a3b8; font-size:0.72rem;">(${escapeHtml(t.pic)})</span>` : '';
+                    const progStr = (statType === 'berlangsung' && typeof t.progress === 'number') ? ` <span style="color:${accent}; font-size:0.72rem; font-weight:600;">${t.progress}%</span>` : '';
+                    listHtml += `<li style="border-bottom:none; padding:3px 0; display:block; font-size:0.82rem; color:var(--color-text);"><i class="fas fa-caret-right" style="color:${accent}; margin-right:6px;"></i>${escapeHtml(t.desc)}${progStr}${picStr}</li>`;
+                  });
+                  listHtml += `</ul>`;
+                } else {
+                  listHtml += `<div style="font-size:0.78rem; color:var(--color-text-light); font-style:italic; padding-left:2px;">Belum ada tugas.</div>`;
+                }
+                listHtml += `</li>`;
+              });
           } else {
               items.forEach(item => {
                 let suffix = statType === 'avg-progress' ? '' : 'tugas';
@@ -2704,6 +2724,12 @@
         let outcomeDetails = [];
         let incomeDetails = [];
 
+        // Daftar tugas per seksi per status (untuk tooltip)
+        let selesaiTasksBySection = {};
+        let berlangsungTasksBySection = {};
+        let rencanaTasksBySection = {};
+        let kendalaTasksBySection = {};
+
         const seenKendalaKeys = new Set();
 
         if (latestMeeting && latestMeeting.sections) {
@@ -2714,6 +2740,10 @@
             if (!rencanaBySection[section.name]) rencanaBySection[section.name] = 0;
             if (!kendalaBySection[section.name]) kendalaBySection[section.name] = 0;
             if (!progressSumBySection[section.name]) progressSumBySection[section.name] = 0;
+            if (!selesaiTasksBySection[section.name]) selesaiTasksBySection[section.name] = [];
+            if (!berlangsungTasksBySection[section.name]) berlangsungTasksBySection[section.name] = [];
+            if (!rencanaTasksBySection[section.name]) rencanaTasksBySection[section.name] = [];
+            if (!kendalaTasksBySection[section.name]) kendalaTasksBySection[section.name] = [];
             
             let secBudget = Number(section.sectionBudget) || 0;
             let secRealisasi = Number(section.sectionRealisasi) || 0;
@@ -2741,11 +2771,21 @@
               taskCount[task.status] = (taskCount[task.status] || 0) + 1;
               sectionTotals[section.name]++;
               
-              if (task.status === 'selesai') selesaiBySection[section.name]++;
-              else if (task.status === 'berlangsung') berlangsungBySection[section.name]++;
-              else if (task.status === 'rencana') rencanaBySection[section.name]++;
+              if (task.status === 'selesai') {
+                selesaiBySection[section.name]++;
+                selesaiTasksBySection[section.name].push({ desc: task.desc, pic: task.pic || '', progress: task.progress || 0 });
+              }
+              else if (task.status === 'berlangsung') {
+                berlangsungBySection[section.name]++;
+                berlangsungTasksBySection[section.name].push({ desc: task.desc, pic: task.pic || '', progress: task.progress || 0 });
+              }
+              else if (task.status === 'rencana') {
+                rencanaBySection[section.name]++;
+                rencanaTasksBySection[section.name].push({ desc: task.desc, pic: task.pic || '', progress: task.progress || 0 });
+              }
               else if (task.status === 'kendala') {
                 kendalaBySection[section.name]++;
+                kendalaTasksBySection[section.name].push({ desc: task.desc, pic: task.pic || '', progress: task.progress || 0 });
                 const taskKey = task.id ? task.id : task.desc;
                 const key = `${latestMeeting.id}|${section.id}|${taskKey}`;
                 if (!seenKendalaKeys.has(key)) {
@@ -2771,10 +2811,10 @@
 
         const avgProgress = totalTasks ? (totalProgress / totalTasks) : 0;
         const sectionsList = Object.keys(sectionTotals).map(name => ({ name, count: sectionTotals[name] }));
-        const selesaiList = Object.keys(selesaiBySection).map(name => ({ name, count: selesaiBySection[name] }));
-        const berlangsungList = Object.keys(berlangsungBySection).map(name => ({ name, count: berlangsungBySection[name] }));
-        const rencanaList = Object.keys(rencanaBySection).map(name => ({ name, count: rencanaBySection[name] }));
-        const kendalaList = Object.keys(kendalaBySection).map(name => ({ name, count: kendalaBySection[name] }));
+        const selesaiList = Object.keys(selesaiBySection).map(name => ({ name, count: selesaiBySection[name], tasks: selesaiTasksBySection[name] || [] }));
+        const berlangsungList = Object.keys(berlangsungBySection).map(name => ({ name, count: berlangsungBySection[name], tasks: berlangsungTasksBySection[name] || [] }));
+        const rencanaList = Object.keys(rencanaBySection).map(name => ({ name, count: rencanaBySection[name], tasks: rencanaTasksBySection[name] || [] }));
+        const kendalaList = Object.keys(kendalaBySection).map(name => ({ name, count: kendalaBySection[name], tasks: kendalaTasksBySection[name] || [] }));
         
         const avgProgressList = Object.keys(sectionTotals).map(name => {
            const avg = sectionTotals[name] > 0 ? (progressSumBySection[name] / sectionTotals[name]) : 0;
@@ -3111,6 +3151,12 @@
         let outcomeDetails = [];
         let incomeDetails = [];
 
+        // Daftar tugas per seksi per status (untuk tooltip)
+        let selesaiTasksBySection = {};
+        let berlangsungTasksBySection = {};
+        let rencanaTasksBySection = {};
+        let kendalaTasksBySection = {};
+
         sections.forEach(sec => {
           totalBudget += Number(sec.sectionBudget) || 0;
           totalRealisasi += Number(sec.sectionRealisasi) || 0;
@@ -3123,6 +3169,10 @@
           rencanaBySection[sec.name] = 0;
           kendalaBySection[sec.name] = 0;
           progressSumBySection[sec.name] = 0;
+          selesaiTasksBySection[sec.name] = [];
+          berlangsungTasksBySection[sec.name] = [];
+          rencanaTasksBySection[sec.name] = [];
+          kendalaTasksBySection[sec.name] = [];
 
           // Data RAB
           let secBudget = Number(sec.sectionBudget) || 0;
@@ -3147,10 +3197,10 @@
             taskCountByStatus[task.status] = (taskCountByStatus[task.status] || 0) + 1;
             sectionTotals[sec.name]++;
             progressSumBySection[sec.name] += (task.progress || 0);
-            if (task.status === 'selesai') selesaiBySection[sec.name]++;
-            else if (task.status === 'berlangsung') berlangsungBySection[sec.name]++;
-            else if (task.status === 'rencana') rencanaBySection[sec.name]++;
-            else if (task.status === 'kendala') kendalaBySection[sec.name]++;
+            if (task.status === 'selesai') { selesaiBySection[sec.name]++; selesaiTasksBySection[sec.name].push({ desc: task.desc, pic: task.pic || '', progress: task.progress || 0 }); }
+            else if (task.status === 'berlangsung') { berlangsungBySection[sec.name]++; berlangsungTasksBySection[sec.name].push({ desc: task.desc, pic: task.pic || '', progress: task.progress || 0 }); }
+            else if (task.status === 'rencana') { rencanaBySection[sec.name]++; rencanaTasksBySection[sec.name].push({ desc: task.desc, pic: task.pic || '', progress: task.progress || 0 }); }
+            else if (task.status === 'kendala') { kendalaBySection[sec.name]++; kendalaTasksBySection[sec.name].push({ desc: task.desc, pic: task.pic || '', progress: task.progress || 0 }); }
           });
           const avg = sec.tasks.length ? (secSum / sec.tasks.length) : 0;
           sectionProgress.push({ id: sec.id, name: sec.name, progress: avg });
@@ -3172,10 +3222,10 @@
 
         // Siapkan statsData untuk tooltip
         const sectionsList = Object.keys(sectionTotals).map(name => ({ name, count: sectionTotals[name] }));
-        const selesaiList = Object.keys(selesaiBySection).map(name => ({ name, count: selesaiBySection[name] }));
-        const berlangsungList = Object.keys(berlangsungBySection).map(name => ({ name, count: berlangsungBySection[name] }));
-        const rencanaList = Object.keys(rencanaBySection).map(name => ({ name, count: rencanaBySection[name] }));
-        const kendalaList = Object.keys(kendalaBySection).map(name => ({ name, count: kendalaBySection[name] }));
+        const selesaiList = Object.keys(selesaiBySection).map(name => ({ name, count: selesaiBySection[name], tasks: selesaiTasksBySection[name] || [] }));
+        const berlangsungList = Object.keys(berlangsungBySection).map(name => ({ name, count: berlangsungBySection[name], tasks: berlangsungTasksBySection[name] || [] }));
+        const rencanaList = Object.keys(rencanaBySection).map(name => ({ name, count: rencanaBySection[name], tasks: rencanaTasksBySection[name] || [] }));
+        const kendalaList = Object.keys(kendalaBySection).map(name => ({ name, count: kendalaBySection[name], tasks: kendalaTasksBySection[name] || [] }));
         const avgProgressList = Object.keys(sectionTotals).map(name => {
           const avg = sectionTotals[name] > 0 ? (progressSumBySection[name] / sectionTotals[name]) : 0;
           return { name, count: Math.round(avg) + '%' };
