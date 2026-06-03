@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- BUILD:1780030124 -->
+<!DOCTYPE html><!-- BUILD:1780030125 -->
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -4142,7 +4142,7 @@ document.addEventListener('keydown', function(e) {
 // ══════════════════════════════════════════════════
 (function() {
   if (!('serviceWorker' in navigator)) return;
-  var sw = "var C='notula-v3';self.addEventListener('install',function(e){self.skipWaiting();e.waitUntil(caches.open(C).then(function(c){return c.add(self.registration.scope);}).catch(function(){}));});self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!==C;}).map(function(k){return caches.delete(k);}));}));self.clients.claim();});self.addEventListener('fetch',function(e){if(e.request.method!=='GET')return;var u=e.request.url;if(u.indexOf('firebase')>-1||u.indexOf('googleapis')>-1)return;e.respondWith(fetch(e.request).then(function(r){if(r&&r.status===200&&r.type!=='opaque'){var rc=r.clone();caches.open(C).then(function(c){c.put(e.request,rc);});}return r;}).catch(function(){return caches.match(e.request);}));});";
+  var sw = "var C='notula-v4';self.addEventListener('install',function(e){self.skipWaiting();e.waitUntil(caches.open(C).then(function(c){return c.add(self.registration.scope);}).catch(function(){}));});self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!==C;}).map(function(k){return caches.delete(k);}));}));self.clients.claim();});self.addEventListener('fetch',function(e){if(e.request.method!=='GET')return;var u=e.request.url;if(u.indexOf('firebase')>-1||u.indexOf('googleapis')>-1)return;e.respondWith(fetch(e.request).then(function(r){if(r&&r.status===200&&r.type!=='opaque'){var rc=r.clone();caches.open(C).then(function(c){c.put(e.request,rc);});}return r;}).catch(function(){return caches.match(e.request);}));});";
   var blob = new Blob([sw], {type:'text/javascript'});
   navigator.serviceWorker.register(URL.createObjectURL(blob))
     .then(function(r){ console.log('[NOTULA SW] OK scope:',r.scope); })
