@@ -1017,6 +1017,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
         <div class="form-group"><label class="form-label">Pimpinan Rapat</label><input class="form-input" id="mr-pimpinan" placeholder="Nama pimpinan..." /></div>
         <div class="form-group"><label class="form-label">Notulen</label><input class="form-input" id="mr-notulen" placeholder="Nama notulen..." /></div>
       </div>
+      <div class="form-group"><label class="form-label">Peserta</label><textarea class="form-input" id="mr-peserta" rows="2" placeholder="Nama peserta rapat, pisahkan dengan koma..."></textarea></div>
       <!-- INVITE USERS -->
       <div class="form-group">
         <label class="form-label">Undang Anggota ke Rapat</label>
@@ -2356,7 +2357,7 @@ function openModal(id) {
   if (id === 'modal-rapat') {
     if (!document.getElementById('mr-id').value) {
       document.getElementById('mr-title').textContent = 'Rapat Baru';
-      ['mr-nama','mr-waktu','mr-lokasi','mr-pimpinan','mr-notulen','mr-catatan'].forEach(function(f){
+      ['mr-nama','mr-waktu','mr-lokasi','mr-pimpinan','mr-notulen','mr-peserta','mr-catatan'].forEach(function(f){
         var el = document.getElementById(f); if(el) el.value = '';
       });
       document.getElementById('mr-tanggal').value = '';
@@ -2816,6 +2817,7 @@ function saveRapat() {
     workspaceId: document.getElementById('mr-workspace').value || null,
     pimpinan:    document.getElementById('mr-pimpinan').value,
     notulen:     document.getElementById('mr-notulen').value,
+    peserta:     document.getElementById('mr-peserta').value,
     catatan:     document.getElementById('mr-catatan').value,
     anggotaIds:  anggotaIds,
     hari: ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][new Date(tanggal+'T00:00:00').getDay()],
@@ -2874,6 +2876,7 @@ function editRapat(id) {
   setRapatStatus(r.status || 'aktif');
   document.getElementById('mr-pimpinan').value = r.pimpinan|| '';
   document.getElementById('mr-notulen').value  = r.notulen || '';
+  document.getElementById('mr-peserta').value  = r.peserta || '';
   document.getElementById('mr-catatan').value  = r.catatan || '';
   document.getElementById('mr-akses').value    = r.akses   || 'publik';
   document.getElementById('mr-workspace').value = r.workspaceId || '';
