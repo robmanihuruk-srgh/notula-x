@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- BUILD:1780030120 -->
+<!DOCTYPE html><!-- BUILD:1780030121 -->
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -151,6 +151,30 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .tag-red{background:rgba(248,113,113,0.15);color:var(--red);}
 .tag-teal{background:rgba(45,212,191,0.15);color:var(--teal);}
 .tag-gray{background:rgba(139,147,176,0.1);color:var(--text2);}
+
+/* SEKSI KOLABORASI CHECKBOX */
+.seksi-checkbox-box{display:flex;flex-wrap:wrap;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;}
+.seksi-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);font-size:12px;cursor:pointer;user-select:none;transition:all .15s;color:var(--text2);}
+.seksi-chip:hover{border-color:var(--border2);}
+.seksi-chip input{accent-color:var(--teal);cursor:pointer;margin:0;}
+.seksi-chip.checked{background:rgba(45,212,191,0.15);border-color:rgba(45,212,191,0.4);color:var(--teal);font-weight:600;}
+
+/* LAMPIRAN FILE */
+.lampiran-list{display:flex;flex-direction:column;gap:8px;}
+.lampiran-item{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;}
+.lampiran-icon{font-size:18px;flex-shrink:0;}
+.lampiran-info{flex:1;min-width:0;}
+.lampiran-name{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+.lampiran-name:hover{color:var(--accent);text-decoration:underline;}
+.lampiran-meta{font-size:10.5px;color:var(--text3);margin-top:2px;}
+.lampiran-actions{display:flex;gap:4px;flex-shrink:0;}
+.lampiran-actions a,.lampiran-actions button{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;border:none;background:var(--bg3);color:var(--text2);cursor:pointer;font-size:14px;text-decoration:none;transition:all .15s;}
+.lampiran-actions a:hover{background:rgba(91,138,240,0.15);color:var(--accent);}
+.lampiran-actions button:hover{background:rgba(248,113,113,0.15);color:var(--red);}
+.lampiran-row-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
+.lampiran-chip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;padding:3px 9px;border-radius:8px;background:rgba(91,138,240,0.1);color:var(--accent);border:1px solid rgba(91,138,240,0.2);text-decoration:none;cursor:pointer;max-width:200px;}
+.lampiran-chip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lampiran-chip:hover{background:rgba(91,138,240,0.2);}
 .progress-bar-bg{width:90px;height:4px;background:var(--bg3);border-radius:10px;overflow:hidden;}
 .progress-bar-fill{height:100%;border-radius:10px;transition:width .5s;}
 
@@ -472,6 +496,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -952,12 +977,20 @@ input[type=range]{flex:1;accent-color:var(--accent);}
       <input type="hidden" id="ma-rapat-id" /><input type="hidden" id="ma-id" /><input type="hidden" id="ma-mode" value="add" />
       <div class="form-group"><label class="form-label">Topik *</label><input class="form-input" id="ma-topik" placeholder="Nama topik..." /></div>
       <div class="form-group"><label class="form-label">Pembahasan *</label><textarea class="form-textarea" style="min-height:120px;" id="ma-pembahasan" placeholder="Isi pembahasan dan keputusan..."></textarea></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Seksi Terkait</label><select class="form-select" id="ma-seksi"><option value="">— Tidak ada —</option></select></div>
-        <div class="form-group"><label class="form-label">Prioritas</label><select class="form-select" id="ma-prioritas"><option value="">— Pilih —</option><option value="tinggi">🔴 Tinggi</option><option value="sedang">🟡 Sedang</option><option value="rendah">🟢 Rendah</option></select></div>
+      <div class="form-group">
+        <label class="form-label">Seksi Terkait / Kolaborasi <span style="color:var(--text3);font-weight:400;">(boleh lebih dari satu)</span></label>
+        <div id="ma-seksi-box" class="seksi-checkbox-box"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Prioritas</label><select class="form-select" id="ma-prioritas"><option value="">— Pilih —</option><option value="tinggi">🔴 Tinggi</option><option value="sedang">🟡 Sedang</option><option value="rendah">🟢 Rendah</option></select></div>
+      <div class="form-group">
+        <label class="form-label">Lampiran File</label>
+        <div id="ma-lampiran-list" class="lampiran-list"></div>
+        <input type="file" id="ma-file-input" multiple style="display:none;" onchange="handleAgendaFileSelect(event)" />
+        <button type="button" class="btn btn-ghost btn-sm" id="ma-attach-btn" onclick="document.getElementById('ma-file-input').click()" style="margin-top:8px;">📎 Tambah File</button>
+        <div id="ma-upload-status" style="font-size:12px;color:var(--text3);margin-top:8px;"></div>
       </div>
     </div>
-    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-agenda')">Batal</button><button class="btn btn-primary" onclick="saveAgenda()">Simpan</button></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-agenda')">Batal</button><button class="btn btn-primary" id="ma-save-btn" onclick="saveAgenda()">Simpan</button></div>
   </div>
 </div>
 
@@ -1099,6 +1132,7 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var auth = firebase.auth();
 var db   = firebase.firestore();
+var storage = (firebase.storage ? firebase.storage() : null);
 } // end firebase check
 
 // ── CONSTANTS ──
@@ -1786,12 +1820,24 @@ function renderAgendaTab(rid) {
     var actBtn = '';
     if (canEdit) actBtn += '<button class="btn btn-ghost btn-sm btn-icon" onclick="editAgenda(\'' + a.id + '\')" title="Edit">✏</button>';
     if (canDel)  actBtn += '<button class="btn btn-danger btn-sm btn-icon" onclick="delAgenda(\'' + a.id + '\',\'' + rid + '\')" title="Hapus">✕</button>';
+    var seksiArr = getAgendaSeksiList(a);
+    var seksiHtml = seksiArr.length
+      ? seksiArr.map(function(s){ return '<span class="tag tag-teal" style="font-size:10px;margin:0 4px 4px 0;display:inline-block;">' + s + '</span>'; }).join('')
+      : '—';
+    // Chip lampiran (klik membuka file langsung)
+    var lampHtml = '';
+    if (a.lampiran && a.lampiran.length) {
+      lampHtml = '<div class="lampiran-row-chips">' + a.lampiran.map(function(f){
+        return '<a class="lampiran-chip" href="' + encodeURI(f.url) + '" target="_blank" rel="noopener" title="Buka ' + escapeHtml(f.name) + '">'
+          + fileIcon(f.name, f.type) + '<span>' + escapeHtml(f.name) + '</span></a>';
+      }).join('') + '</div>';
+    }
     html += '<tr data-id="' + a.id + '" data-no="' + (a.no||i+1) + '">'
       + (canEdit ? '<td><span class="drag-handle" title="Seret untuk ubah urutan">☰</span></td>' : '')
       + '<td style="font-weight:700;color:var(--text3);font-size:12px;">' + (i+1) + '</td>'
       + '<td style="font-weight:600;padding-right:12px;vertical-align:top;">' + a.topik + '</td>'
-      + '<td style="color:var(--text2);line-height:1.6;">' + (a.pembahasan||'').replace(/\n/g,'<br>') + '</td>'
-      + '<td>' + (a.seksi ? '<span class="tag tag-teal" style="font-size:10px;">' + a.seksi + '</span>' : '—') + '</td>'
+      + '<td style="color:var(--text2);line-height:1.6;">' + (a.pembahasan||'').replace(/\n/g,'<br>') + lampHtml + '</td>'
+      + '<td>' + seksiHtml + '</td>'
       + '<td>' + priBadge(a.prioritas) + '</td>'
       + (actBtn ? '<td style="white-space:nowrap;">' + actBtn + '</td>' : '')
       + '</tr>';
@@ -2248,8 +2294,11 @@ function openAgendaModal(rid) {
   document.getElementById('ma-modal-title').textContent = 'Tambah Agenda';
   document.getElementById('ma-topik').value = '';
   document.getElementById('ma-pembahasan').value = '';
-  document.getElementById('ma-seksi').value = '';
   document.getElementById('ma-prioritas').value = '';
+  maLampiran = [];
+  renderSeksiCheckboxes([]);
+  renderMaLampiranList();
+  document.getElementById('ma-upload-status').textContent = '';
   openModal('modal-agenda');
 }
 
@@ -2262,9 +2311,163 @@ function editAgenda(id) {
   document.getElementById('ma-modal-title').textContent = 'Edit Agenda';
   document.getElementById('ma-topik').value      = a.topik      || '';
   document.getElementById('ma-pembahasan').value = a.pembahasan || '';
-  document.getElementById('ma-seksi').value      = a.seksi      || '';
   document.getElementById('ma-prioritas').value  = a.prioritas  || '';
+  renderSeksiCheckboxes(getAgendaSeksiList(a));
+  maLampiran = (a.lampiran || []).slice();
+  renderMaLampiranList();
+  document.getElementById('ma-upload-status').textContent = '';
   openModal('modal-agenda');
+}
+
+// ── HELPER: normalisasi daftar seksi agenda (kompatibel data lama) ──
+function getAgendaSeksiList(a) {
+  if (a.seksiList && a.seksiList.length) return a.seksiList.slice();
+  if (a.seksi) return [a.seksi];
+  return [];
+}
+
+// ── RENDER CHECKBOX SEKSI KOLABORASI ──
+function renderSeksiCheckboxes(selected) {
+  selected = selected || [];
+  var box = document.getElementById('ma-seksi-box');
+  if (!box) return;
+  box.innerHTML = SEKSI_LIST.map(function(s) {
+    var checked = selected.indexOf(s) >= 0;
+    return '<label class="seksi-chip' + (checked ? ' checked' : '') + '">'
+      + '<input type="checkbox" value="' + s.replace(/"/g,'&quot;') + '"' + (checked ? ' checked' : '')
+      + ' onchange="this.closest(\'.seksi-chip\').classList.toggle(\'checked\',this.checked)" />'
+      + '<span>' + s + '</span></label>';
+  }).join('');
+}
+
+function getSelectedSeksi() {
+  var box = document.getElementById('ma-seksi-box');
+  if (!box) return [];
+  return Array.prototype.slice.call(box.querySelectorAll('input:checked')).map(function(cb){ return cb.value; });
+}
+
+// ── LAMPIRAN: state sementara saat modal terbuka ──
+var maLampiran = [];
+
+function fmtFileSize(b) {
+  if (!b && b !== 0) return '';
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+function fileIcon(name, type) {
+  var n = (name||'').toLowerCase();
+  type = type || '';
+  if (type.indexOf('image') === 0 || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(n)) return '🖼️';
+  if (type.indexOf('pdf') >= 0 || /\.pdf$/.test(n)) return '📕';
+  if (/\.(docx?|odt)$/.test(n)) return '📄';
+  if (/\.(xlsx?|csv|ods)$/.test(n)) return '📊';
+  if (/\.(pptx?|odp)$/.test(n)) return '📑';
+  if (/\.(zip|rar|7z|tar|gz)$/.test(n)) return '🗜️';
+  if (/\.(mp4|mov|avi|mkv|webm)$/.test(n)) return '🎬';
+  if (/\.(mp3|wav|ogg|m4a)$/.test(n)) return '🎵';
+  return '📎';
+}
+
+// Render daftar lampiran dalam modal (dengan tombol hapus)
+function renderMaLampiranList() {
+  var cont = document.getElementById('ma-lampiran-list');
+  if (!cont) return;
+  if (!maLampiran.length) { cont.innerHTML = '<div style="font-size:12px;color:var(--text3);">Belum ada file dilampirkan.</div>'; return; }
+  cont.innerHTML = maLampiran.map(function(f, i) {
+    return '<div class="lampiran-item">'
+      + '<span class="lampiran-icon">' + fileIcon(f.name, f.type) + '</span>'
+      + '<div class="lampiran-info">'
+      + '<div class="lampiran-name" onclick="window.open(\'' + encodeURI(f.url) + '\',\'_blank\')" title="Buka file">' + escapeHtml(f.name) + '</div>'
+      + '<div class="lampiran-meta">' + fmtFileSize(f.size) + '</div></div>'
+      + '<div class="lampiran-actions">'
+      + '<a href="' + encodeURI(f.url) + '" target="_blank" rel="noopener" title="Buka">↗</a>'
+      + '<a href="' + encodeURI(f.url) + '" download="' + escapeHtml(f.name) + '" title="Unduh">⬇</a>'
+      + '<button onclick="removeMaLampiran(' + i + ')" title="Hapus">✕</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Pilih & upload file ke Firebase Storage
+function handleAgendaFileSelect(ev) {
+  var files = ev.target.files;
+  if (!files || !files.length) return;
+  if (!storage) {
+    notify('Fitur lampiran butuh Firebase Storage. Tidak tersedia.', 'error');
+    ev.target.value = '';
+    return;
+  }
+  var rid = document.getElementById('ma-rapat-id').value || 'umum';
+  var statusEl = document.getElementById('ma-upload-status');
+  var btn = document.getElementById('ma-attach-btn');
+  var total = files.length, done = 0, failed = 0;
+  if (btn) btn.disabled = true;
+
+  Array.prototype.forEach.call(files, function(file) {
+    if (file.size > 25 * 1048576) {
+      notify('File "' + file.name + '" melebihi 25 MB, dilewati.', 'error');
+      done++; failed++;
+      if (done === total) finishUpload();
+      return;
+    }
+    var safeName = file.name.replace(/[^\w.\-]+/g, '_');
+    var path = 'lampiran/' + rid + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '_' + safeName;
+    var ref = storage.ref().child(path);
+    statusEl.textContent = '⏳ Mengunggah ' + file.name + '...';
+    var task = ref.put(file);
+    task.on('state_changed',
+      function(snap) {
+        var pct = snap.totalBytes ? Math.round(snap.bytesTransferred/snap.totalBytes*100) : 0;
+        statusEl.textContent = '⏳ Mengunggah ' + file.name + ' (' + pct + '%)...';
+      },
+      function(err) {
+        done++; failed++;
+        if (err && (err.code === 'storage/unauthorized' || (err.message||'').toLowerCase().indexOf('permission') >= 0)) {
+          notify('Gagal unggah: perlu atur Firebase Storage Rules. Lihat console.', 'error');
+          console.log('[NOTULA] Atur Storage Rules di console.firebase.google.com/project/notulax-1/storage/rules :\n\nrules_version = "2";\nservice firebase.storage {\n  match /b/{bucket}/o {\n    match /lampiran/{allPaths=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}');
+        } else {
+          notify('Gagal unggah ' + file.name + ': ' + err.message, 'error');
+        }
+        if (done === total) finishUpload();
+      },
+      function() {
+        ref.getDownloadURL().then(function(url) {
+          maLampiran.push({ name: file.name, url: url, path: path, size: file.size, type: file.type || '' });
+          done++;
+          renderMaLampiranList();
+          if (done === total) finishUpload();
+        }).catch(function(err) {
+          done++; failed++;
+          notify('Gagal ambil URL ' + file.name + ': ' + err.message, 'error');
+          if (done === total) finishUpload();
+        });
+      }
+    );
+  });
+
+  function finishUpload() {
+    if (btn) btn.disabled = false;
+    statusEl.textContent = failed ? ('Selesai dengan ' + failed + ' gagal.') : '✓ Semua file terunggah.';
+    setTimeout(function(){ if (statusEl) statusEl.textContent = ''; }, 4000);
+  }
+  ev.target.value = '';
+}
+
+// Hapus lampiran dari daftar modal (juga hapus dari Storage)
+function removeMaLampiran(i) {
+  var f = maLampiran[i];
+  if (!f) return;
+  if (!confirm('Hapus lampiran "' + f.name + '"?')) return;
+  maLampiran.splice(i, 1);
+  renderMaLampiranList();
+  if (f.path && storage) {
+    storage.ref().child(f.path).delete().catch(function(){ /* berkas mungkin sudah tiada */ });
+  }
 }
 function openTodoModal(rid) {
   document.getElementById('mt-edit-id').value = '';
@@ -2301,7 +2504,7 @@ function openKendalaModal(rid) {
 
 // ── DROPDOWNS ──
 function updateDropdowns() {
-  ['ma-seksi','mt-seksi','mk-seksi','mp-seksi','mu-seksi'].forEach(function(id) {
+  ['mt-seksi','mk-seksi','mp-seksi','mu-seksi'].forEach(function(id) {
     var el = document.getElementById(id); if (!el) return;
     var prev = el.value;
     while (el.options.length > 1) el.remove(1);
@@ -2488,11 +2691,14 @@ function saveAgenda() {
   var rid    = document.getElementById('ma-rapat-id').value;
   var editId = document.getElementById('ma-id').value;
   var mode   = document.getElementById('ma-mode').value;
-  var seksi  = document.getElementById('ma-seksi').value;
+  var seksiList = getSelectedSeksi();
+  var seksi  = seksiList[0] || '';   // kompatibel data lama / export
   var prioritas = document.getElementById('ma-prioritas').value;
+  var lampiran = maLampiran.slice();
   if (mode === 'edit' && editId) {
     db.collection('agenda').doc(editId).update({
-      topik: topik, pembahasan: pembahasan, seksi: seksi, prioritas: prioritas,
+      topik: topik, pembahasan: pembahasan, seksi: seksi, seksiList: seksiList,
+      prioritas: prioritas, lampiran: lampiran,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: currentUser.uid
     }).then(function() {
@@ -2503,7 +2709,8 @@ function saveAgenda() {
   } else {
     var cnt = localAgenda.filter(function(a){return a.rapatId===rid;}).length;
     db.collection('agenda').add({
-      rapatId:rid, no:cnt+1, topik:topik, pembahasan:pembahasan, seksi:seksi, prioritas:prioritas,
+      rapatId:rid, no:cnt+1, topik:topik, pembahasan:pembahasan,
+      seksi:seksi, seksiList:seksiList, prioritas:prioritas, lampiran:lampiran,
       createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid
     }).then(function() {
       closeModal('modal-agenda');
@@ -2515,7 +2722,16 @@ function saveAgenda() {
 
 function delAgenda(id, rid) {
   if (!can('delete_agenda')) return;
-  db.collection('agenda').doc(id).delete().then(function(){ notify('Agenda dihapus', 'success'); });
+  var a = localAgenda.filter(function(x){ return x.id === id; })[0];
+  db.collection('agenda').doc(id).delete().then(function(){
+    // Hapus juga lampiran terkait dari Storage
+    if (a && a.lampiran && a.lampiran.length && storage) {
+      a.lampiran.forEach(function(f){
+        if (f.path) storage.ref().child(f.path).delete().catch(function(){});
+      });
+    }
+    notify('Agenda dihapus', 'success');
+  });
 }
 
 function saveTodo() {
@@ -3077,9 +3293,11 @@ function exportReportExcel(type) {
     // Sheet 2: Agenda
     var agendaRows = localAgenda.map(function(a,i){
       var r = localRapat.filter(function(x){return x.id===a.rapatId;})[0];
-      return [i+1, r?r.nama:'—', r?fmtDate(r.tanggal):'—', a.topik||'—', a.pembahasan||'—', a.seksi||'—', a.prioritas||'—'];
+      var seksiArr = getAgendaSeksiList(a);
+      var lampCount = (a.lampiran && a.lampiran.length) ? a.lampiran.length : 0;
+      return [i+1, r?r.nama:'—', r?fmtDate(r.tanggal):'—', a.topik||'—', a.pembahasan||'—', seksiArr.length?seksiArr.join(', '):'—', a.prioritas||'—', lampCount];
     });
-    XLSX.utils.book_append_sheet(wb, makeSheet('AGENDA RAPAT — Dicetak: '+dateStr, ['No','Nama Rapat','Tanggal','Topik','Pembahasan','Seksi','Prioritas'], agendaRows), 'Agenda Rapat');
+    XLSX.utils.book_append_sheet(wb, makeSheet('AGENDA RAPAT — Dicetak: '+dateStr, ['No','Nama Rapat','Tanggal','Topik','Pembahasan','Seksi / Kolaborasi','Prioritas','Lampiran'], agendaRows), 'Agenda Rapat');
 
     // Sheet 3: To Do List (dengan Prioritas)
     var todoRowsL = localTodo.map(function(t,i){
