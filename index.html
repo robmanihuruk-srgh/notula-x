@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- BUILD:1780030121 -->
+<!DOCTYPE html><!-- BUILD:1780030124 -->
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -172,8 +172,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .lampiran-actions a:hover{background:rgba(91,138,240,0.15);color:var(--accent);}
 .lampiran-actions button:hover{background:rgba(248,113,113,0.15);color:var(--red);}
 .lampiran-row-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
-.lampiran-chip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;padding:3px 9px;border-radius:8px;background:rgba(91,138,240,0.1);color:var(--accent);border:1px solid rgba(91,138,240,0.2);text-decoration:none;cursor:pointer;max-width:200px;}
-.lampiran-chip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lampiran-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:3px 9px;border-radius:8px;background:rgba(91,138,240,0.1);color:var(--accent);border:1px solid rgba(91,138,240,0.2);text-decoration:none;max-width:240px;}
+.lampiran-chip .lampiran-chip-open>span{display:inline-block;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;}
+.lampiran-chip .lampiran-chip-dl{flex-shrink:0;}
+.lampiran-chip .lampiran-chip-dl:hover{opacity:1 !important;color:var(--green);}
 .lampiran-chip:hover{background:rgba(91,138,240,0.2);}
 .progress-bar-bg{width:90px;height:4px;background:var(--bg3);border-radius:10px;overflow:hidden;}
 .progress-bar-fill{height:100%;border-radius:10px;transition:width .5s;}
@@ -496,7 +498,6 @@ input[type=range]{flex:1;accent-color:var(--accent);}
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -983,7 +984,7 @@ input[type=range]{flex:1;accent-color:var(--accent);}
       </div>
       <div class="form-group"><label class="form-label">Prioritas</label><select class="form-select" id="ma-prioritas"><option value="">— Pilih —</option><option value="tinggi">🔴 Tinggi</option><option value="sedang">🟡 Sedang</option><option value="rendah">🟢 Rendah</option></select></div>
       <div class="form-group">
-        <label class="form-label">Lampiran File</label>
+        <label class="form-label">Lampiran File <span style="color:var(--text3);font-weight:400;">(maks. 3 MB/file)</span></label>
         <div id="ma-lampiran-list" class="lampiran-list"></div>
         <input type="file" id="ma-file-input" multiple style="display:none;" onchange="handleAgendaFileSelect(event)" />
         <button type="button" class="btn btn-ghost btn-sm" id="ma-attach-btn" onclick="document.getElementById('ma-file-input').click()" style="margin-top:8px;">📎 Tambah File</button>
@@ -1132,7 +1133,6 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var auth = firebase.auth();
 var db   = firebase.firestore();
-var storage = (firebase.storage ? firebase.storage() : null);
 } // end firebase check
 
 // ── CONSTANTS ──
@@ -1824,12 +1824,15 @@ function renderAgendaTab(rid) {
     var seksiHtml = seksiArr.length
       ? seksiArr.map(function(s){ return '<span class="tag tag-teal" style="font-size:10px;margin:0 4px 4px 0;display:inline-block;">' + s + '</span>'; }).join('')
       : '—';
-    // Chip lampiran (klik membuka file langsung)
+    // Chip lampiran (klik membuka file langsung; ada tombol unduh)
     var lampHtml = '';
     if (a.lampiran && a.lampiran.length) {
-      lampHtml = '<div class="lampiran-row-chips">' + a.lampiran.map(function(f){
-        return '<a class="lampiran-chip" href="' + encodeURI(f.url) + '" target="_blank" rel="noopener" title="Buka ' + escapeHtml(f.name) + '">'
-          + fileIcon(f.name, f.type) + '<span>' + escapeHtml(f.name) + '</span></a>';
+      lampHtml = '<div class="lampiran-row-chips">' + a.lampiran.map(function(f, fi){
+        return '<span class="lampiran-chip" title="' + escapeHtml(f.name) + '">'
+          + '<span class="lampiran-chip-open" onclick="openAgendaLampiran(\'' + a.id + '\',' + fi + ')" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;">'
+          + fileIcon(f.name, f.type) + '<span>' + escapeHtml(f.name) + '</span></span>'
+          + '<span class="lampiran-chip-dl" onclick="downloadAgendaLampiran(\'' + a.id + '\',' + fi + ')" title="Unduh" style="cursor:pointer;margin-left:2px;opacity:.7;">⬇</span>'
+          + '</span>';
       }).join('') + '</div>';
     }
     html += '<tr data-id="' + a.id + '" data-no="' + (a.no||i+1) + '">'
@@ -2379,95 +2382,207 @@ function renderMaLampiranList() {
     return '<div class="lampiran-item">'
       + '<span class="lampiran-icon">' + fileIcon(f.name, f.type) + '</span>'
       + '<div class="lampiran-info">'
-      + '<div class="lampiran-name" onclick="window.open(\'' + encodeURI(f.url) + '\',\'_blank\')" title="Buka file">' + escapeHtml(f.name) + '</div>'
+      + '<div class="lampiran-name" onclick="openLampiranTemp(' + i + ')" title="Buka file">' + escapeHtml(f.name) + '</div>'
       + '<div class="lampiran-meta">' + fmtFileSize(f.size) + '</div></div>'
       + '<div class="lampiran-actions">'
-      + '<a href="' + encodeURI(f.url) + '" target="_blank" rel="noopener" title="Buka">↗</a>'
-      + '<a href="' + encodeURI(f.url) + '" download="' + escapeHtml(f.name) + '" title="Unduh">⬇</a>'
+      + '<button onclick="openLampiranTemp(' + i + ')" title="Buka">↗</button>'
+      + '<button onclick="downloadLampiranTemp(' + i + ')" title="Unduh">⬇</button>'
       + '<button onclick="removeMaLampiran(' + i + ')" title="Hapus">✕</button>'
       + '</div></div>';
   }).join('');
+}
+
+// Buka / unduh lampiran yang masih di modal (dari array sementara)
+function openLampiranTemp(i) {
+  var f = maLampiran[i]; if (!f) return;
+  resolveLampiranDataUrl(f).then(function(url){ openDataUrl(url, f.name, f.type); })
+    .catch(function(e){ notify('Gagal membuka lampiran', 'error'); console.error(e); });
+}
+function downloadLampiranTemp(i) {
+  var f = maLampiran[i]; if (!f) return;
+  resolveLampiranDataUrl(f).then(function(url){ downloadDataUrl(url, f.name); })
+    .catch(function(e){ notify('Gagal mengunduh lampiran', 'error'); console.error(e); });
+}
+
+// ── Ambil dataUrl lampiran dari berbagai sumber ──
+// 1) File baru di memori (punya .dataUrl)
+// 2) Lampiran ter-chunk (punya .chunks + .lampId) → gabung dari koleksi 'lampiran'
+// 3) Lampiran inline lama (punya .url)
+function resolveLampiranDataUrl(f) {
+  if (f.dataUrl) return Promise.resolve(f.dataUrl);
+  if (f.url)     return Promise.resolve(f.url);
+  if (f.lampId && f.chunks) {
+    return db.collection('lampiran')
+      .where('lampId', '==', f.lampId)
+      .get()
+      .then(function(snap) {
+        var arr = snap.docs.map(function(d){ return d.data(); });
+        arr.sort(function(a,b){ return (a.idx||0)-(b.idx||0); });
+        if (!arr.length) throw new Error('Chunk lampiran tidak ditemukan');
+        return arr.map(function(c){ return c.data || ''; }).join('');
+      });
+  }
+  return Promise.reject(new Error('Sumber lampiran tidak dikenal'));
+}
+
+// ── HELPER: buka/unduh dari data URL base64 ──
+function dataUrlToBlob(dataUrl) {
+  var parts = String(dataUrl).split(',');
+  var meta = parts[0] || '';
+  var isB64 = meta.indexOf('base64') >= 0;
+  var mime = (meta.match(/data:([^;]+)/) || [])[1] || 'application/octet-stream';
+  var data = parts.slice(1).join(',');
+  var bytes;
+  if (isB64) {
+    var bin = atob(data);
+    bytes = new Uint8Array(bin.length);
+    for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+  } else {
+    bytes = new TextEncoder().encode(decodeURIComponent(data));
+  }
+  return new Blob([bytes], { type: mime });
+}
+
+function openDataUrl(dataUrl, name, type) {
+  try {
+    var blob = dataUrlToBlob(dataUrl);
+    var url = URL.createObjectURL(blob);
+    var w = window.open(url, '_blank');
+    // Beberapa browser blokir popup; fallback ke anchor
+    if (!w) {
+      var a = document.createElement('a');
+      a.href = url; a.target = '_blank'; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  } catch (e) {
+    console.error('[NOTULA] openDataUrl gagal:', e);
+    // Fallback langsung pakai data URL
+    window.open(dataUrl, '_blank');
+  }
+}
+
+function downloadDataUrl(dataUrl, name) {
+  try {
+    var blob = dataUrlToBlob(dataUrl);
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name || 'lampiran';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  } catch (e) {
+    console.error('[NOTULA] downloadDataUrl gagal:', e);
+    var a2 = document.createElement('a');
+    a2.href = dataUrl; a2.download = name || 'lampiran'; a2.click();
+  }
+}
+
+// Buka/unduh lampiran milik agenda tersimpan (dipakai dari tabel agenda)
+function openAgendaLampiran(agendaId, idx) {
+  var a = localAgenda.filter(function(x){ return x.id === agendaId; })[0];
+  if (!a || !a.lampiran || !a.lampiran[idx]) return;
+  var f = a.lampiran[idx];
+  if (f.chunks) notify('Membuka ' + f.name + '...', 'info');
+  resolveLampiranDataUrl(f).then(function(url){ openDataUrl(url, f.name, f.type); })
+    .catch(function(e){ notify('Gagal membuka lampiran', 'error'); console.error(e); });
+}
+function downloadAgendaLampiran(agendaId, idx) {
+  var a = localAgenda.filter(function(x){ return x.id === agendaId; })[0];
+  if (!a || !a.lampiran || !a.lampiran[idx]) return;
+  var f = a.lampiran[idx];
+  if (f.chunks) notify('Menyiapkan ' + f.name + '...', 'info');
+  resolveLampiranDataUrl(f).then(function(url){ downloadDataUrl(url, f.name); })
+    .catch(function(e){ notify('Gagal mengunduh lampiran', 'error'); console.error(e); });
 }
 
 function escapeHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Pilih & upload file ke Firebase Storage
+// ── BATAS UKURAN LAMPIRAN ──
+// Firestore: maksimum 1 dokumen ≈ 1 MB. File besar dipecah menjadi beberapa
+// potongan (chunk) yang disimpan di koleksi 'lampiran', lalu disatukan saat dibuka.
+var MAX_FILE_BYTES  = 3 * 1024 * 1024;   // 3 MB per file
+var MAX_TOTAL_BYTES = 9 * 1024 * 1024;   // total semua lampiran per agenda
+var CHUNK_CHARS     = 700 * 1024;        // ±700 KB base64 per dokumen chunk (aman < 1 MB)
+
+// Ubah File menjadi data URL base64
+function fileToDataURL(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload  = function() { resolve(reader.result); };
+    reader.onerror = function(e) { reject(e); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function totalLampiranBytes() {
+  return maLampiran.reduce(function(sum, f){ return sum + (f.size || 0); }, 0);
+}
+
+// Pilih file & simpan sebagai base64 (tanpa Firebase Storage)
 function handleAgendaFileSelect(ev) {
   var files = ev.target.files;
-  if (!files || !files.length) return;
-  if (!storage) {
-    notify('Fitur lampiran butuh Firebase Storage. Tidak tersedia.', 'error');
+  var statusEl = document.getElementById('ma-upload-status');
+  if (!files || !files.length) { return; }
+  if (!currentUser) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--red);">⚠ Anda belum login.</span>';
     ev.target.value = '';
     return;
   }
-  var rid = document.getElementById('ma-rapat-id').value || 'umum';
-  var statusEl = document.getElementById('ma-upload-status');
+
   var btn = document.getElementById('ma-attach-btn');
-  var total = files.length, done = 0, failed = 0;
+  var fileArr = Array.prototype.slice.call(files);
+  var total = fileArr.length, done = 0, added = 0;
   if (btn) btn.disabled = true;
 
-  Array.prototype.forEach.call(files, function(file) {
-    if (file.size > 25 * 1048576) {
-      notify('File "' + file.name + '" melebihi 25 MB, dilewati.', 'error');
-      done++; failed++;
-      if (done === total) finishUpload();
-      return;
+  function step(idx) {
+    if (idx >= total) { finish(); return; }
+    var file = fileArr[idx];
+    // Validasi ukuran per file
+    if (file.size > MAX_FILE_BYTES) {
+      notify('File "' + file.name + '" melebihi ' + Math.round(MAX_FILE_BYTES/1024) + ' KB, dilewati.', 'error');
+      done++; step(idx + 1); return;
     }
-    var safeName = file.name.replace(/[^\w.\-]+/g, '_');
-    var path = 'lampiran/' + rid + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '_' + safeName;
-    var ref = storage.ref().child(path);
-    statusEl.textContent = '⏳ Mengunggah ' + file.name + '...';
-    var task = ref.put(file);
-    task.on('state_changed',
-      function(snap) {
-        var pct = snap.totalBytes ? Math.round(snap.bytesTransferred/snap.totalBytes*100) : 0;
-        statusEl.textContent = '⏳ Mengunggah ' + file.name + ' (' + pct + '%)...';
-      },
-      function(err) {
-        done++; failed++;
-        if (err && (err.code === 'storage/unauthorized' || (err.message||'').toLowerCase().indexOf('permission') >= 0)) {
-          notify('Gagal unggah: perlu atur Firebase Storage Rules. Lihat console.', 'error');
-          console.log('[NOTULA] Atur Storage Rules di console.firebase.google.com/project/notulax-1/storage/rules :\n\nrules_version = "2";\nservice firebase.storage {\n  match /b/{bucket}/o {\n    match /lampiran/{allPaths=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}');
-        } else {
-          notify('Gagal unggah ' + file.name + ': ' + err.message, 'error');
-        }
-        if (done === total) finishUpload();
-      },
-      function() {
-        ref.getDownloadURL().then(function(url) {
-          maLampiran.push({ name: file.name, url: url, path: path, size: file.size, type: file.type || '' });
-          done++;
-          renderMaLampiranList();
-          if (done === total) finishUpload();
-        }).catch(function(err) {
-          done++; failed++;
-          notify('Gagal ambil URL ' + file.name + ': ' + err.message, 'error');
-          if (done === total) finishUpload();
-        });
-      }
-    );
-  });
-
-  function finishUpload() {
-    if (btn) btn.disabled = false;
-    statusEl.textContent = failed ? ('Selesai dengan ' + failed + ' gagal.') : '✓ Semua file terunggah.';
-    setTimeout(function(){ if (statusEl) statusEl.textContent = ''; }, 4000);
+    // Validasi total ukuran
+    if (totalLampiranBytes() + file.size > MAX_TOTAL_BYTES) {
+      notify('Total lampiran melebihi batas ' + Math.round(MAX_TOTAL_BYTES/1024) + ' KB. "' + file.name + '" dilewati.', 'error');
+      done++; step(idx + 1); return;
+    }
+    if (statusEl) statusEl.textContent = '⏳ Memproses ' + file.name + '...';
+    fileToDataURL(file).then(function(dataUrl) {
+      maLampiran.push({ name: file.name, dataUrl: dataUrl, size: file.size, type: file.type || '', _new: true });
+      added++; done++;
+      renderMaLampiranList();
+      step(idx + 1);
+    }).catch(function(err) {
+      console.error('[NOTULA] Baca file gagal:', err);
+      notify('Gagal membaca ' + file.name, 'error');
+      done++; step(idx + 1);
+    });
   }
-  ev.target.value = '';
+
+  function finish() {
+    if (btn) btn.disabled = false;
+    if (statusEl) {
+      statusEl.innerHTML = added
+        ? '✓ ' + added + ' file ditambahkan. Klik "Simpan" untuk menyimpan agenda.'
+        : '';
+      if (added) setTimeout(function(){ if (statusEl) statusEl.textContent = ''; }, 5000);
+    }
+    ev.target.value = '';
+  }
+
+  step(0);
 }
 
-// Hapus lampiran dari daftar modal (juga hapus dari Storage)
+// Hapus lampiran dari daftar di modal
 function removeMaLampiran(i) {
   var f = maLampiran[i];
   if (!f) return;
   if (!confirm('Hapus lampiran "' + f.name + '"?')) return;
   maLampiran.splice(i, 1);
   renderMaLampiranList();
-  if (f.path && storage) {
-    storage.ref().child(f.path).delete().catch(function(){ /* berkas mungkin sudah tiada */ });
-  }
 }
 function openTodoModal(rid) {
   document.getElementById('mt-edit-id').value = '';
@@ -2675,12 +2790,61 @@ function deleteRapat(id) {
   if (!confirm('Hapus rapat ini? Agenda & kendala terkait juga terhapus.')) return;
   var batch = db.batch();
   batch.delete(db.collection('rapat').doc(id));
-  localAgenda.filter(function(a){return a.rapatId===id;}).forEach(function(a){ batch.delete(db.collection('agenda').doc(a.id)); });
+  var lampIdsToDelete = [];
+  localAgenda.filter(function(a){return a.rapatId===id;}).forEach(function(a){
+    batch.delete(db.collection('agenda').doc(a.id));
+    ((a.lampiran)||[]).forEach(function(f){ if (f.lampId) lampIdsToDelete.push(f.lampId); });
+  });
   localKendala.filter(function(k){return k.rapatId===id;}).forEach(function(k){ batch.delete(db.collection('kendala').doc(k.id)); });
   batch.commit().then(function() {
     if (currentRapatId === id) { currentRapatId = null; document.getElementById('detail-panel').style.display = 'none'; }
     notify('Rapat dihapus', 'success');
+    deleteLampiranChunks(lampIdsToDelete).catch(function(){});
   }).catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+}
+
+// Pecah string base64 menjadi beberapa potongan
+function splitIntoChunks(str, size) {
+  var out = [];
+  for (var i = 0; i < str.length; i += size) out.push(str.slice(i, i + size));
+  return out;
+}
+
+// Buat ID acak sederhana untuk lampiran
+function genLampId() {
+  return 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+// Tulis sebuah lampiran baru sebagai beberapa dokumen chunk. Mengembalikan Promise metadata.
+function writeLampiranChunks(agendaId, f) {
+  var lampId = genLampId();
+  var chunks = splitIntoChunks(f.dataUrl || '', CHUNK_CHARS);
+  var batch = db.batch();
+  chunks.forEach(function(data, idx) {
+    var ref = db.collection('lampiran').doc();
+    batch.set(ref, {
+      lampId: lampId, agendaId: agendaId, idx: idx, data: data,
+      createdBy: currentUser.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  });
+  return batch.commit().then(function() {
+    return { lampId: lampId, name: f.name, size: f.size, type: f.type || '', chunks: chunks.length };
+  });
+}
+
+// Hapus semua dokumen chunk milik daftar lampId
+function deleteLampiranChunks(lampIds) {
+  if (!lampIds || !lampIds.length) return Promise.resolve();
+  var jobs = lampIds.map(function(id) {
+    return db.collection('lampiran').where('lampId', '==', id).get().then(function(snap) {
+      if (snap.empty) return;
+      var batch = db.batch();
+      snap.docs.forEach(function(d){ batch.delete(d.ref); });
+      return batch.commit();
+    });
+  });
+  return Promise.all(jobs);
 }
 
 function saveAgenda() {
@@ -2694,44 +2858,91 @@ function saveAgenda() {
   var seksiList = getSelectedSeksi();
   var seksi  = seksiList[0] || '';   // kompatibel data lama / export
   var prioritas = document.getElementById('ma-prioritas').value;
-  var lampiran = maLampiran.slice();
+
+  function handleAgendaError(e) {
+    var msg = (e && e.message) || '';
+    var code = (e && e.code) || '';
+    if (code === 'permission-denied' || msg.toLowerCase().indexOf('permission') >= 0) {
+      notify('Gagal: perlu menambahkan rules koleksi "lampiran". Lihat console.', 'error');
+      showLampiranRulesHint();
+    } else if (msg.toLowerCase().indexOf('longer than') >= 0 || msg.toLowerCase().indexOf('1048487') >= 0 || msg.toLowerCase().indexOf('maximum') >= 0) {
+      notify('Gagal: lampiran terlalu besar untuk disimpan. Coba file lebih kecil.', 'error');
+    } else {
+      notify('Gagal: ' + msg, 'error');
+    }
+    var sb = document.getElementById('ma-save-btn'); if (sb) sb.disabled = false;
+  }
+
+  // Lampiran lama (sudah tersimpan): bawa metadata apa adanya.
+  // Lampiran baru (_new + dataUrl): perlu di-chunk dulu.
+  var existingMeta = maLampiran.filter(function(f){ return !f._new; }).map(function(f){
+    if (f.lampId && f.chunks) return { lampId: f.lampId, name: f.name, size: f.size, type: f.type || '', chunks: f.chunks };
+    // inline lama: pertahankan agar tetap bisa dibuka
+    return { name: f.name, url: f.url, size: f.size, type: f.type || '' };
+  });
+  var newFiles = maLampiran.filter(function(f){ return f._new && f.dataUrl; });
+
+  // lampId lama yang dihapus user (ada di agenda tersimpan tapi tak lagi di maLampiran)
+  var removedLampIds = [];
   if (mode === 'edit' && editId) {
-    db.collection('agenda').doc(editId).update({
-      topik: topik, pembahasan: pembahasan, seksi: seksi, seksiList: seksiList,
-      prioritas: prioritas, lampiran: lampiran,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      updatedBy: currentUser.uid
+    var prev = (localAgenda.filter(function(x){return x.id===editId;})[0] || {}).lampiran || [];
+    var keptIds = existingMeta.filter(function(m){return m.lampId;}).map(function(m){return m.lampId;});
+    removedLampIds = prev.filter(function(p){ return p.lampId && keptIds.indexOf(p.lampId) < 0; }).map(function(p){ return p.lampId; });
+  }
+
+  var sb = document.getElementById('ma-save-btn'); if (sb) sb.disabled = true;
+  var statusEl = document.getElementById('ma-upload-status');
+  if (newFiles.length && statusEl) statusEl.textContent = '⏳ Menyimpan lampiran...';
+
+  // Untuk membuat chunk butuh agendaId. Jika agenda baru, buat dokumennya dulu.
+  function persist(agendaId, isNew) {
+    // 1) tulis semua file baru sbg chunk
+    var chunkJobs = newFiles.map(function(f){ return writeLampiranChunks(agendaId, f); });
+    Promise.all(chunkJobs).then(function(newMeta) {
+      var lampiran = existingMeta.concat(newMeta);
+      var payload = {
+        topik: topik, pembahasan: pembahasan, seksi: seksi, seksiList: seksiList,
+        prioritas: prioritas, lampiran: lampiran,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: currentUser.uid
+      };
+      return db.collection('agenda').doc(agendaId).set(payload, { merge: true });
     }).then(function() {
+      // 2) bersihkan chunk lampiran yang dihapus
+      return deleteLampiranChunks(removedLampIds);
+    }).then(function() {
+      if (sb) sb.disabled = false;
+      if (statusEl) statusEl.textContent = '';
       closeModal('modal-agenda');
-      notify('Agenda berhasil diperbarui!', 'success');
-      logAktivitas('edit_agenda', 'Mengedit agenda: ' + topik, topik);
-    }).catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+      notify(isNew ? 'Agenda ditambahkan!' : 'Agenda berhasil diperbarui!', 'success');
+      logAktivitas(isNew ? 'add_agenda' : 'edit_agenda', (isNew ? 'Menambahkan agenda: ' : 'Mengedit agenda: ') + topik, topik);
+    }).catch(handleAgendaError);
+  }
+
+  if (mode === 'edit' && editId) {
+    persist(editId, false);
   } else {
     var cnt = localAgenda.filter(function(a){return a.rapatId===rid;}).length;
+    // Buat dokumen agenda dulu untuk dapat ID, lalu isi chunk + metadata
     db.collection('agenda').add({
       rapatId:rid, no:cnt+1, topik:topik, pembahasan:pembahasan,
-      seksi:seksi, seksiList:seksiList, prioritas:prioritas, lampiran:lampiran,
+      seksi:seksi, seksiList:seksiList, prioritas:prioritas, lampiran:[],
       createdAt:firebase.firestore.FieldValue.serverTimestamp(), createdBy:currentUser.uid
-    }).then(function() {
-      closeModal('modal-agenda');
-      notify('Agenda ditambahkan!', 'success');
-      logAktivitas('add_agenda', 'Menambahkan agenda: ' + topik, topik);
-    }).catch(function(e) { notify('Gagal: ' + e.message, 'error'); });
+    }).then(function(ref){
+      persist(ref.id, true);
+    }).catch(handleAgendaError);
   }
 }
 
 function delAgenda(id, rid) {
   if (!can('delete_agenda')) return;
   var a = localAgenda.filter(function(x){ return x.id === id; })[0];
+  var lampIds = ((a && a.lampiran) || []).filter(function(f){return f.lampId;}).map(function(f){return f.lampId;});
   db.collection('agenda').doc(id).delete().then(function(){
-    // Hapus juga lampiran terkait dari Storage
-    if (a && a.lampiran && a.lampiran.length && storage) {
-      a.lampiran.forEach(function(f){
-        if (f.path) storage.ref().child(f.path).delete().catch(function(){});
-      });
-    }
     notify('Agenda dihapus', 'success');
-  });
+    // Hapus chunk lampiran terkait (silent)
+    deleteLampiranChunks(lampIds).catch(function(){});
+  }).catch(function(e){ notify('Gagal: ' + e.message, 'error'); });
 }
 
 function saveTodo() {
@@ -3512,6 +3723,12 @@ function setAbsensi(rapatId, userId, status) {
 function showAbsensiRulesHint() {
   notify('Tambahkan rules koleksi "absensi" di Firebase Console → Firestore → Rules', 'error');
   console.log('[NOTULA] Tambahkan ke Firestore Rules:\n\nmatch /absensi/{docId} {\n  allow read: if request.auth != null;\n  allow create, update: if request.auth != null;\n  allow delete: if request.auth != null;\n}');
+}
+
+function showLampiranRulesHint() {
+  notify('Tambahkan rules koleksi "lampiran" di Firebase Console → Firestore → Rules', 'error');
+  console.log('%c[NOTULA] Tambahkan ke Firestore Rules (koleksi lampiran):', 'font-weight:bold;color:#5B8AF0');
+  console.log('match /lampiran/{docId} {\n  allow read:   if request.auth != null;\n  allow create: if request.auth != null;\n  allow update: if request.auth != null;\n  allow delete: if request.auth != null;\n}');
 }
 
 function exportAbsensiExcel(rapatId) {
