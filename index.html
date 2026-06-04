@@ -2591,10 +2591,38 @@ function dataUrlToBlob(dataUrl) {
   return new Blob([bytes], { type: mime });
 }
 
+// Tentukan apakah file bisa ditampilkan langsung di tab browser.
+// PDF, gambar, teks, audio/video umumnya bisa. Excel/Word/zip/dll tidak bisa,
+// jadi sebaiknya diunduh.
+function isViewableInBrowser(name, type) {
+  var ext = String(name || '').split('.').pop().toLowerCase();
+  var mime = String(type || '').toLowerCase();
+  var viewableExt = ['pdf','jpg','jpeg','png','gif','webp','bmp','svg','jfif','avif',
+    'txt','csv','json','xml','html','htm','md','log',
+    'mp3','wav','ogg','m4a','mp4','webm','mov'];
+  if (viewableExt.indexOf(ext) >= 0) return true;
+  if (mime.indexOf('pdf') >= 0) return true;
+  if (mime.indexOf('image/') === 0) return true;
+  if (mime.indexOf('text/') === 0) return true;
+  if (mime.indexOf('audio/') === 0 || mime.indexOf('video/') === 0) return true;
+  return false;
+}
+
 function openDataUrl(dataUrl, name, type, preWin) {
   try {
     var blob = dataUrlToBlob(dataUrl);
     var url = URL.createObjectURL(blob);
+    // File yang tidak bisa ditampilkan browser (Excel, Word, zip, dll) → unduh.
+    if (!isViewableInBrowser(name, type)) {
+      var dl = document.createElement('a');
+      dl.href = url; dl.download = name || 'lampiran';
+      document.body.appendChild(dl); dl.click(); document.body.removeChild(dl);
+      notify('"' + (name || 'lampiran') + '" diunduh (tidak dapat ditampilkan di browser).', 'info');
+      // Tutup tab "Memuat..." yang sudah terbuka karena tidak diperlukan.
+      if (preWin && !preWin.closed) { try { preWin.close(); } catch (e) {} }
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+      return;
+    }
     // Jika sudah ada window yang dibuka saat klik (mempertahankan user-gesture), pakai itu.
     if (preWin && !preWin.closed) {
       preWin.location.href = url;
