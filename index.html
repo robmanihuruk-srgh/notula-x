@@ -805,6 +805,13 @@ input[type=range]{flex:1;accent-color:var(--accent);}
             <div class="filter-grid">
               <div class="filter-field"><label>Rapat</label><select class="form-select" id="flt-lengkap-rapat"><option value="">Semua Rapat</option></select></div>
               <div class="filter-field"><label>Status Rapat</label><select class="form-select" id="flt-lengkap-status"><option value="">Semua Status</option><option value="aktif">Aktif</option><option value="selesai">Selesai</option><option value="draft">Draft</option></select></div>
+              <div class="filter-field"><label>Seksi</label><select class="form-select" id="flt-lengkap-seksi"><option value="">Semua Seksi</option></select></div>
+              <div class="filter-field"><label>Status Progress</label><select class="form-select" id="flt-lengkap-progress-status"><option value="">Semua Status</option><option value="rencana">Direncanakan</option><option value="berlangsung">Berlangsung</option><option value="selesai">Selesai</option><option value="terkendala">Terkendala</option></select></div>
+              <div class="filter-field"><label>Status To Do</label><select class="form-select" id="flt-lengkap-todo-status"><option value="">Semua Status</option><option value="belum">Belum Selesai</option><option value="selesai">Selesai</option></select></div>
+              <div class="filter-field"><label>Status Kendala</label><select class="form-select" id="flt-lengkap-kendala-status"><option value="">Semua Status</option><option value="aktif">Aktif</option><option value="selesai">Selesai</option></select></div>
+              <div class="filter-field"><label>Prioritas</label><select class="form-select" id="flt-lengkap-prioritas"><option value="">Semua Prioritas</option><option value="tinggi">Tinggi</option><option value="sedang">Sedang</option><option value="rendah">Rendah</option></select></div>
+              <div class="filter-field"><label>Rapat Absensi</label><select class="form-select" id="flt-lengkap-absensi-rapat"><option value="">Semua Rapat</option></select></div>
+              <div class="filter-field"><label>Status Kehadiran</label><select class="form-select" id="flt-lengkap-absensi-status"><option value="">Semua Kehadiran</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="alpa">Alpa</option><option value="belum">Belum Diisi</option></select></div>
             </div>
             <div class="filter-actions">
               <button class="btn btn-primary btn-sm" onclick="exportReportExcel('lengkap')">📊 Excel</button>
@@ -2502,8 +2509,31 @@ function renderMaLampiranList() {
 // Buka / unduh lampiran yang masih di modal (dari array sementara)
 function openLampiranTemp(i) {
   var f = maLampiran[i]; if (!f) return;
-  resolveLampiranDataUrl(f).then(function(url){ openDataUrl(url, f.name, f.type); })
-    .catch(function(e){ notify('Gagal membuka lampiran', 'error'); console.error(e); });
+  var preWin = window.open('', '_blank');
+  if (preWin) {
+    try { preWin.document.write('<!doctype html><title>Memuat lampiran...</title><p style="font-family:sans-serif;color:#555;padding:16px;">Memuat lampiran...</p>'); } catch (e) {}
+  }
+  resolveLampiranDataUrl(f).then(function(url){ openDataUrl(url, f.name, f.type, preWin); })
+    .catch(function(e){ showLampiranError(preWin, e, f); });
+}
+// Tampilkan pesan error di tab yang sudah terbuka, supaya tidak menggantung di "Memuat...".
+function showLampiranError(preWin, e, f) {
+  console.error('[NOTULA] Gagal membuka lampiran:', e);
+  var msg = (e && e.message) ? e.message : 'Kesalahan tidak diketahui';
+  notify('Gagal membuka lampiran: ' + msg, 'error');
+  if (preWin && !preWin.closed) {
+    try {
+      preWin.document.open();
+      preWin.document.write('<!doctype html><title>Gagal memuat lampiran</title>'
+        + '<div style="font-family:sans-serif;color:#333;padding:24px;max-width:560px;">'
+        + '<h3 style="color:#c0392b;">Gagal memuat lampiran</h3>'
+        + '<p><strong>' + escapeHtml((f && f.name) || 'lampiran') + '</strong></p>'
+        + '<p style="color:#666;">' + escapeHtml(msg) + '</p>'
+        + '<p style="color:#888;font-size:13px;">Tutup tab ini lalu coba lagi. Jika berulang, kemungkinan masalah koneksi atau izin akses data.</p>'
+        + '</div>');
+      preWin.document.close();
+    } catch (err) { try { preWin.close(); } catch (e2) {} }
+  }
 }
 function downloadLampiranTemp(i) {
   var f = maLampiran[i]; if (!f) return;
@@ -2519,17 +2549,28 @@ function resolveLampiranDataUrl(f) {
   if (f.dataUrl) return Promise.resolve(f.dataUrl);
   if (f.url)     return Promise.resolve(f.url);
   if (f.lampId && f.chunks) {
-    return db.collection('lampiran')
+    var fetchByLampId = db.collection('lampiran')
       .where('lampId', '==', f.lampId)
       .get()
       .then(function(snap) {
         var arr = snap.docs.map(function(d){ return d.data(); });
         arr.sort(function(a,b){ return (a.idx||0)-(b.idx||0); });
-        if (!arr.length) throw new Error('Chunk lampiran tidak ditemukan');
-        return arr.map(function(c){ return c.data || ''; }).join('');
+        if (!arr.length) {
+          // Fallback: sebagian data lama mungkin tidak punya index lampId.
+          // Coba lewat agendaId bila tersedia.
+          throw new Error('Potongan lampiran tidak ditemukan untuk lampId ' + f.lampId);
+        }
+        var joined = arr.map(function(c){ return c.data || ''; }).join('');
+        if (!joined) throw new Error('Data lampiran kosong');
+        return joined;
       });
+    // Timeout 30 detik agar tidak menggantung tanpa kabar.
+    var timeout = new Promise(function(_, reject){
+      setTimeout(function(){ reject(new Error('Waktu habis saat mengambil lampiran. Periksa koneksi internet Anda.')); }, 30000);
+    });
+    return Promise.race([fetchByLampId, timeout]);
   }
-  return Promise.reject(new Error('Sumber lampiran tidak dikenal'));
+  return Promise.reject(new Error('Sumber lampiran tidak dikenal (tidak ada dataUrl/url/chunks)'));
 }
 
 // ── HELPER: buka/unduh dari data URL base64 ──
@@ -2550,22 +2591,28 @@ function dataUrlToBlob(dataUrl) {
   return new Blob([bytes], { type: mime });
 }
 
-function openDataUrl(dataUrl, name, type) {
+function openDataUrl(dataUrl, name, type, preWin) {
   try {
     var blob = dataUrlToBlob(dataUrl);
     var url = URL.createObjectURL(blob);
-    var w = window.open(url, '_blank');
-    // Beberapa browser blokir popup; fallback ke anchor
-    if (!w) {
-      var a = document.createElement('a');
-      a.href = url; a.target = '_blank'; a.rel = 'noopener';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    // Jika sudah ada window yang dibuka saat klik (mempertahankan user-gesture), pakai itu.
+    if (preWin && !preWin.closed) {
+      preWin.location.href = url;
+    } else {
+      var w = window.open(url, '_blank');
+      // Beberapa browser blokir popup; fallback ke anchor
+      if (!w) {
+        var a = document.createElement('a');
+        a.href = url; a.target = '_blank'; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      }
     }
     setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
   } catch (e) {
     console.error('[NOTULA] openDataUrl gagal:', e);
     // Fallback langsung pakai data URL
-    window.open(dataUrl, '_blank');
+    if (preWin && !preWin.closed) preWin.location.href = dataUrl;
+    else window.open(dataUrl, '_blank');
   }
 }
 
@@ -2589,9 +2636,13 @@ function openAgendaLampiran(agendaId, idx) {
   var a = localAgenda.filter(function(x){ return x.id === agendaId; })[0];
   if (!a || !a.lampiran || !a.lampiran[idx]) return;
   var f = a.lampiran[idx];
+  var preWin = window.open('', '_blank');
+  if (preWin) {
+    try { preWin.document.write('<!doctype html><title>Memuat lampiran...</title><p style="font-family:sans-serif;color:#555;padding:16px;">Memuat lampiran...</p>'); } catch (e) {}
+  }
   if (f.chunks) notify('Membuka ' + f.name + '...', 'info');
-  resolveLampiranDataUrl(f).then(function(url){ openDataUrl(url, f.name, f.type); })
-    .catch(function(e){ notify('Gagal membuka lampiran', 'error'); console.error(e); });
+  resolveLampiranDataUrl(f).then(function(url){ openDataUrl(url, f.name, f.type, preWin); })
+    .catch(function(e){ showLampiranError(preWin, e, f); });
 }
 function downloadAgendaLampiran(agendaId, idx) {
   var a = localAgenda.filter(function(x){ return x.id === agendaId; })[0];
@@ -3337,7 +3388,7 @@ function toggleFilterPanel(type) {
 
 function resetFilter(type) {
   var ids = {
-    lengkap:  ['flt-lengkap-rapat','flt-lengkap-status'],
+    lengkap:  ['flt-lengkap-rapat','flt-lengkap-status','flt-lengkap-seksi','flt-lengkap-progress-status','flt-lengkap-todo-status','flt-lengkap-kendala-status','flt-lengkap-prioritas','flt-lengkap-absensi-rapat','flt-lengkap-absensi-status'],
     pengguna: ['flt-pengguna-role','flt-pengguna-seksi'],
     progress: ['flt-progress-seksi','flt-progress-status'],
     todo:     ['flt-todo-seksi','flt-todo-status','flt-todo-prioritas'],
@@ -3349,8 +3400,9 @@ function resetFilter(type) {
 
 // Isi dropdown filter (rapat & seksi) — dipanggil saat data dimuat
 function populateReportFilters() {
-  var rapatSel = document.getElementById('flt-lengkap-rapat');
-  if (rapatSel) {
+  ['flt-lengkap-rapat','flt-lengkap-absensi-rapat'].forEach(function(rid){
+    var rapatSel = document.getElementById(rid);
+    if (!rapatSel) return;
     var prev = rapatSel.value;
     while (rapatSel.options.length > 1) rapatSel.remove(1);
     localRapat.forEach(function(r){
@@ -3360,8 +3412,8 @@ function populateReportFilters() {
       rapatSel.appendChild(o);
     });
     if (prev) rapatSel.value = prev;
-  }
-  ['flt-pengguna-seksi','flt-progress-seksi','flt-todo-seksi','flt-kendala-seksi'].forEach(function(id){
+  });
+  ['flt-lengkap-seksi','flt-pengguna-seksi','flt-progress-seksi','flt-todo-seksi','flt-kendala-seksi'].forEach(function(id){
     var el = document.getElementById(id); if (!el) return;
     var prev = el.value;
     while (el.options.length > 1) el.remove(1);
@@ -3380,6 +3432,46 @@ function getFilteredRapat() {
   return localRapat.filter(function(r){
     return (!rid || r.id === rid) && (!st || (r.status||'') === st);
   });
+}
+// Getter khusus untuk Laporan Lengkap (membaca panel "Filter Laporan Lengkap" yang terpadu)
+function getLengkapProgressSeksi() {
+  var seksi = fv('flt-lengkap-seksi'), st = fv('flt-lengkap-progress-status');
+  return SEKSI_LIST.filter(function(s){
+    if (seksi && s !== seksi) return false;
+    if (st) { var p = localProgress[s] || { status:'rencana' }; if ((p.status||'rencana') !== st) return false; }
+    return true;
+  });
+}
+function getLengkapTodo() {
+  var seksi = fv('flt-lengkap-seksi'), st = fv('flt-lengkap-todo-status'), pri = fv('flt-lengkap-prioritas');
+  return localTodo.filter(function(t){
+    if (seksi && (t.seksi||'') !== seksi) return false;
+    if (st === 'selesai' && !t.done) return false;
+    if (st === 'belum' && t.done) return false;
+    if (pri && (t.prioritas||'') !== pri) return false;
+    return true;
+  });
+}
+function getLengkapKendala() {
+  var seksi = fv('flt-lengkap-seksi'), st = fv('flt-lengkap-kendala-status'), pri = fv('flt-lengkap-prioritas');
+  return localKendala.filter(function(k){
+    if (seksi && (k.seksi||'') !== seksi) return false;
+    if (st && (k.status||'') !== st) return false;
+    if (pri && (k.prioritas||'') !== pri) return false;
+    return true;
+  });
+}
+// Absensi terfilter untuk Laporan Lengkap.
+// Filter Rapat Absensi -> hanya rapat tsb; Status Kehadiran -> hanya catatan dgn status itu.
+function getLengkapAbsensi() {
+  var rid = fv('flt-lengkap-absensi-rapat'), st = fv('flt-lengkap-absensi-status');
+  // 'belum' tidak ada di localAbsensi (artinya tidak ada catatan), ditangani saat render baris.
+  var recs = localAbsensi.filter(function(a){
+    if (rid && a.rapatId !== rid) return false;
+    if (st && st !== 'belum' && (a.status||'') !== st) return false;
+    return true;
+  });
+  return { rid: rid, st: st, recs: recs };
 }
 function getFilteredUsers() {
   var role = fv('flt-pengguna-role'), seksi = fv('flt-pengguna-seksi');
@@ -3453,7 +3545,7 @@ function buildReportHTML(type) {
   // RAPAT section
   if (type === 'lengkap') {
     var rapatList = getFilteredRapat();
-    var kendalaList = getFilteredKendala();
+    var kendalaList = getLengkapKendala();
     html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Daftar Rapat (' + rapatList.length + ')</div><table><thead><tr><th>#</th><th>Nama Rapat</th><th>Tanggal</th><th>Lokasi</th><th>Pimpinan</th><th>Notulen</th><th>Peserta</th><th>Status</th><th>Agenda</th></tr></thead><tbody>';
     rapatList.forEach(function(r, i) {
       var agCount = localAgenda.filter(function(a){return a.rapatId===r.id;}).length;
@@ -3484,7 +3576,7 @@ function buildReportHTML(type) {
 
   // PROGRESS section
   if (type === 'lengkap' || type === 'progress') {
-    var progSeksi = (type === 'progress') ? getFilteredProgressSeksi() : SEKSI_LIST;
+    var progSeksi = (type === 'lengkap') ? getLengkapProgressSeksi() : (type === 'progress') ? getFilteredProgressSeksi() : SEKSI_LIST;
     var avgBase = progSeksi.length ? progSeksi : SEKSI_LIST;
     var avgPct = Math.round(avgBase.map(function(s){return (localProgress[s]&&localProgress[s].pct)||0;}).reduce(function(a,b){return a+b;},0)/(avgBase.length||1));
     html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Monitor Progress Seksi (Rata-rata: ' + avgPct + '%)</div><table><thead><tr><th>Seksi</th><th>Status</th><th>Progress</th><th>Catatan</th></tr></thead><tbody>';
@@ -3499,7 +3591,7 @@ function buildReportHTML(type) {
 
   // TODO section
   if (type === 'lengkap' || type === 'todo') {
-    var todoList = (type === 'todo') ? getFilteredTodo() : localTodo;
+    var todoList = (type === 'lengkap') ? getLengkapTodo() : (type === 'todo') ? getFilteredTodo() : localTodo;
     var doneCount = todoList.filter(function(t){return t.done;}).length;
     var pctTodo = todoList.length ? Math.round(doneCount/todoList.length*100) : 0;
     html += '<div class="rpt-sec"><div class="rpt-sec-ttl">To Do List (' + doneCount + '/' + todoList.length + ' selesai — ' + pctTodo + '%)</div><table><thead><tr><th>#</th><th>Tugas</th><th>Seksi</th><th>Prioritas</th><th>Status</th><th>Deadline</th><th>Rapat</th></tr></thead><tbody>';
@@ -3578,11 +3670,16 @@ function buildReportHTML(type) {
 
     // ── ABSENSI SECTION ──
   if (type === 'absensi' || type === 'lengkap') {
-    // Ringkasan keseluruhan
-    var totalHadir = localAbsensi.filter(function(a){ return a.status==='hadir'; }).length;
-    var totalIzin  = localAbsensi.filter(function(a){ return a.status==='izin'; }).length;
-    var totalAlpa  = localAbsensi.filter(function(a){ return a.status==='alpa'; }).length;
-    var totalAbs   = localAbsensi.length;
+    // Tentukan basis catatan: untuk lengkap, hormati filter Rapat Absensi & Status Kehadiran.
+    var absRid = '', absSt = '';
+    if (type === 'lengkap') { var _f = getLengkapAbsensi(); absRid = _f.rid; absSt = _f.st; }
+
+    // Catatan untuk ringkasan (dibatasi filter rapat; status dihitung apa adanya agar % bermakna)
+    var summaryAbs = localAbsensi.filter(function(a){ return !absRid || a.rapatId === absRid; });
+    var totalHadir = summaryAbs.filter(function(a){ return a.status==='hadir'; }).length;
+    var totalIzin  = summaryAbs.filter(function(a){ return a.status==='izin'; }).length;
+    var totalAlpa  = summaryAbs.filter(function(a){ return a.status==='alpa'; }).length;
+    var totalAbs   = summaryAbs.length;
     var pctHadirAll = totalAbs ? Math.round(totalHadir/totalAbs*100) : 0;
 
     html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Ringkasan Kehadiran</div>'
@@ -3593,9 +3690,13 @@ function buildReportHTML(type) {
       + '<tr><td><strong>Total catatan</strong></td><td><strong>' + totalAbs + '</strong></td><td><strong>' + pctHadirAll + '% kehadiran</strong></td></tr>'
       + '</tbody></table></div>';
 
-    // Absensi per rapat
-    var rapatDenganAbsensi = localRapat.filter(function(r){ return localAbsensi.some(function(a){ return a.rapatId===r.id; }); });
+    // Absensi per rapat (dibatasi oleh filter Rapat Absensi bila dipilih)
+    var rapatDenganAbsensi = localRapat.filter(function(r){
+      if (absRid && r.id !== absRid) return false;
+      return localAbsensi.some(function(a){ return a.rapatId===r.id; });
+    });
     if (rapatDenganAbsensi.length) {
+      var adaBarisTampil = false;
       rapatDenganAbsensi.forEach(function(r) {
         var absRapat = localAbsensi.filter(function(a){ return a.rapatId===r.id; });
         var absMap   = {};
@@ -3603,23 +3704,39 @@ function buildReportHTML(type) {
         var hR = absRapat.filter(function(a){ return a.status==='hadir'; }).length;
         var iR = absRapat.filter(function(a){ return a.status==='izin'; }).length;
         var aR = absRapat.filter(function(a){ return a.status==='alpa'; }).length;
-        html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Absensi — ' + r.nama + ' (' + fmtDate(r.tanggal) + ')</div>'
-          + '<div style="font-size:11px;color:#6b7280;margin-bottom:8px;">Hadir: ' + hR + ' · Izin: ' + iR + ' · Alpa: ' + aR + ' · Total terisi: ' + absRapat.length + '/' + localUsers.length + '</div>'
-          + '<table><thead><tr><th>#</th><th>Nama</th><th>Role</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>';
-        localUsers.forEach(function(u, i) {
+        // Susun baris pengguna dgn filter Status Kehadiran
+        var rows = '';
+        var no = 0;
+        localUsers.forEach(function(u) {
           var abs  = absMap[u.uid];
           var stat = abs ? abs.status : 'belum diisi';
-          var cls  = abs ? 'b-'+stat : 'b-belum';
-          html += '<tr><td>' + (i+1) + '</td>'
+          // Terapkan filter status kehadiran (hanya untuk lengkap)
+          if (absSt) {
+            if (absSt === 'belum' && abs) return;          // hanya yang belum diisi
+            if (absSt !== 'belum' && (!abs || abs.status !== absSt)) return;
+          }
+          no++;
+          var cls = abs ? 'b-'+stat : 'b-belum';
+          rows += '<tr><td>' + no + '</td>'
             + '<td><strong>' + (u.nama||u.email) + '</strong></td>'
             + '<td>' + (u.role||'—') + '</td>'
             + '<td><span class="badge ' + cls + '">' + stat + '</span></td>'
             + '<td style="font-size:11px;color:#6b7280;">' + (abs&&abs.keterangan ? abs.keterangan : '') + '</td></tr>';
         });
-        html += '</tbody></table></div>';
+        if (!rows) return; // tidak ada baris yang lolos filter status untuk rapat ini
+        adaBarisTampil = true;
+        html += '<div class="rpt-sec"><div class="rpt-sec-ttl">Absensi — ' + r.nama + ' (' + fmtDate(r.tanggal) + ')</div>'
+          + '<div style="font-size:11px;color:#6b7280;margin-bottom:8px;">Hadir: ' + hR + ' · Izin: ' + iR + ' · Alpa: ' + aR + ' · Total terisi: ' + absRapat.length + '/' + localUsers.length + '</div>'
+          + '<table><thead><tr><th>#</th><th>Nama</th><th>Role</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>'
+          + rows + '</tbody></table></div>';
       });
+      if (!adaBarisTampil) {
+        html += '<div class="rpt-sec"><div style="color:#6b7280;font-size:13px;padding:16px 0;">Tidak ada data absensi yang sesuai filter.</div></div>';
+      }
     } else if (type === 'absensi') {
       html += '<div class="rpt-sec"><div style="color:#6b7280;font-size:13px;padding:16px 0;">Belum ada data absensi yang tercatat.</div></div>';
+    } else {
+      html += '<div class="rpt-sec"><div style="color:#6b7280;font-size:13px;padding:16px 0;">Tidak ada data absensi yang sesuai filter.</div></div>';
     }
   }
 
@@ -3699,7 +3816,7 @@ function exportReportExcel(type) {
 
   if (type === 'lengkap') {
     var rapatF = getFilteredRapat();
-    var kendalaF = getFilteredKendala();
+    var kendalaF = getLengkapKendala();
     // Sheet 1: Daftar Rapat
     var rapatRows = rapatF.map(function(r,i){
       return [i+1, r.nama||'—', fmtDate(r.tanggal), r.lokasi||'—', r.pimpinan||'—', r.notulen||'—', r.peserta||'—', statusStr(r.status), localAgenda.filter(function(a){return a.rapatId===r.id;}).length];
@@ -3717,7 +3834,7 @@ function exportReportExcel(type) {
     XLSX.utils.book_append_sheet(wb, makeSheet('AGENDA RAPAT — Dicetak: '+dateStr, ['No','Nama Rapat','Tanggal','Topik','Pembahasan','Seksi / Kolaborasi','Prioritas','Lampiran'], agendaRows), 'Agenda Rapat');
 
     // Sheet 3: To Do List (dengan Prioritas)
-    var todoRowsL = localTodo.map(function(t,i){
+    var todoRowsL = getLengkapTodo().map(function(t,i){
       var r = localRapat.filter(function(x){return x.id===t.rapatId;})[0];
       return [i+1, t.tugas||'—', t.seksi||'—', t.prioritas||'—', t.done?'Selesai':'Belum Selesai', t.deadline?fmtDate(t.deadline):'—', r?r.nama:'—'];
     });
@@ -3731,11 +3848,34 @@ function exportReportExcel(type) {
     XLSX.utils.book_append_sheet(wb, makeSheet('KENDALA — Dicetak: '+dateStr, ['No','Deskripsi Kendala','Seksi','Prioritas','Status','Rapat Terkait','Solusi','Rencana Penyelesaian'], kendalaRowsL), 'Kendala');
 
     // Sheet 5: Progress
-    var progressRows = SEKSI_LIST.map(function(s){
+    var progressRows = getLengkapProgressSeksi().map(function(s){
       var p = localProgress[s] || { pct:0, status:'rencana', catatan:'' };
       return [s, statusStr(p.status), (p.pct||0)+'%', p.catatan||'—'];
     });
     XLSX.utils.book_append_sheet(wb, makeSheet('MONITOR PROGRESS SEKSI — Dicetak: '+dateStr, ['Seksi','Status','Progress (%)','Catatan'], progressRows), 'Progress Seksi');
+
+    // Sheet 6: Absensi (mengikuti filter Rapat Absensi & Status Kehadiran)
+    var fAbs = getLengkapAbsensi();
+    var absRowsLengkap = [];
+    var noAbs = 0;
+    var rapatAbsList = localRapat.filter(function(r){
+      if (fAbs.rid && r.id !== fAbs.rid) return false;
+      return localAbsensi.some(function(a){ return a.rapatId===r.id; });
+    });
+    rapatAbsList.forEach(function(r){
+      var absMapX = {};
+      localAbsensi.filter(function(a){ return a.rapatId===r.id; }).forEach(function(a){ absMapX[a.userId]=a; });
+      localUsers.forEach(function(u){
+        var abs = absMapX[u.uid];
+        var stat = abs ? abs.status : 'belum diisi';
+        if (fAbs.st) {
+          if (fAbs.st === 'belum' && abs) return;
+          if (fAbs.st !== 'belum' && (!abs || abs.status !== fAbs.st)) return;
+        }
+        absRowsLengkap.push([++noAbs, u.nama||u.email, u.role||'—', r.nama, fmtDate(r.tanggal), stat, abs&&abs.keterangan?abs.keterangan:'']);
+      });
+    });
+    XLSX.utils.book_append_sheet(wb, makeSheet('ABSENSI RAPAT — Dicetak: '+dateStr, ['No','Nama','Role','Rapat','Tanggal Rapat','Status','Keterangan'], absRowsLengkap), 'Absensi');
   }
 
   if (type === 'progress') {
