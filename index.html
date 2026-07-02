@@ -372,7 +372,24 @@
     .form-group label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: var(--color-secondary); font-family: var(--font-body); }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: 8px; font-family: var(--font-body); font-size: 0.95rem; background: #f8fafc; transition: 0.2s; color: var(--color-text); }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--color-primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.1); }
-    
+
+    /* ==== RICH TEXT EDITOR (BOLD / ITALIC / UNDERLINE) ==== */
+    .rich-editor-wrapper { width: 100%; }
+    .rich-toolbar { display: flex; gap: 4px; margin-bottom: 6px; background: #eef2f7; border: 1px solid var(--color-border); border-radius: 8px 8px 0 0; padding: 5px; }
+    .rich-toolbar button { width: 30px; height: 30px; border: 1px solid transparent; background: #ffffff; border-radius: 6px; color: var(--color-text); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; transition: 0.15s; }
+    .rich-toolbar button:hover { background: var(--color-bg-light); border-color: var(--color-border); color: var(--color-primary); }
+    .rich-toolbar button.active { background: var(--color-primary); border-color: var(--color-primary); color: #ffffff; }
+    .rich-toolbar + .rich-editor-area { border-radius: 0 0 8px 8px; margin-top: -6px; }
+    .rich-editor-area { width: 100%; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: 8px; font-family: var(--font-body); font-size: 0.95rem; background: #f8fafc; color: var(--color-text); line-height: 1.5; overflow-y: auto; }
+    .rich-editor-area:focus { outline: none; border-color: var(--color-primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.1); }
+    .rich-editor-area:empty:before { content: attr(data-placeholder); color: #94a3b8; pointer-events: none; }
+    .rich-editor-area b, .rich-editor-area strong { font-weight: 700; }
+    .rich-editor-area i, .rich-editor-area em { font-style: italic; }
+    .rich-editor-area u { text-decoration: underline; }
+    .rich-content b, .rich-content strong { font-weight: 700; }
+    .rich-content i, .rich-content em { font-style: italic; }
+    .rich-content u { text-decoration: underline; }
+
     .form-row { display: flex; gap: 16px; }
     .form-row .form-group { flex: 1; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; border-top: 1px solid var(--color-border); padding-top: 20px; }
@@ -3005,7 +3022,7 @@
                  <i class="fas fa-list-ol" style="margin-top:4px;"></i> 
                  <div>
                    <strong style="color:var(--color-secondary); font-family:var(--font-body);">Agenda Rapat:</strong><br>
-                   <span style="white-space: pre-wrap; font-size:0.95rem; line-height: 1.6; color:var(--color-text);">${escapeHtml(meeting.agenda)}</span>
+                   <span class="rich-content" style="white-space: pre-wrap; font-size:0.95rem; line-height: 1.6; color:var(--color-text);">${renderRichText(meeting.agenda)}</span>
                  </div>
                </div>` 
             : '';
@@ -3018,7 +3035,7 @@
                 <i class="fas fa-tag" style="margin-top:4px;"></i> 
                 <div>
                   <strong style="color:var(--color-secondary); font-family:var(--font-body);">Catatan Tambahan:</strong><br>
-                  <span style="white-space: pre-wrap; font-size:0.95rem; color:var(--color-text);">${escapeHtml(meeting.info) || '-'}</span>
+                  <span class="rich-content" style="white-space: pre-wrap; font-size:0.95rem; color:var(--color-text);">${renderRichText(meeting.info) || '-'}</span>
                 </div>
               </div>
               ${agendaHtml}
@@ -3346,7 +3363,7 @@
               commentsHtml += `<div style="background:#f1f5ff; border-radius:6px; padding:6px 10px; font-size:0.82rem;">
                 <span style="font-weight:600; color:#3730a3;">${escapeHtml(c.user)}</span>
                 <span style="color:#94a3b8; margin-left:6px; font-size:0.75rem;">${c.time ? new Date(c.time).toLocaleString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</span>
-                <div style="margin-top:3px; color:#334155;">${escapeHtml(c.text)}</div>
+                <div class="rich-content" style="margin-top:3px; color:#334155;">${renderRichText(c.text)}</div>
               </div>`;
             });
             commentsHtml += `</div>`;
@@ -3369,7 +3386,7 @@
                   ${canComment ? `<button id="cmt-task-${task.id}" title="Komentar" onclick="openCommentModal('${meetingId}','${section.id}','${task.id}')" style="background:transparent; border:1px solid #6366f1; color:#6366f1; padding:3px 7px; border-radius:4px; cursor:pointer; font-size:11px;" title="Tulis Komentar"><i class="fas fa-comment-dots"></i></button>` : ''}
                 </div>
               </div>
-              ${task.notes ? `<div style="font-size:0.85rem; color:var(--color-text-light); margin-top:8px; margin-left:126px; border-left:2px solid var(--color-border); padding-left:10px;"><i class="fas fa-comment"></i> ${escapeHtml(task.notes)}</div>` : ''}
+              ${task.notes ? `<div class="rich-content" style="font-size:0.85rem; color:var(--color-text-light); margin-top:8px; margin-left:126px; border-left:2px solid var(--color-border); padding-left:10px;"><i class="fas fa-comment"></i> ${renderRichText(task.notes)}</div>` : ''}
               ${commentsHtml}
               ${attachmentsHtml}
             </div>
@@ -3802,7 +3819,7 @@
               : '';
             div.innerHTML = `${actionsHtml}<span style="font-weight:600; color:#3730a3;">${escapeHtml(c.user)}</span>
               <span style="color:#94a3b8; margin-left:8px; font-size:0.75rem;">${c.time ? new Date(c.time).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</span>${editedTag}
-              <div style="margin-top:4px; color:#334155;">${escapeHtml(c.text)}</div>`;
+              <div class="rich-content" style="margin-top:4px; color:#334155;">${renderRichText(c.text)}</div>`;
             list.appendChild(div);
           });
           // Pasang handler edit/hapus (berbasis id komentar, bukan indeks)
@@ -4531,6 +4548,138 @@
 
 
       function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+
+      // ========== RICH TEXT (BOLD / ITALIC / UNDERLINE) HELPERS ==========
+      // Hanya mengizinkan tag format dasar agar aman (anti-XSS) & tetap ringan.
+      const RICH_ALLOWED_TAGS = ['B','STRONG','I','EM','U','BR','DIV','SPAN'];
+
+      function sanitizeRichHtml(html) {
+        if (!html) return '';
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        (function clean(node) {
+          Array.from(node.childNodes).forEach(child => {
+            if (child.nodeType === 1) {
+              if (RICH_ALLOWED_TAGS.indexOf(child.tagName) === -1) {
+                while (child.firstChild) child.parentNode.insertBefore(child.firstChild, child);
+                child.parentNode.removeChild(child);
+              } else {
+                Array.from(child.attributes || []).forEach(attr => child.removeAttribute(attr.name));
+                clean(child);
+              }
+            } else if (child.nodeType !== 3) {
+              child.parentNode.removeChild(child);
+            }
+          });
+        })(temp);
+        return temp.innerHTML;
+      }
+
+      function isEmptyRichText(html) {
+        const text = (html || '').replace(/<br\s*\/?>/gi, '').replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ').trim();
+        return text.length === 0;
+      }
+
+      function htmlToPlainText(html) {
+        if (!html) return '';
+        const temp = document.createElement('div');
+        temp.innerHTML = String(html).replace(/<div>/gi, '\n').replace(/<\/div>/gi, '').replace(/<br\s*\/?>/gi, '\n');
+        const text = temp.textContent || temp.innerText || '';
+        return text.replace(/\n{3,}/g, '\n\n').trim();
+      }
+
+      // Render nilai field yang mungkin berisi format Bold/Italic/Underline.
+      // Kompatibel mundur: jika nilai lama berupa teks polos (tanpa tag), tetap di-escape & baris baru diubah jadi <br>.
+      function renderRichText(value) {
+        if (!value) return '';
+        if (!/<[a-z][\s\S]*>/i.test(value)) {
+          return escapeHtml(value).replace(/\n/g, '<br>');
+        }
+        return sanitizeRichHtml(value);
+      }
+
+      // Mengubah sebuah <textarea> menjadi editor kaya (contentEditable) dengan toolbar Bold/Italic/Underline,
+      // tanpa mengubah kode lain: properti .value pada textarea asli tetap bisa dibaca/ditulis seperti biasa.
+      function upgradeToRichTextarea(textareaId) {
+        const ta = document.getElementById(textareaId);
+        if (!ta || ta.dataset.richUpgraded) return;
+        ta.dataset.richUpgraded = '1';
+
+        const initialRaw = ta.value || '';
+        const rows = parseInt(ta.getAttribute('rows'), 10) || 3;
+        const placeholderText = ta.getAttribute('placeholder') || '';
+
+        ta.style.display = 'none';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'rich-editor-wrapper';
+
+        const toolbar = document.createElement('div');
+        toolbar.className = 'rich-toolbar';
+        toolbar.innerHTML = `
+          <button type="button" data-cmd="bold" title="Tebal (Bold)"><i class="fas fa-bold"></i></button>
+          <button type="button" data-cmd="italic" title="Miring (Italic)"><i class="fas fa-italic"></i></button>
+          <button type="button" data-cmd="underline" title="Garis Bawah (Underline)"><i class="fas fa-underline"></i></button>
+        `;
+
+        const editor = document.createElement('div');
+        editor.className = 'rich-editor-area';
+        editor.contentEditable = 'true';
+        editor.style.minHeight = (rows * 24) + 'px';
+        if (placeholderText) editor.setAttribute('data-placeholder', placeholderText);
+        editor.innerHTML = /<[a-z][\s\S]*>/i.test(initialRaw) ? sanitizeRichHtml(initialRaw) : escapeHtml(initialRaw).replace(/\n/g, '<br>');
+
+        function updateToolbarState() {
+          toolbar.querySelectorAll('button').forEach(btn => {
+            try { btn.classList.toggle('active', document.queryCommandState(btn.dataset.cmd)); } catch (e) {}
+          });
+        }
+
+        toolbar.querySelectorAll('button').forEach(btn => {
+          btn.addEventListener('mousedown', (e) => e.preventDefault());
+          btn.addEventListener('click', () => {
+            if (editor.contentEditable !== 'true') return;
+            editor.focus();
+            document.execCommand(btn.dataset.cmd, false, null);
+            updateToolbarState();
+          });
+        });
+        editor.addEventListener('keyup', updateToolbarState);
+        editor.addEventListener('mouseup', updateToolbarState);
+        editor.addEventListener('focus', updateToolbarState);
+
+        wrapper.appendChild(toolbar);
+        wrapper.appendChild(editor);
+        ta.parentNode.insertBefore(wrapper, ta.nextSibling);
+
+        Object.defineProperty(ta, 'value', {
+          get() {
+            const html = editor.innerHTML;
+            return isEmptyRichText(html) ? '' : sanitizeRichHtml(html);
+          },
+          set(v) {
+            const val = v || '';
+            editor.innerHTML = /<[a-z][\s\S]*>/i.test(val) ? sanitizeRichHtml(val) : escapeHtml(val).replace(/\n/g, '<br>');
+          },
+          configurable: true
+        });
+
+        Object.defineProperty(ta, 'readOnly', {
+          get() { return editor.contentEditable !== 'true'; },
+          set(v) {
+            editor.contentEditable = v ? 'false' : 'true';
+            toolbar.style.display = v ? 'none' : 'flex';
+          },
+          configurable: true
+        });
+      }
+
+      // Aktifkan editor Bold/Italic/Underline pada kolom-kolom catatan rapat yang relevan.
+      upgradeToRichTextarea('meetingAgendaInput');
+      upgradeToRichTextarea('meetingInfoInput');
+      upgradeToRichTextarea('taskNotesInput');
+      upgradeToRichTextarea('commentTextInput');
+      upgradeToRichTextarea('mom-discussion');
       function formatDate(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }); }
       function translateStatus(st) { const map = { selesai:'Selesai', berlangsung:'Berlangsung', rencana:'Rencana', kendala:'Kendala' }; return map[st] || st; }
       function formatRupiah(angka) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(angka); }
@@ -4682,7 +4831,7 @@
                               <td><strong>${translateStatus(task.status)}</strong></td>
                               <td>${progressStr}</td>
                               <td>${deadlineStr}</td>
-                              <td>${escapeHtml(task.notes || '-')}</td>
+                              <td>${task.notes ? renderRichText(task.notes) : '-'}</td>
                           </tr>`;
                       });
                   }
@@ -4792,7 +4941,7 @@
           const date = document.getElementById('mom-date').value;
           const location = document.getElementById('mom-location').value;
           const attendees = document.getElementById('mom-attendees').value;
-          const discussion = document.getElementById('mom-discussion').value;
+          const discussion = htmlToPlainText(document.getElementById('mom-discussion').value);
 
           doc.setFont("helvetica", "bold");
           doc.setFontSize(16);
@@ -4988,7 +5137,7 @@
         meeting.sections.forEach(section => {
           section.tasks.forEach(task => {
             const deadline = task.deadline ? new Date(task.deadline).toLocaleString('id-ID') : '';
-            dataTasks.push([section.name, task.desc, translateStatus(task.status), task.progress ?? 0, task.pic || '-', deadline, task.notes || '']);
+            dataTasks.push([section.name, task.desc, translateStatus(task.status), task.progress ?? 0, task.pic || '-', deadline, htmlToPlainText(task.notes || '')]);
           });
         });
         const wsTasks = XLSX.utils.aoa_to_sheet(dataTasks);
@@ -8089,6 +8238,82 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(injectEcosystemButtons, 1500);
 })();
 </script>
+
+<!-- ========================================================= -->
+<!-- PERBAIKAN HASIL CETAK (PRINT FIX) - v2                     -->
+<!-- Diletakkan paling akhir agar prioritas CSS-nya menang       -->
+<!-- terhadap aturan @media print sebelumnya (sama spesifisitas, -->
+<!-- yang belakangan menang), sekaligus menutup elemen mengambang -->
+<!-- (tombol kalender, tombol WA/G-Cal, tooltip, modal riwayat)  -->
+<!-- yang sebelumnya tidak ikut disembunyikan saat mencetak.     -->
+<!-- ========================================================= -->
+<style>
+  @media print {
+    /* Pastikan warna latar/status tetap tercetak (mis. header tabel MoM, badge status) */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+
+    @page { margin: 12mm; }
+
+    /* Sembunyikan semua elemen navigasi/aksi/mengambang yang tidak relevan untuk dicetak */
+    .sidebar, .sidebar-hover-trigger, .panel-header, .btn-add-section, .section-actions,
+    .task-actions, .add-task-btn, .filter-row, .modal, .btn-header, .btn-edit-meeting,
+    .btn-delete-meeting, .theme-switcher, #fontSwitcher, .user-info, .log-card,
+    .log-actions, .notification-wrapper, #install-pwa-container, .mobile-menu-toggle,
+    .stat-tooltip, #btn-trigger-calendar, #notula-calendar-overlay, #notula-event-modal,
+    #notula-history-modal, .btn-ecosystem-wrapper, #waModalOverlay, .income-actions,
+    .btn-add-income, .team-actions-sidebar, .btn-new-team, #landscapeSidebarToggle,
+    .rich-toolbar {
+      display: none !important;
+    }
+
+    html, body {
+      width: 100% !important;
+      height: auto !important;
+      display: block !important;
+      overflow: visible !important;
+      background: #ffffff !important;
+    }
+
+    .main-panel {
+      display: block !important;
+      width: 100% !important;
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+      margin-left: 0 !important;
+    }
+
+    .content {
+      display: block !important;
+      width: 100% !important;
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+      padding: 0 !important;
+    }
+
+    /* Cegah kartu/baris terpotong tanggung di batas halaman */
+    .info-card, .dashboard-card, .global-dashboard, .section-card, .income-card,
+    .team-detail-card, .assigned-teams-card, .task-item, .kendala-item {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      box-shadow: none !important;
+    }
+
+    .section-header { break-after: avoid; page-break-after: avoid; }
+
+    table { width: 100% !important; }
+    thead { display: table-header-group; }
+    tr, .team-member-card, .member-item { break-inside: avoid; page-break-inside: avoid; }
+
+    /* Editor rich text: saat mencetak, hanya konten yang tampil (toolbar sudah disembunyikan di atas) */
+    .rich-editor-area, .rich-content { border: none !important; background: transparent !important; padding: 0 !important; }
+  }
+</style>
 </body>
 </html>
 
