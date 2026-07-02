@@ -1238,6 +1238,24 @@
                           renderDetail(m);
                           notifDropdown.classList.remove('active');
                       }
+                  } else if (n.teamId) {
+                      const t = teams.find(x => x.id === n.teamId);
+                      if (t) {
+                          currentTeamId = t.id;
+                          renderTeamList();
+                          renderTeamDetail(t);
+                          notifDropdown.classList.remove('active');
+                      }
+                  } else if (n.workspaceId) {
+                      const w = workspaces.find(x => x.id === n.workspaceId);
+                      if (w) {
+                          currentWorkspaceId = w.id;
+                          window.currentWorkspaceId = w.id;
+                          currentMeetingId = null;
+                          renderWorkspaceList();
+                          renderWorkspaceMeetings(w.id);
+                          notifDropdown.classList.remove('active');
+                      }
                   }
               });
               list.appendChild(li);
@@ -2064,6 +2082,60 @@
         }
       }
 
+      // ========== HELPER NOTIFIKASI TERPUSAT ==========
+      // Dipakai untuk semua pemicu notifikasi: invite grup/tim/seksi/rapat & komentar baru.
+      // targetEmail: email tujuan. Tidak mengirim notifikasi ke diri sendiri.
+      async function sendAppNotification(targetEmail, title, body, extra) {
+        try {
+          if (!targetEmail) return;
+          const target = String(targetEmail).toLowerCase().trim();
+          if (!target || !target.includes('@')) return;
+          if (currentUser?.email && target === currentUser.email.toLowerCase()) return; // jangan notifikasi diri sendiri
+          const payload = Object.assign({
+            targetEmail: target,
+            title: title,
+            body: body,
+            isRead: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, extra || {});
+          await db.collection('notifications').add(payload);
+        } catch (e) {
+          console.error('Gagal mengirim notifikasi:', e);
+        }
+      }
+
+      // Mengirim notifikasi ke beberapa email sekaligus (dedup otomatis, abaikan yang kosong/invalid)
+      async function sendAppNotificationBulk(emails, title, body, extra) {
+        const unique = Array.from(new Set((emails || []).filter(Boolean).map(e => String(e).toLowerCase().trim())));
+        await Promise.all(unique.map(email => sendAppNotification(email, title, body, extra)));
+      }
+
+      // Kumpulkan email yang relevan diberi notifikasi saat ada komentar baru pada sebuah tugas:
+      // koordinator & anggota seksi, PIC tugas, anggota tim yang ditugaskan pada rapat, dan pembuat rapat.
+      async function getTaskCommentNotifyEmails(meeting, section, task) {
+        const parseEmailList = (str) => (str || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+        const emails = [];
+        emails.push(...parseEmailList(section?.koordinatorEmails));
+        emails.push(...parseEmailList(section?.memberEmails));
+        emails.push(...parseEmailList(section?.assignedEmails));
+        if (task?.pic && task.pic.includes('@')) emails.push(task.pic.trim().toLowerCase());
+        if (meeting?.assignedTeamIds && meeting.assignedTeamIds.length > 0) {
+          meeting.assignedTeamIds.forEach(teamId => {
+            const team = teams.find(t => t.id === teamId);
+            if (team && team.members) {
+              team.members.forEach(m => { if (m.email) emails.push(m.email.trim().toLowerCase()); });
+            }
+          });
+        }
+        if (meeting?.createdBy) {
+          try {
+            const creatorEmail = await lookupEmailByUid(meeting.createdBy);
+            if (creatorEmail && creatorEmail.includes('@')) emails.push(creatorEmail.trim().toLowerCase());
+          } catch (e) { /* abaikan jika gagal lookup */ }
+        }
+        return Array.from(new Set(emails.filter(Boolean)));
+      }
+
       // Fungsi global untuk mencatat perubahan ke workspaces/{id}/history (dibaca oleh modal Riwayat & Log)
       window.addWorkspaceLog = async function(action) {
         const groupId = currentWorkspaceId || window.currentWorkspaceId;
@@ -2472,6 +2544,9 @@
           alert('Anggota berhasil ditambahkan ke grup!');
 
           if (workspace && !workspace.members.includes(uid)) workspace.members.push(uid);
+
+          // NOTIFIKASI: beri tahu user yang diundang sebagai anggota grup
+          sendAppNotification(email, 'Ditambahkan ke Grup', `Anda ditambahkan sebagai anggota grup "${workspace ? workspace.name : ''}" oleh ${currentUser.email}.`, { workspaceId: workspaceId });
 
           openManageMembers(workspaceId);
         } catch (error) {
@@ -3542,6 +3617,7 @@
             sharedWith: firebase.firestore.FieldValue.arrayUnion(email)
           });
           await addLog(meetingId, `Membagikan akses rapat ke: ${email}`);
+          sendAppNotification(email, 'Diundang ke Rapat', `Anda diberi akses untuk melihat rapat "${meeting.title}" oleh ${currentUser.email}.`, { meetingId: meetingId });
           input.value = '';
           // UI langsung update lewat onSnapshot meetings
         } catch(err) {
@@ -3606,6 +3682,15 @@
           await db.collection('meetings').doc(meetingId).update({ sections: meeting.sections });
           const actionMsg = isNew ? `menambahkan seksi baru` : `memperbarui seksi`;
           await addLog(meetingId, `${actionMsg}: "${sectionData.name}"`);
+
+          // NOTIFIKASI: beri tahu email yang BARU ditambahkan sebagai koordinator/anggota seksi
+          const parseEmailList = (str) => (str || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+          const oldKoordinator = parseEmailList(existingSection?.koordinatorEmails);
+          const oldMember = parseEmailList(existingSection?.memberEmails);
+          const newKoordinator = parseEmailList(sectionData.koordinatorEmails).filter(e => !oldKoordinator.includes(e));
+          const newMember = parseEmailList(sectionData.memberEmails).filter(e => !oldMember.includes(e));
+          sendAppNotificationBulk(newKoordinator, 'Ditambahkan ke Seksi Rapat', `Anda ditambahkan sebagai Koordinator pada seksi "${sectionData.name}" di rapat "${meeting.title}".`, { meetingId: meetingId });
+          sendAppNotificationBulk(newMember, 'Ditambahkan ke Seksi Rapat', `Anda ditambahkan sebagai Anggota pada seksi "${sectionData.name}" di rapat "${meeting.title}".`, { meetingId: meetingId });
         } catch (error) {
           alert('Gagal menyimpan seksi: ' + error.message);
         }
@@ -3916,6 +4001,11 @@
           if (cardEl) cardEl.outerHTML = renderSectionCard(_commentMeetingId, section);
           // Re-render komentar di modal
           window.openCommentModal(_commentMeetingId, _commentSectionId, _commentTaskId);
+
+          // NOTIFIKASI: beri tahu pihak terkait (koordinator/anggota seksi, PIC tugas, tim rapat, pembuat rapat) ada komentar baru
+          getTaskCommentNotifyEmails(meeting, section, task).then(emails => {
+            sendAppNotificationBulk(emails, 'Komentar Baru', `${currentUser?.email || 'Seseorang'} berkomentar pada tugas "${task.desc}" (seksi "${section.name}") di rapat "${meeting.title}".`, { meetingId: _commentMeetingId });
+          });
         } catch(err) {
           console.error('[Komentar] Gagal mengirim komentar:', err);
           alert('Gagal mengirim komentar: ' + (err.code ? '[' + err.code + '] ' : '') + err.message);
@@ -4110,7 +4200,23 @@
           }
         }
         
+        // Deteksi tim yang BARU ditugaskan (untuk notifikasi), dibandingkan sebelum disimpan
+        const oldAssignedTeamIds = editId ? (meetings.find(m => m.id === editId)?.assignedTeamIds || []) : [];
+        const newlyAssignedTeamIds = selectedTeamIds.filter(id => !oldAssignedTeamIds.includes(id));
+
         await saveMeeting(meetingData);
+
+        // NOTIFIKASI: beri tahu anggota tim yang baru ditugaskan pada rapat ini
+        if (newlyAssignedTeamIds.length > 0) {
+          const savedMeetingId = editId || currentMeetingId;
+          newlyAssignedTeamIds.forEach(teamId => {
+            const team = teams.find(t => t.id === teamId);
+            if (!team) return;
+            const memberEmailsForNotif = (team.members || []).map(m => m.email).filter(Boolean);
+            sendAppNotificationBulk(memberEmailsForNotif, 'Ditugaskan pada Rapat', `Tim "${team.name}" Anda ditugaskan pada rapat "${title}" oleh ${currentUser.email}.`, { meetingId: savedMeetingId });
+          });
+        }
+
         modalSelectedTeamIds = []; // Reset after save
         closeAllModals();
       });
@@ -4598,6 +4704,114 @@
         return sanitizeRichHtml(value);
       }
 
+      // ========== RENDER BOLD / ITALIC / UNDERLINE KE PDF (jsPDF) ==========
+      // Memecah HTML hasil editor (sudah disanitasi) menjadi daftar "token": teks berformat + tanda ganti baris.
+      function pdfTokensFromRichHtml(html) {
+        const container = document.createElement('div');
+        container.innerHTML = html || '';
+        const tokens = [];
+        (function flatten(node, style) {
+          node.childNodes.forEach(child => {
+            if (child.nodeType === 3) {
+              if (child.textContent) tokens.push({ type: 'text', text: child.textContent, bold: style.bold, italic: style.italic, underline: style.underline });
+            } else if (child.nodeType === 1) {
+              const tag = child.tagName;
+              if (tag === 'BR') {
+                tokens.push({ type: 'break' });
+              } else if (tag === 'DIV') {
+                if (tokens.length > 0) tokens.push({ type: 'break' });
+                flatten(child, style);
+              } else {
+                const s = { bold: style.bold, italic: style.italic, underline: style.underline };
+                if (tag === 'B' || tag === 'STRONG') s.bold = true;
+                if (tag === 'I' || tag === 'EM') s.italic = true;
+                if (tag === 'U') s.underline = true;
+                flatten(child, s);
+              }
+            }
+          });
+        })(container, { bold: false, italic: false, underline: false });
+        return tokens;
+      }
+
+      function pdfFontStyleForToken(tok) {
+        if (tok.bold && tok.italic) return 'bolditalic';
+        if (tok.bold) return 'bold';
+        if (tok.italic) return 'italic';
+        return 'normal';
+      }
+
+      // Membungkus token menjadi baris siap-gambar (word-wrap) sesuai lebar maksimum (mm), tanpa menggambar apa pun.
+      function pdfWrapRichTokens(doc, tokens, maxWidth, fontSize) {
+        doc.setFontSize(fontSize);
+        const lines = [];
+        let currentLine = [];
+        let currentWidth = 0;
+        function pushLine() { lines.push(currentLine); currentLine = []; currentWidth = 0; }
+        tokens.forEach(tok => {
+          if (tok.type === 'break') { pushLine(); return; }
+          doc.setFont('helvetica', pdfFontStyleForToken(tok));
+          const words = tok.text.split(/(\s+)/).filter(w => w.length > 0);
+          words.forEach(word => {
+            const isSpace = /^\s+$/.test(word);
+            const wWidth = doc.getTextWidth(word);
+            if (isSpace) {
+              if (currentLine.length > 0) { currentLine.push({ text: word, width: wWidth, bold: tok.bold, italic: tok.italic, underline: false, isSpace: true }); currentWidth += wWidth; }
+              return;
+            }
+            if (currentWidth + wWidth > maxWidth && currentLine.length > 0) pushLine();
+            currentLine.push({ text: word, width: wWidth, bold: tok.bold, italic: tok.italic, underline: tok.underline, isSpace: false });
+            currentWidth += wWidth;
+          });
+        });
+        if (currentLine.length > 0 || lines.length === 0) pushLine();
+        return lines;
+      }
+
+      // Menggambar baris hasil pdfWrapRichTokens pada posisi tertentu (tanpa ganti halaman) — dipakai untuk sel tabel.
+      function pdfDrawRichLines(doc, lines, x, startY, lineHeight, fontSize) {
+        doc.setFontSize(fontSize);
+        let y = startY;
+        lines.forEach(line => {
+          let cx = x;
+          line.forEach(seg => {
+            if (!seg.isSpace) {
+              doc.setFont('helvetica', pdfFontStyleForToken(seg));
+              doc.text(seg.text, cx, y);
+              if (seg.underline) doc.line(cx, y + 0.9, cx + seg.width, y + 0.9);
+            }
+            cx += seg.width;
+          });
+          y += lineHeight;
+        });
+        return y;
+      }
+
+      // Menggambar baris hasil pdfWrapRichTokens dengan ganti halaman otomatis — dipakai untuk blok teks panjang (Agenda/Pembahasan).
+      function pdfDrawRichLinesPaged(doc, lines, x, startY, lineHeight, fontSize) {
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const bottomMargin = 20, topMargin = 20;
+        doc.setFontSize(fontSize);
+        let y = startY;
+        lines.forEach(line => {
+          if (y > pageHeight - bottomMargin) { doc.addPage(); y = topMargin; }
+          let cx = x;
+          line.forEach(seg => {
+            if (!seg.isSpace) {
+              doc.setFont('helvetica', pdfFontStyleForToken(seg));
+              doc.text(seg.text, cx, y);
+              if (seg.underline) doc.line(cx, y + 0.9, cx + seg.width, y + 0.9);
+            }
+            cx += seg.width;
+          });
+          y += lineHeight;
+        });
+        return y;
+      }
+
+      // Mengubah dokumen PDF kembali ke font normal (jaga-jaga setelah menggambar teks berformat).
+      function pdfResetFont(doc) { doc.setFont('helvetica', 'normal'); }
+
       // Mengubah sebuah <textarea> menjadi editor kaya (contentEditable) dengan toolbar Bold/Italic/Underline,
       // tanpa mengubah kode lain: properti .value pada textarea asli tetap bisa dibaca/ditulis seperti biasa.
       function upgradeToRichTextarea(textareaId) {
@@ -4941,7 +5155,7 @@
           const date = document.getElementById('mom-date').value;
           const location = document.getElementById('mom-location').value;
           const attendees = document.getElementById('mom-attendees').value;
-          const discussion = htmlToPlainText(document.getElementById('mom-discussion').value);
+          const discussionHtml = document.getElementById('mom-discussion').value;
 
           doc.setFont("helvetica", "bold");
           doc.setFontSize(16);
@@ -5002,8 +5216,11 @@
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
           yPos += 7;
-          const splitDiscussion = doc.splitTextToSize(discussion || '-', 180);
-          yPos = pdfDrawWrappedLines(splitDiscussion, 14, yPos, 5);
+          const discussionTokens = pdfTokensFromRichHtml(discussionHtml || '');
+          if (discussionTokens.length === 0) discussionTokens.push({ type: 'text', text: '-', bold: false, italic: false, underline: false });
+          const discussionLines = pdfWrapRichTokens(doc, discussionTokens, 180, 10);
+          yPos = pdfDrawRichLinesPaged(doc, discussionLines, 14, yPos, 5, 10);
+          pdfResetFont(doc);
 
           yPos += 10;
 
@@ -5014,14 +5231,23 @@
           doc.text("C. ACTION ITEMS", 14, yPos);
           yPos += 5;
 
+          // Ambil data tugas langsung dari data rapat (bukan dari innerText DOM) agar format
+          // Bold/Italic/Underline pada kolom Catatan tetap terjaga saat dicetak ke PDF.
           const tableTasks = [];
-          document.querySelectorAll('#mom-tasks-table tbody tr').forEach(tr => {
-              const rowData = [];
-              tr.querySelectorAll('td').forEach(td => rowData.push(td.innerText));
-              if (rowData.length === 6) tableTasks.push(rowData);
-          });
+          const tableTasksNotesHtml = []; // HTML asli kolom Catatan, sejajar indeksnya dengan tableTasks
+          if (meeting && meeting.sections) {
+            meeting.sections.forEach(sec => {
+              (sec.tasks || []).forEach(task => {
+                const dl = task.deadline ? new Date(task.deadline) : null;
+                const deadlineStr = dl ? dl.toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-';
+                const progressStr = (task.progress !== undefined && task.progress !== null) ? `${task.progress}%` : '0%';
+                tableTasks.push([task.desc || '', task.pic || '-', translateStatus(task.status), progressStr, deadlineStr, '']);
+                tableTasksNotesHtml.push(task.notes || '');
+              });
+            });
+          }
 
-          if (tableTasks.length > 0 && tableTasks[0][0] !== "Belum ada tugas/action items.") {
+          if (tableTasks.length > 0) {
               doc.autoTable({
                   startY: yPos,
                   head: [['Tugas / Deskripsi', 'PIC', 'Status', 'Prog (%)', 'Deadline', 'Catatan']],
@@ -5029,7 +5255,33 @@
                   theme: 'grid',
                   styles: { fontSize: 9, font: 'helvetica' },
                   headStyles: { fillColor: [26, 43, 76], textColor: [255, 255, 255] }, 
-                  alternateRowStyles: { fillColor: [248, 250, 252] }
+                  alternateRowStyles: { fillColor: [248, 250, 252] },
+                  didParseCell: function(data) {
+                    if (data.section === 'body' && data.column.index === 5) {
+                      const rawHtml = tableTasksNotesHtml[data.row.index] || '';
+                      try {
+                        const tokens = pdfTokensFromRichHtml(rawHtml);
+                        const innerWidth = data.cell.width - data.cell.padding('left') - data.cell.padding('right');
+                        const lines = pdfWrapRichTokens(doc, tokens, innerWidth, 9);
+                        data.cell._richLines = lines;
+                        data.cell.text = [];
+                        const lineH = 3.8;
+                        const needed = (lines.length * lineH) + data.cell.padding('top') + data.cell.padding('bottom') + 1;
+                        if (needed > data.cell.styles.minCellHeight) data.cell.styles.minCellHeight = needed;
+                      } catch (e) {
+                        // Fallback aman: tampilkan teks polos jika parsing format gagal, agar cetak tetap jalan normal
+                        data.cell.text = [htmlToPlainText(rawHtml) || '-'];
+                      }
+                    }
+                  },
+                  didDrawCell: function(data) {
+                    if (data.section === 'body' && data.column.index === 5 && data.cell._richLines) {
+                      try {
+                        pdfDrawRichLines(doc, data.cell._richLines, data.cell.x + data.cell.padding('left'), data.cell.y + data.cell.padding('top') + 3, 3.8, 9);
+                        pdfResetFont(doc);
+                      } catch (e) { /* abaikan; teks fallback sudah ditangani di didParseCell */ }
+                    }
+                  }
               });
               yPos = doc.lastAutoTable.finalY + 15;
           } else {
@@ -5708,6 +5960,12 @@
           renderTeamMemberList(team);
           renderTeamList();
           if (currentTeamId === teamId) renderTeamDetail(team);
+
+          // NOTIFIKASI: beri tahu user yang diundang sebagai anggota tim
+          if (email) {
+            const roleLabel = role === 'koordinator' ? 'Koordinator' : 'Anggota';
+            sendAppNotification(email, 'Ditambahkan ke Tim', `Anda ditambahkan sebagai ${roleLabel} pada tim "${team.name}" oleh ${currentUser.email}.`, { teamId: teamId });
+          }
         } catch (error) {
           alert('Gagal menambahkan anggota: ' + error.message);
         }
