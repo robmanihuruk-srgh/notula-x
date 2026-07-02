@@ -4964,11 +4964,37 @@
           doc.setFont("helvetica", "bold");
           doc.text("Daftar Hadir  :", 14, 64);
           doc.setFont("helvetica", "normal");
-          const splitAttendees = doc.splitTextToSize(attendees || '-', 150);
-          doc.text(splitAttendees, 45, 64);
-          
-          let yPos = 64 + (splitAttendees.length * 5) + 5;
 
+          // ===== Helper: cetak teks panjang dengan ganti halaman otomatis =====
+          // Mencegah isi (Daftar Hadir / Agenda & Pembahasan) hilang/terpotong saat melewati batas halaman.
+          const PDF_PAGE_HEIGHT = doc.internal.pageSize.getHeight();
+          const PDF_BOTTOM_MARGIN = 20;
+          const PDF_TOP_MARGIN = 20;
+          function pdfDrawWrappedLines(lines, x, startY, lineHeight) {
+            let y = startY;
+            lines.forEach(line => {
+              if (y > PDF_PAGE_HEIGHT - PDF_BOTTOM_MARGIN) {
+                doc.addPage();
+                y = PDF_TOP_MARGIN;
+              }
+              doc.text(line, x, y);
+              y += lineHeight;
+            });
+            return y;
+          }
+          function pdfEnsureSpace(yPos, neededHeight) {
+            if (yPos + neededHeight > PDF_PAGE_HEIGHT - PDF_BOTTOM_MARGIN) {
+              doc.addPage();
+              return PDF_TOP_MARGIN;
+            }
+            return yPos;
+          }
+
+          const splitAttendees = doc.splitTextToSize(attendees || '-', 150);
+          let yPos = pdfDrawWrappedLines(splitAttendees, 45, 64, 5);
+          yPos += 5;
+
+          yPos = pdfEnsureSpace(yPos, 20);
           doc.setFont("helvetica", "bold");
           doc.setFontSize(11);
           doc.text("B. AGENDA & POIN PEMBAHASAN", 14, yPos);
@@ -4977,11 +5003,12 @@
           doc.setFontSize(10);
           yPos += 7;
           const splitDiscussion = doc.splitTextToSize(discussion || '-', 180);
-          doc.text(splitDiscussion, 14, yPos);
+          yPos = pdfDrawWrappedLines(splitDiscussion, 14, yPos, 5);
 
-          yPos += (splitDiscussion.length * 5) + 10;
+          yPos += 10;
 
           // TABLE 1: ACTION ITEMS
+          yPos = pdfEnsureSpace(yPos, 20);
           doc.setFont("helvetica", "bold");
           doc.setFontSize(11);
           doc.text("C. ACTION ITEMS", 14, yPos);
@@ -5013,7 +5040,7 @@
           }
 
           // TABLE: PEMASUKAN
-          if (yPos > 240) { doc.addPage(); yPos = 20; }
+          yPos = pdfEnsureSpace(yPos, 20);
 
           doc.setFont("helvetica", "bold");
           doc.setFontSize(11);
@@ -5055,7 +5082,7 @@
           }
 
           // TABLE 2: RAB PER SEKSI DENGAN RINCIAN
-          if (yPos > 240) { doc.addPage(); yPos = 20; }
+          yPos = pdfEnsureSpace(yPos, 20);
 
           doc.setFont("helvetica", "bold");
           doc.setFontSize(11);
@@ -5113,7 +5140,7 @@
               yPos += 15;
           }
 
-          if (yPos > 250) { doc.addPage(); yPos = 20; }
+          yPos = pdfEnsureSpace(yPos, 40);
           
           doc.setFont("helvetica", "normal");
           doc.text("Dibuat oleh,", 150, yPos);
