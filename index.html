@@ -4699,14 +4699,17 @@
                 sectionBudget: section.sectionBudget || 0,
                 sectionRealisasi: section.sectionRealisasi || 0,
                 rabItems: section.rabItems || [],
-                tasks: section.tasks.map(task => ({
+                tasks: (section.tasks || []).map(task => ({
                   id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
                   desc: task.desc,
                   status: task.status,
                   progress: task.progress,
                   pic: task.pic,
                   notes: task.notes,
-                  deadline: ''
+                  startDate: task.startDate || '',
+                  deadline: task.deadline || '',
+                  attachments: Array.isArray(task.attachments) ? task.attachments.map(a => ({ ...a })) : [],
+                  comments: Array.isArray(task.comments) ? task.comments.map(c => ({ ...c })) : []
                 }))
               }));
             }
@@ -4898,7 +4901,13 @@
           const att = task.attachments[attachmentIndex];
           try {
             if (att.path === 'rtdb' && att.rtdbId) {
-                await firebase.database().ref('notula_attachments/' + att.rtdbId).remove();
+                // Cek apakah lampiran masih dipakai rapat lain (karena data tugas bisa disalin antar rapat)
+                const stillUsedElsewhere = meetings.some(mm => mm.id !== currentMeetingId &&
+                  (mm.sections || []).some(ss => (ss.tasks || []).some(tt =>
+                    (tt.attachments || []).some(aa => aa.rtdbId === att.rtdbId))));
+                if (!stillUsedElsewhere) {
+                  await firebase.database().ref('notula_attachments/' + att.rtdbId).remove();
+                }
             } 
           } catch (e) {
             console.log("Peringatan: File mungkin tidak ditemukan di server.", e);
