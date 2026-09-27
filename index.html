@@ -1605,7 +1605,57 @@
           document.getElementById('sectionRealisasiTotalDisplay').innerText = formatRupiah(totalRealisasi);
       }
 
+      // ---- Kunci bagian modal seksi sesuai hak akses (dipakai oleh pengelola rapat) ----
+      let sectionModalAccess = { settings: true, rab: true };
+      function computeSectionModalAccess(meeting, sec) {
+        if (!meeting) return { settings: false, rab: false };
+        const baseFull = isMeetingOwner(meeting) ||
+          (!!sec && (!sectionHasAccessControl(sec) || isKoordinatorOfSection(sec)));
+        return {
+          settings: !!(baseFull || hasMeetingPerm(meeting, 'section')),
+          rab: !!(baseFull || hasMeetingPerm(meeting, 'expense'))
+        };
+      }
+      function applySectionModalLocks() {
+        const a = sectionModalAccess || { settings: true, rab: true };
+        ['sectionNameInput', 'sectionKoordinatorInput', 'sectionMemberInput'].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.readOnly = !a.settings;
+          el.style.background = a.settings ? '' : '#f1f5f9';
+          el.style.cursor = a.settings ? '' : 'not-allowed';
+          el.title = a.settings ? '' : 'Terkunci: Anda tidak memiliki hak akses Seksi';
+        });
+        const addBtn = document.getElementById('addRabItemBtn');
+        if (addBtn) {
+          addBtn.disabled = !a.rab;
+          addBtn.style.opacity = a.rab ? '' : '0.5';
+          addBtn.style.cursor = a.rab ? 'pointer' : 'not-allowed';
+        }
+        const rabBox = document.getElementById('rabItemsContainer');
+        if (rabBox) rabBox.querySelectorAll('input, button').forEach(el => { el.disabled = !a.rab; });
+
+        let notice = document.getElementById('sectionAccessNotice');
+        if (!notice) {
+          notice = document.createElement('div');
+          notice.id = 'sectionAccessNotice';
+          notice.style.cssText = 'background:#f5f3ff; border:1px solid #ddd6fe; color:#5b21b6; border-radius:8px; padding:8px 12px; font-size:0.83rem; margin-bottom:12px; display:none;';
+          const t = document.getElementById('modalSectionTitle');
+          if (t && t.parentNode) t.parentNode.insertBefore(notice, t.nextSibling);
+        }
+        const locked = [];
+        if (!a.settings) locked.push('nama &amp; hak akses seksi');
+        if (!a.rab) locked.push('rincian anggaran &amp; realisasi (RAB)');
+        if (locked.length) {
+          notice.innerHTML = '<i class="fas fa-user-shield"></i> Anda membuka sebagai <b>Pengelola Rapat</b>. Bagian yang terkunci: ' + locked.join(' dan ') + '.';
+          notice.style.display = 'block';
+        } else {
+          notice.style.display = 'none';
+        }
+      }
+
       document.getElementById('addRabItemBtn').addEventListener('click', () => {
+          if (sectionModalAccess && !sectionModalAccess.rab) return;
           currentRabItems.push({ name: '', amount: '', realisasi: '' });
           renderRabItems();
       });
@@ -1617,7 +1667,7 @@
       }
 
       function renderIncomeTable(meeting) {
-        const canEdit = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
+        const canEdit = hasMeetingPerm(meeting, 'income');
         const items = meeting.incomeItems || [];
         const totalIncome = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
@@ -1693,8 +1743,8 @@
         const meeting = meetings.find(m => m.id === currentMeetingId);
         if (!meeting) return;
 
-        const canEdit = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
-        if (!canEdit) return alert('Akses ditolak: Hanya admin atau pembuat rapat yang dapat mengelola pemasukan.');
+        const canEdit = hasMeetingPerm(meeting, 'income');
+        if (!canEdit) return alert('Akses ditolak: Hanya admin, pembuat rapat, atau pengelola dengan hak Pemasukan yang dapat mengelola pemasukan.');
 
         currentIncomeId = incomeId || null;
         const modalTitle = document.getElementById('modalIncomeTitle');
@@ -1730,6 +1780,7 @@
         if (!currentMeetingId || !incomeId) return;
         const meeting = meetings.find(m => m.id === currentMeetingId);
         if (!meeting || !meeting.incomeItems) return;
+        if (!hasMeetingPerm(meeting, 'income')) return alert('Akses ditolak: Anda tidak memiliki hak mengelola pemasukan.');
 
         const item = meeting.incomeItems.find(i => i.id === incomeId);
         if (!item) return;
@@ -1755,7 +1806,7 @@
         const meeting = meetings.find(m => m.id === currentMeetingId);
         if (!meeting) return;
 
-        const canEdit = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
+        const canEdit = hasMeetingPerm(meeting, 'income');
         if (!canEdit) return alert('Akses ditolak');
 
         const name = document.getElementById('incomeNameInput').value.trim();
@@ -1794,6 +1845,7 @@
         if (!currentMeetingId || !currentIncomeId) return;
         const meeting = meetings.find(m => m.id === currentMeetingId);
         if (!meeting || !meeting.incomeItems) return;
+        if (!hasMeetingPerm(meeting, 'income')) return alert('Akses ditolak: Anda tidak memiliki hak mengelola pemasukan.');
 
         const item = meeting.incomeItems.find(i => i.id === currentIncomeId);
         if (!item) return;
@@ -2276,10 +2328,67 @@
       // judul, tanggal, info, agenda, workspace, tim yang ditugaskan)
       // = admin, pembuat rapat (owner), ATAU koordinator seksi manapun di rapat ini
       // (Menghapus rapat tetap terbatas admin/pembuat rapat saja, lihat deleteMeeting())
+      // ========== HAK AKSES PENGELOLA RAPAT (DELEGASI) ==========
+      // Pembuat rapat (atau admin) dapat memberi user TERDAFTAR hak akses tertentu pada rapatnya.
+      // Data disimpan di field meeting.delegates = [{ email, uid, perms:{...}, grantedBy, grantedAt }]
+      // dan meeting.delegateEmails = [email, ...].
+      // Pengelola kemampuannya DI BAWAH pembuat rapat; yang TETAP khusus pembuat rapat/admin:
+      //   - menghapus / mengarsipkan rapat, menghapus seksi
+      //   - mengatur daftar pengelola & berbagi akses rapat pribadi
+      //   - memindahkan rapat ke grup lain, mengarsipkan log riwayat
+      const MEETING_DELEGATE_PERMS = [
+        { key: 'info',    label: 'Info Rapat',        icon: 'fa-info-circle',       desc: 'Edit judul, tanggal, catatan & agenda rapat' },
+        { key: 'team',    label: 'Tim Ditugaskan',    icon: 'fa-users',             desc: 'Tambah/hapus tim yang ditugaskan & atur susunan Sie' },
+        { key: 'income',  label: 'Pemasukan',         icon: 'fa-hand-holding-usd',  desc: 'Tambah, edit & hapus data pemasukan' },
+        { key: 'expense', label: 'Pengeluaran / RAB', icon: 'fa-wallet',            desc: 'Edit rincian anggaran (estimasi) & realisasi pengeluaran di semua seksi' },
+        { key: 'section', label: 'Seksi',             icon: 'fa-layer-group',       desc: 'Tambah seksi baru & ubah nama / hak akses seksi' },
+        { key: 'task',    label: 'Tugas & Komentar',  icon: 'fa-tasks',             desc: 'Tambah, edit & hapus tugas serta kelola komentar di semua seksi' },
+        { key: 'mom',     label: 'Notulen (MoM)',     icon: 'fa-file-signature',    desc: 'Edit & simpan Minutes of Meeting' }
+      ];
+
+      // Pemilik penuh rapat: admin atau pembuat rapat
+      function isMeetingOwner(meeting) {
+        if (!meeting || !currentUser) return false;
+        if (userRole === 'admin') return true;
+        return meeting.createdBy === currentUser.uid;
+      }
+
+      // Data delegasi milik user yang sedang login pada rapat ini (atau null)
+      function getMyDelegation(meeting) {
+        if (!meeting || !currentUser || !Array.isArray(meeting.delegates)) return null;
+        const email = (currentUser.email || '').toLowerCase();
+        return meeting.delegates.find(d => d && (
+          (d.uid && d.uid === currentUser.uid) ||
+          (email && (d.email || '').toLowerCase() === email)
+        )) || null;
+      }
+
+      // true jika user adalah pengelola (bukan pemilik) pada rapat ini
+      function isMeetingDelegate(meeting) {
+        return !isMeetingOwner(meeting) && !!getMyDelegation(meeting);
+      }
+
+      // Cek satu hak akses: pemilik selalu true, pengelola sesuai centang yang diberikan
+      function hasMeetingPerm(meeting, perm) {
+        if (!meeting) return false;
+        if (isMeetingOwner(meeting)) return true;
+        const d = getMyDelegation(meeting);
+        return !!(d && d.perms && d.perms[perm]);
+      }
+      window.hasMeetingPerm = hasMeetingPerm;
+      window.isMeetingDelegate = isMeetingDelegate;
+
+      function describeDelegatePerms(perms) {
+        const labels = MEETING_DELEGATE_PERMS.filter(p => perms && perms[p.key]).map(p => p.label);
+        return labels.length ? labels.join(', ') : 'belum ada hak akses';
+      }
+
       function canUserEditMeeting(meeting) {
         if (!meeting) return false;
         if (userRole === 'admin') return true;
         if (meeting.createdBy === currentUser?.uid) return true;
+        // Pengelola dengan hak Info Rapat / Tim Ditugaskan boleh membuka modal Edit Rapat
+        if (hasMeetingPerm(meeting, 'info') || hasMeetingPerm(meeting, 'team')) return true;
         return isKoordinatorOfAnyMeetingSection(meeting);
       }
 
@@ -2290,6 +2399,9 @@
         if (!meeting) return false;
         if (userRole === 'admin') return true;
         if (meeting.createdBy === currentUser?.uid) return true;
+        // Pengelola: hak Seksi (tambah/edit) atau hak Pengeluaran/RAB (edit seksi yang sudah ada)
+        if (hasMeetingPerm(meeting, 'section')) return true;
+        if (section && hasMeetingPerm(meeting, 'expense')) return true;
         if (!section) return false;
         if (!sectionHasAccessControl(section)) return true;
         return isKoordinatorOfSection(section);
@@ -2302,6 +2414,7 @@
         if (!meeting) return false;
         if (userRole === 'admin') return true;
         if (meeting.createdBy === currentUser?.uid) return true;
+        if (hasMeetingPerm(meeting, 'task')) return true; // Pengelola dengan hak Tugas
         if (!section) return false;
         if (!sectionHasAccessControl(section)) return true;
         return isKoordinatorOfSection(section) || isMemberOfSection(section);
@@ -2314,6 +2427,7 @@
         if (!meeting) return false;
         if (userRole === 'admin') return true;
         if (meeting.createdBy === currentUser?.uid) return true;
+        if (isMeetingDelegate(meeting)) return true; // semua pengelola rapat boleh berkomentar
         if (section && (isKoordinatorOfSection(section) || isMemberOfSection(section))) return true;
         if (section && !sectionHasAccessControl(section)) return true;
         if (meeting.assignedTeamIds && meeting.assignedTeamIds.length > 0) {
@@ -2606,7 +2720,7 @@
       function renderAssignedTeams(meeting) {
         if (!meeting.assignedTeamIds || meeting.assignedTeamIds.length === 0) return '';
 
-        const canEditTeamNames = (userRole === 'admin') || (meeting.createdBy === currentUser?.uid);
+        const canEditTeamNames = hasMeetingPerm(meeting, 'team');
 
         let html = `<div class="team-detail-card assigned-teams-print" style="margin-bottom: 24px;">
           <div class="team-detail-header" style="margin-bottom: 20px;">
@@ -2641,7 +2755,7 @@
       // rapat dirender ke DOM.
       async function enrichAssignedTeamCards(meeting) {
         if (!meeting || !meeting.assignedTeamIds || meeting.assignedTeamIds.length === 0) return;
-        const canEditTeamNames = (userRole === 'admin') || (meeting.createdBy === currentUser?.uid);
+        const canEditTeamNames = hasMeetingPerm(meeting, 'team');
         for (const teamId of meeting.assignedTeamIds) {
           const card = document.getElementById('assigned-team-card-' + teamId);
           if (!card) continue;
@@ -3068,6 +3182,11 @@
         const userEmail = currentUser?.email?.toLowerCase() || '';
         const privateMeetings = meetings.filter(m => {
           if (m.deletedAt) return false; // rapat terarsip: sembunyikan dari daftar
+          // Pengelola rapat: tampilkan rapat pribadi, atau rapat grup yang grupnya tidak ia ikuti
+          if (m.createdBy !== currentUser?.uid && getMyDelegation(m)) {
+            if (!m.workspaceId) return true;
+            if (!workspaces.some(w => w.id === m.workspaceId)) return true;
+          }
           if (m.workspaceId) return false; // bukan rapat pribadi
           if (m.createdBy === currentUser?.uid) return true; // milik sendiri
           // Dibagikan: cek field sharedWith (array email)
@@ -3098,9 +3217,10 @@
           content.className = 'meeting-content';
           const isOwner = m.createdBy === currentUser?.uid;
           const isSharedToMe = !isOwner;
+          const isDelegateToMe = !isOwner && !!getMyDelegation(m);
           const hasShared = isOwner && m.sharedWith && m.sharedWith.length > 0;
           content.innerHTML = `
-            <div class="meeting-title">${escapeHtml(m.title)}${hasShared ? ' <span style="font-size:0.65rem;background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:10px;font-weight:600;vertical-align:middle;"><i class="fas fa-share-alt"></i> Dibagikan</span>' : ''}${isSharedToMe ? ' <span style="font-size:0.65rem;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:10px;font-weight:600;vertical-align:middle;"><i class="fas fa-user-friends"></i> Bersama</span>' : ''}</div>
+            <div class="meeting-title">${escapeHtml(m.title)}${hasShared ? ' <span style="font-size:0.65rem;background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:10px;font-weight:600;vertical-align:middle;"><i class="fas fa-share-alt"></i> Dibagikan</span>' : ''}${isDelegateToMe ? ' <span style="font-size:0.65rem;background:#ede9fe;color:#5b21b6;padding:1px 6px;border-radius:10px;font-weight:600;vertical-align:middle;"><i class="fas fa-user-shield"></i> Pengelola</span>' : isSharedToMe ? ' <span style="font-size:0.65rem;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:10px;font-weight:600;vertical-align:middle;"><i class="fas fa-user-friends"></i> Bersama</span>' : ''}</div>
             <div class="meeting-date"><i class="far fa-calendar-alt"></i> ${formatDate(m.date)}</div>
           `;
 
@@ -3559,7 +3679,7 @@
         headerTitle.innerText = meeting.title;
         headerDate.innerHTML = `<i class="far fa-calendar-alt"></i> ${formatDate(meeting.date)}`;
         
-        const canEditMeeting = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
+        const canEditMeeting = isMeetingOwner(meeting) || isMeetingDelegate(meeting);
         const isLatest = isMeetingLatest(meeting);
         const showGlobalReadOnly = !canEditMeeting && !isLatest;
         const isPrivateMeeting = !meeting.workspaceId;
@@ -3644,6 +3764,10 @@
             </div>
           `;
         }
+
+        // === PANEL PENGELOLA RAPAT (hanya pembuat rapat/admin) & BANNER untuk pengelola ===
+        html += renderDelegatePanel(meeting);
+        html = renderDelegateBanner(meeting) + html;
 
         content.innerHTML = html;
 
@@ -3894,6 +4018,9 @@
         const canEditTask = canUserEditTask(meeting, section);    // bisa tambah/edit/hapus tugas
         const canDeleteSec = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
         const canComment = canUserCommentSection(meeting, section);
+        // Label badge untuk pengelola rapat (hak akses berasal dari delegasi, bukan dari seksi)
+        const _viaDelegateSec = isMeetingDelegate(meeting) && sectionHasAccessControl(section) && !isKoordinatorOfSection(section);
+        const _viaDelegateTask = _viaDelegateSec && !isMemberOfSection(section);
         // isReadOnly: user tidak bisa melakukan apa-apa di seksi ini (bahkan tugas)
         const isReadOnly = !canEditTask;
 
@@ -4017,13 +4144,13 @@
         if (canEditSec) {
           // Koordinator atau Owner: akses penuh ke seksi dan tugas
           lockBadge = `<div style="position:absolute; top:12px; right:12px; background:#f0fdf4; border:1px solid #86efac; color:#166534; border-radius:20px; padding:3px 10px; font-size:0.75rem; font-weight:600; display:flex; align-items:center; gap:4px; pointer-events:none;">
-            \u2713 Koordinator
+            ${_viaDelegateSec ? '\u2713 Pengelola' : '\u2713 Koordinator'}
           </div>`;
           sectionBorderStyle = '';
         } else if (canEditTask) {
           // Anggota seksi: hanya bisa edit tugas, tidak bisa edit nama/setting seksi
           lockBadge = `<div style="position:absolute; top:12px; right:12px; background:#eff6ff; border:1px solid #93c5fd; color:#1d4ed8; border-radius:20px; padding:3px 10px; font-size:0.75rem; font-weight:600; display:flex; align-items:center; gap:4px; pointer-events:none;">
-            \uD83D\uDCC4 Anggota (Edit Tugas)
+            ${_viaDelegateTask ? '\u2713 Pengelola (Edit Tugas)' : '\uD83D\uDCC4 Anggota (Edit Tugas)'}
           </div>`;
           sectionBorderStyle = 'border: 1.5px solid #93c5fd;';
         } else {
@@ -4120,6 +4247,216 @@
           await addLog(meetingId, 'Mencabut akses rapat dari: ' + email);
         } catch(err) {
           alert('Gagal mencabut akses: ' + err.message);
+        }
+      };
+
+      // ===== PENGELOLA RAPAT (DELEGASI HAK AKSES) =====
+      function renderDelegateBanner(meeting) {
+        if (!meeting || !isMeetingDelegate(meeting)) return '';
+        const d = getMyDelegation(meeting) || {};
+        const granted = MEETING_DELEGATE_PERMS.filter(p => d.perms && d.perms[p.key]);
+        const chips = granted.map(p => `<span style="display:inline-flex; align-items:center; gap:5px; background:#ede9fe; color:#5b21b6; padding:3px 10px; border-radius:20px; font-size:0.78rem; font-weight:600;"><i class="fas ${p.icon}" style="font-size:0.7rem;"></i> ${p.label}</span>`).join(' ');
+        return `
+          <div class="delegate-banner" style="background:#faf5ff; border:1px solid #ddd6fe; border-left:4px solid #7c3aed; border-radius:10px; padding:12px 16px; margin-bottom:18px; font-family:var(--font-body);">
+            <div style="font-weight:700; color:#5b21b6; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+              <i class="fas fa-user-shield"></i> Anda adalah Pengelola rapat ini
+            </div>
+            <div style="font-size:0.83rem; color:#6b21a8; margin-bottom:8px;">Diberi oleh ${escapeHtml(d.grantedBy || 'pembuat rapat')}. Hak akses Anda:</div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">${chips || '<span style="font-size:0.83rem; color:#64748b; font-style:italic;">Belum ada hak akses yang diaktifkan (hanya melihat &amp; berkomentar).</span>'}</div>
+            <div style="font-size:0.75rem; color:#7c3aed; margin-top:8px;"><i class="fas fa-lock"></i> Menghapus/mengarsipkan rapat, menghapus seksi, dan mengatur hak akses tetap hanya bisa dilakukan pembuat rapat.</div>
+          </div>`;
+      }
+
+      function renderDelegatePanel(meeting) {
+        if (!meeting || !isMeetingOwner(meeting)) return '';
+        const list = Array.isArray(meeting.delegates) ? meeting.delegates : [];
+        const mid = meeting.id;
+
+        const newPermChips = MEETING_DELEGATE_PERMS.map(p => `
+          <label title="${escapeHtml(p.desc)}" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:0.78rem; cursor:pointer; border:1px solid #c4b5fd; background:#fff; color:#4c1d95; user-select:none;">
+            <input type="checkbox" id="newDelegatePerm_${p.key}" checked style="width:auto; margin:0; accent-color:#7c3aed;">
+            <i class="fas ${p.icon}" style="font-size:0.7rem;"></i> ${p.label}
+          </label>`).join('');
+
+        const rows = list.map(d => {
+          const enc = encodeURIComponent(d.email || '');
+          const perms = d.perms || {};
+          const activeCount = MEETING_DELEGATE_PERMS.filter(p => perms[p.key]).length;
+          const chips = MEETING_DELEGATE_PERMS.map(p => {
+            const on = !!perms[p.key];
+            return `
+            <label title="${escapeHtml(p.desc)}" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:0.78rem; cursor:pointer; border:1px solid ${on ? '#7c3aed' : '#e2e8f0'}; background:${on ? '#ede9fe' : '#f8fafc'}; color:${on ? '#4c1d95' : '#94a3b8'}; user-select:none;">
+              <input type="checkbox" ${on ? 'checked' : ''} onchange="window.toggleDelegatePerm('${mid}', '${enc}', '${p.key}', this.checked)" style="width:auto; margin:0; accent-color:#7c3aed;">
+              <i class="fas ${p.icon}" style="font-size:0.7rem;"></i> ${p.label}
+            </label>`;
+          }).join('');
+          return `
+            <div style="background:#fff; border:1px solid #ddd6fe; border-radius:10px; padding:12px 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                  <div style="width:32px; height:32px; border-radius:50%; background:#7c3aed; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;">${escapeHtml((d.email || '?').charAt(0).toUpperCase())}</div>
+                  <div style="min-width:0;">
+                    <div style="font-weight:600; color:#1e1b4b; font-size:0.9rem; word-break:break-all;">${escapeHtml(d.email || '')}</div>
+                    <div style="font-size:0.75rem; color:#7c3aed;">${activeCount} dari ${MEETING_DELEGATE_PERMS.length} hak akses aktif</div>
+                  </div>
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <button onclick="window.setAllDelegatePerms('${mid}', '${enc}', true)" title="Aktifkan semua hak akses" style="background:#ede9fe; color:#5b21b6; border:1px solid #c4b5fd; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer;"><i class="fas fa-check-double"></i> Semua</button>
+                  <button onclick="window.setAllDelegatePerms('${mid}', '${enc}', false)" title="Nonaktifkan semua hak akses" style="background:#f8fafc; color:#475569; border:1px solid #e2e8f0; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer;"><i class="fas fa-eraser"></i> Kosongkan</button>
+                  <button onclick="window.removeMeetingDelegate('${mid}', '${enc}')" title="Cabut pengelola" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer;"><i class="fas fa-user-minus"></i> Cabut</button>
+                </div>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px;">${chips}</div>
+            </div>`;
+        }).join('');
+
+        return `
+          <div id="delegate-panel" style="background:#faf5ff; border:1px solid #ddd6fe; border-radius:12px; padding:20px 24px; margin-top:24px; margin-bottom:8px; font-family:var(--font-body);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px; flex-wrap:wrap;">
+              <h4 style="margin:0; color:#5b21b6; font-family:var(--font-heading); font-size:1.05rem; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-user-shield"></i> Pengelola Rapat &amp; Hak Akses
+              </h4>
+              <span style="font-size:0.8rem; color:#6d28d9; background:#ede9fe; padding:3px 10px; border-radius:20px; font-weight:600;">${list.length} pengelola</span>
+            </div>
+            <p style="font-size:0.85rem; color:#6b21a8; margin:0 0 14px 0;">
+              Beri user yang <b>sudah terdaftar</b> hak untuk ikut mengelola rapat ini. Kemampuan pengelola tetap di bawah Anda sebagai pembuat rapat:
+              mereka <b>tidak bisa</b> menghapus/mengarsipkan rapat, menghapus seksi, memindahkan rapat ke grup lain, maupun mengatur daftar pengelola.
+            </p>
+            <div style="background:#fff; border:1px dashed #c4b5fd; border-radius:10px; padding:12px 14px; margin-bottom:14px;">
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+                <input type="email" id="delegateEmailInput" placeholder="email user terdaftar, mis. nama@contoh.com"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); window.addMeetingDelegate('${mid}');}"
+                  style="flex:1; min-width:200px; padding:9px 14px; border:1px solid #c4b5fd; border-radius:8px; font-family:var(--font-body); font-size:0.9rem; background:#fff; color:var(--color-text);">
+                <button id="addDelegateBtn" onclick="window.addMeetingDelegate('${mid}')"
+                  style="background:#7c3aed; color:white; border:none; padding:9px 18px; border-radius:8px; font-weight:600; font-family:var(--font-body); cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+                  <i class="fas fa-user-plus"></i> Tambah Pengelola
+                </button>
+              </div>
+              <div style="font-size:0.78rem; color:#6b21a8; margin-bottom:6px; font-weight:600;">Hak akses awal:</div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px;">${newPermChips}</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              ${rows || '<span style="color:#64748b; font-size:0.85rem; font-style:italic;">Belum ada pengelola. Tambahkan email user terdaftar di atas.</span>'}
+            </div>
+          </div>`;
+      }
+
+      async function saveMeetingDelegates(meetingId, list) {
+        const clean = (list || []).map(d => ({
+          email: (d.email || '').toLowerCase(),
+          uid: d.uid || null,
+          perms: Object.assign({}, d.perms || {}),
+          grantedBy: d.grantedBy || (currentUser?.email || ''),
+          grantedAt: d.grantedAt || new Date().toISOString()
+        }));
+        await db.collection('meetings').doc(meetingId).update({
+          delegates: clean,
+          delegateEmails: clean.map(d => d.email)
+        });
+      }
+
+      function _getOwnedMeetingForDelegation(meetingId) {
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (!meeting) return null;
+        if (!isMeetingOwner(meeting)) {
+          alert('Hanya pembuat rapat (atau admin) yang dapat mengatur pengelola rapat.');
+          return null;
+        }
+        return meeting;
+      }
+
+      window.addMeetingDelegate = async function(meetingId) {
+        const input = document.getElementById('delegateEmailInput');
+        const email = (input?.value || '').trim().toLowerCase();
+        if (!email) return alert('Silakan masukkan email user terlebih dahulu.');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert('Format email tidak valid.');
+        const meeting = _getOwnedMeetingForDelegation(meetingId);
+        if (!meeting) return;
+        if (email === (currentUser?.email || '').toLowerCase()) return alert('Anda sudah memiliki akses penuh pada rapat ini.');
+        const list = Array.isArray(meeting.delegates) ? meeting.delegates.slice() : [];
+        if (list.some(d => (d.email || '').toLowerCase() === email)) return alert('User ini sudah menjadi pengelola rapat ini.');
+
+        const perms = {};
+        MEETING_DELEGATE_PERMS.forEach(p => {
+          const cb = document.getElementById('newDelegatePerm_' + p.key);
+          perms[p.key] = cb ? !!cb.checked : true;
+        });
+
+        const btn = document.getElementById('addDelegateBtn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memeriksa...'; }
+        try {
+          // Hanya user yang sudah terdaftar di aplikasi
+          const found = await lookupUserByEmail(email);
+          if (!found || !found.uid) {
+            alert('Email "' + email + '" belum terdaftar di aplikasi.\nMinta user tersebut login / mendaftar terlebih dahulu, lalu coba lagi.');
+            return;
+          }
+          if (found.uid === meeting.createdBy) return alert('User ini adalah pembuat rapat.');
+          list.push({ email, uid: found.uid, perms, grantedBy: currentUser.email, grantedAt: new Date().toISOString() });
+          await saveMeetingDelegates(meetingId, list);
+          await addLog(meetingId, 'menambahkan pengelola rapat: ' + email + ' (' + describeDelegatePerms(perms) + ')');
+          sendAppNotification(email, 'Diberi Akses Pengelola Rapat',
+            currentUser.email + ' memberi Anda hak akses pengelola pada rapat "' + meeting.title + '": ' + describeDelegatePerms(perms) + '.',
+            { meetingId: meetingId });
+          const inp = document.getElementById('delegateEmailInput');
+          if (inp) inp.value = '';
+        } catch (err) {
+          alert('Gagal menambah pengelola: ' + err.message);
+        } finally {
+          const b = document.getElementById('addDelegateBtn');
+          if (b) { b.disabled = false; b.innerHTML = '<i class="fas fa-user-plus"></i> Tambah Pengelola'; }
+        }
+      };
+
+      window.toggleDelegatePerm = async function(meetingId, encEmail, perm, checked) {
+        const meeting = _getOwnedMeetingForDelegation(meetingId);
+        if (!meeting) return;
+        const email = decodeURIComponent(encEmail || '').toLowerCase();
+        const permDef = MEETING_DELEGATE_PERMS.find(p => p.key === perm);
+        if (!permDef) return;
+        const list = (meeting.delegates || []).map(d => Object.assign({}, d, { perms: Object.assign({}, d.perms || {}) }));
+        const target = list.find(d => (d.email || '').toLowerCase() === email);
+        if (!target) return;
+        target.perms[perm] = !!checked;
+        try {
+          await saveMeetingDelegates(meetingId, list);
+          await addLog(meetingId, (checked ? 'memberikan' : 'mencabut') + ' hak "' + permDef.label + '" untuk pengelola ' + email);
+        } catch (err) {
+          alert('Gagal mengubah hak akses: ' + err.message);
+          renderDetail(meeting);
+        }
+      };
+
+      window.setAllDelegatePerms = async function(meetingId, encEmail, value) {
+        const meeting = _getOwnedMeetingForDelegation(meetingId);
+        if (!meeting) return;
+        const email = decodeURIComponent(encEmail || '').toLowerCase();
+        const list = (meeting.delegates || []).map(d => Object.assign({}, d, { perms: Object.assign({}, d.perms || {}) }));
+        const target = list.find(d => (d.email || '').toLowerCase() === email);
+        if (!target) return;
+        MEETING_DELEGATE_PERMS.forEach(p => { target.perms[p.key] = !!value; });
+        try {
+          await saveMeetingDelegates(meetingId, list);
+          await addLog(meetingId, (value ? 'memberikan SEMUA' : 'mencabut SEMUA') + ' hak akses pengelola ' + email);
+        } catch (err) {
+          alert('Gagal mengubah hak akses: ' + err.message);
+        }
+      };
+
+      window.removeMeetingDelegate = async function(meetingId, encEmail) {
+        const meeting = _getOwnedMeetingForDelegation(meetingId);
+        if (!meeting) return;
+        const email = decodeURIComponent(encEmail || '').toLowerCase();
+        if (!confirm('Cabut ' + email + ' sebagai pengelola rapat ini? Semua hak aksesnya pada rapat ini akan hilang.')) return;
+        const list = (meeting.delegates || []).filter(d => (d.email || '').toLowerCase() !== email);
+        try {
+          await saveMeetingDelegates(meetingId, list);
+          await addLog(meetingId, 'mencabut pengelola rapat: ' + email);
+          sendAppNotification(email, 'Akses Pengelola Dicabut',
+            'Hak akses pengelola Anda pada rapat "' + meeting.title + '" telah dicabut oleh ' + currentUser.email + '.',
+            { meetingId: meetingId });
+        } catch (err) {
+          alert('Gagal mencabut pengelola: ' + err.message);
         }
       };
 
@@ -4305,6 +4642,7 @@
         if (!comment) return false;
         if (userRole === 'admin') return true;
         if (meeting && meeting.createdBy === currentUser?.uid) return true;
+        if (meeting && isMeetingDelegate(meeting) && hasMeetingPerm(meeting, 'task')) return true;
         return comment.user && comment.user === (currentUser?.email || 'Anonim');
       }
 
@@ -4536,6 +4874,45 @@
         document.getElementById('commentModal')?.classList.remove('active');
       }
 
+      // Kunci field modal Rapat sesuai hak akses pengelola (null = semua terbuka)
+      function applyMeetingModalLocks(locks) {
+        locks = locks || {};
+        const setDis = (id, v) => { const el = document.getElementById(id); if (el) el.disabled = !!v; };
+        setDis('meetingNameInput', locks.info);
+        setDis('meetingDateInput', locks.info);
+        ['meetingInfoInput', 'meetingAgendaInput'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.readOnly = !!locks.info;
+        });
+        setDis('meetingWorkspaceSelect', locks.workspace);
+        setDis('meetingTeamSelect', locks.team);
+        setDis('addTeamToMeetingBtn', locks.team);
+        setDis('clearAllTeamsBtn', locks.team);
+        const chips = document.getElementById('selectedTeamsContainer');
+        if (chips) {
+          chips.style.pointerEvents = locks.team ? 'none' : '';
+          chips.style.opacity = locks.team ? '0.6' : '';
+        }
+        let notice = document.getElementById('meetingDelegateNotice');
+        if (!notice) {
+          notice = document.createElement('div');
+          notice.id = 'meetingDelegateNotice';
+          notice.style.cssText = 'background:#f5f3ff; border:1px solid #ddd6fe; color:#5b21b6; border-radius:8px; padding:8px 12px; font-size:0.83rem; margin-bottom:12px; display:none;';
+          const t = document.getElementById('modalMeetingTitle');
+          if (t && t.parentNode) t.parentNode.insertBefore(notice, t.nextSibling);
+        }
+        const locked = [];
+        if (locks.info) locked.push('judul, tanggal, catatan &amp; agenda');
+        if (locks.team) locked.push('tim yang ditugaskan');
+        if (locks.workspace) locked.push('tempat (grup)');
+        if (locked.length) {
+          notice.innerHTML = '<i class="fas fa-user-shield"></i> Anda mengedit sebagai <b>Pengelola Rapat</b>. Terkunci: ' + locked.join(', ') + '.';
+          notice.style.display = 'block';
+        } else {
+          notice.style.display = 'none';
+        }
+      }
+
       document.getElementById('newMeetingBtn').addEventListener('click', () => {
         modalSelectedTeamIds = []; // Reset selected teams for new meeting
         updateMeetingTeamSelect();
@@ -4567,6 +4944,7 @@
         document.getElementById('meetingRelatedSelect').value = '';
         populateRelatedMeetingSelect(document.getElementById('meetingWorkspaceSelect').value);
         delete document.getElementById('saveMeetingModal').dataset.editId;
+        applyMeetingModalLocks(null);
         meetingModal.classList.add('active');
       });
 
@@ -4611,6 +4989,14 @@
         // Mode edit: sembunyikan pilihan sumber data rapat
         const srcGroupEdit = document.getElementById('meetingSourceGroup');
         if (srcGroupEdit) srcGroupEdit.style.display = 'none';
+
+        // Pengelola (bukan pemilik/koordinator): kunci field yang tidak diizinkan
+        const _fullEdit = isMeetingOwner(m) || isKoordinatorOfAnyMeetingSection(m);
+        applyMeetingModalLocks(_fullEdit ? null : {
+          info: !hasMeetingPerm(m, 'info'),
+          team: !hasMeetingPerm(m, 'team'),
+          workspace: true
+        });
 
         document.getElementById('saveMeetingModal').dataset.editId = m.id;
         meetingModal.classList.add('active');
@@ -4747,6 +5133,24 @@
              meetingData.incomeItems = existing.incomeItems || [];
              meetingData.assignedTeamIds = selectedTeamIds;
              meetingData.relatedTo = existing.relatedTo || null;
+             // Kepemilikan rapat TIDAK berpindah ke user yang mengedit
+             meetingData.createdBy = existing.createdBy || currentUser.uid;
+             // Pengelola: field yang tidak diizinkan dikembalikan ke nilai lama
+             const _fullEdit = isMeetingOwner(existing) || isKoordinatorOfAnyMeetingSection(existing);
+             if (!_fullEdit) {
+               meetingData.workspaceId = existing.workspaceId || null;
+               if (!hasMeetingPerm(existing, 'info')) {
+                 meetingData.title = existing.title;
+                 meetingData.date = existing.date;
+                 meetingData.info = existing.info || '';
+                 meetingData.agenda = existing.agenda || '';
+               }
+               if (!hasMeetingPerm(existing, 'team')) {
+                 meetingData.assignedTeamIds = existing.assignedTeamIds || [];
+                 meetingData.teamAccessLog = existing.teamAccessLog || [];
+                 selectedTeamIds = [...meetingData.assignedTeamIds];
+               }
+             }
           }
         }
         
@@ -4777,6 +5181,7 @@
         if (sectionId) sec = meeting?.sections.find(s => s.id === sectionId);
         
         if (!canUserEditSection(meeting, sec)) return alert('Akses ditolak');
+        sectionModalAccess = computeSectionModalAccess(meeting, sec);
 
         currentSectionId = sectionId;
         const modalTitle = document.getElementById('modalSectionTitle');
@@ -4807,6 +5212,7 @@
         }
         
         renderRabItems();
+        applySectionModalLocks();
         sectionModal.classList.add('active');
       }
 
@@ -4843,6 +5249,28 @@
           sectionData.id = currentSectionId;
           const existing = meeting.sections.find(s => s.id === currentSectionId);
           if (existing) sectionData.tasks = existing.tasks;
+        }
+
+        // Pengelola: bagian yang terkunci tidak boleh berubah — pakai nilai lama
+        {
+          const _acc = computeSectionModalAccess(meeting, sec);
+          if (sec) {
+            if (!_acc.settings) {
+              sectionData.name = sec.name;
+              sectionData.koordinatorEmails = sec.koordinatorEmails || '';
+              sectionData.memberEmails = sec.memberEmails || '';
+              sectionData.assignedEmails = sec.assignedEmails || '';
+            }
+            if (!_acc.rab) {
+              sectionData.rabItems = sec.rabItems || [];
+              sectionData.sectionBudget = sec.sectionBudget || 0;
+              sectionData.sectionRealisasi = sec.sectionRealisasi || 0;
+            }
+          } else if (!_acc.rab) {
+            sectionData.rabItems = [];
+            sectionData.sectionBudget = 0;
+            sectionData.sectionRealisasi = 0;
+          }
         }
         
         await saveSection(sectionData, currentMeetingId);
@@ -5120,7 +5548,7 @@
 
         const addSectionBtn = document.getElementById('addSectionBtn');
         if (addSectionBtn) {
-            const canAdd = isAdmin || isCreator; // Hanya Admin / Pembuat Rapat
+            const canAdd = isAdmin || isCreator || (!!meeting && hasMeetingPerm(meeting, 'section')); // Admin / Pembuat Rapat / Pengelola (hak Seksi)
             addSectionBtn.disabled = !canAdd;
             addSectionBtn.classList.toggle('disabled', !canAdd);
         }
@@ -6086,7 +6514,7 @@
           if (!meeting) return;
 
           // CEK IZIN: Admin atau Pembuat Rapat (Sekretaris)
-          const canEditMom = userRole === 'admin' || meeting.createdBy === currentUser?.uid;
+          const canEditMom = hasMeetingPerm(meeting, 'mom'); // Admin / Pembuat Rapat / Pengelola (hak Notulen)
 
           document.getElementById('mom-title').value = meeting.title;
           document.getElementById('mom-date').value = formatDate(meeting.date);
@@ -6226,6 +6654,8 @@
 
       document.getElementById('saveMomBtn').addEventListener('click', async () => {
           if (!currentMeetingId) return;
+          const _momMeeting = meetings.find(m => m.id === currentMeetingId);
+          if (!_momMeeting || !hasMeetingPerm(_momMeeting, 'mom')) return alert('Akses ditolak: Anda tidak memiliki hak mengedit Notulen (MoM).');
           const momData = {
               location: document.getElementById('mom-location').value,
               attendees: document.getElementById('mom-attendees').value,
