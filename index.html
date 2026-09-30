@@ -8275,9 +8275,41 @@
       const headerInstallBtn = document.getElementById('headerInstallBtn');
 
       if ('serviceWorker' in navigator) {
+        // [FIX v4] Pastikan perangkat (terutama HP / PWA terinstal) selalu memakai versi index.html TERBARU.
+        // - updateViaCache:'none' -> browser tidak memakai cache HTTP saat mengecek sw.js baru
+        // - reg.update() saat load & saat app kembali dibuka -> versi baru cepat terdeteksi
+        // - controllerchange -> muat ulang otomatis sekali saat SW baru aktif (aman: ditunda jika ada modal/input aktif)
+        const __hadSwController = !!navigator.serviceWorker.controller;
+        let __swReloading = false;
+        const __isUserBusy = () => {
+          if (document.querySelector('.modal.active')) return true;
+          const ae = document.activeElement;
+          return !!(ae && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)));
+        };
+        const __showUpdateBanner = () => {
+          if (document.getElementById('sw-update-banner')) return;
+          const b = document.createElement('div');
+          b.id = 'sw-update-banner';
+          b.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:100000;background:#1a2b4c;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-family:var(--font-body,sans-serif);font-size:0.85rem;display:flex;gap:10px;align-items:center;max-width:92vw;';
+          b.innerHTML = '<span><i class="fas fa-sync-alt"></i> Versi baru aplikasi tersedia.</span><button type="button" style="background:#b8860b;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer;">Muat Ulang</button>';
+          b.querySelector('button').addEventListener('click', () => window.location.reload());
+          document.body.appendChild(b);
+        };
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!__hadSwController || __swReloading) return; // instal pertama: tidak perlu reload
+          if (__isUserBusy()) { __showUpdateBanner(); return; }
+          __swReloading = true;
+          window.location.reload();
+        });
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker berhasil didaftarkan!', reg.scope))
+          navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+            .then(reg => {
+              console.log('Service Worker berhasil didaftarkan!', reg.scope);
+              reg.update().catch(() => {});
+              document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') reg.update().catch(() => {});
+              });
+            })
             .catch(err => console.log('Service Worker gagal:', err));
         });
       }

@@ -1,71 +1,87 @@
-// Naikkan versi ini setiap kali app-shell (index.html/manifest/icon) diubah,
-// supaya browser tahu ada versi baru dan mengganti cache lama.
-const CACHE_NAME = 'notula-x-cache-v3';
+// Notula Service Worker — v4
+// Perubahan utama v4: halaman HTML (index.html) memakai strategi NETWORK-FIRST,
+// sehingga HP / PWA terinstal selalu mendapat versi terbaru saat online,
+// dan baru memakai salinan cache jika sedang offline.
+const CACHE_NAME = 'notula-cache-v4';
 
-// PENTING: path di bawah ini RELATIF ("./..."), bukan absolut ("/...").
-// Path absolut hanya benar kalau app di-hosting persis di root domain.
-// Kalau app ada di sub-folder (mis. https://domain.com/notula/), path
-// absolut akan salah alamat dan bikin instalasi cache gagal total.
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './apple-touch-icon.png'
+  './icon-192-maskable.png',
+  './icon-512-maskable.png',
+  './apple-touch-icon.png',
+  './favicon-48.png'
 ];
 
-// Event Install: Menyimpan file penting ke cache browser.
-// Pakai cache.add satu-satu (bukan cache.addAll) supaya satu file yang
-// gagal di-fetch tidak menggagalkan instalasi service worker secara total.
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return Promise.allSettled(
-        urlsToCache.map(url =>
-          cache.add(url).catch(err => {
-            console.warn('Service Worker: gagal cache', url, err);
-          })
-        )
-      );
-    }).then(() => {
-      console.log('Service Worker: instalasi cache selesai');
-      // Langsung aktifkan versi baru tanpa menunggu semua tab lama ditutup.
-      return self.skipWaiting();
-    })
+    caches.open(CACHE_NAME).then(cache =>
+      // Per-file: satu file gagal tidak menggagalkan instalasi SW
+      Promise.allSettled(urlsToCache.map(url =>
+        fetch(url, { cache: 'no-store' }).then(res => { if (res.ok) return cache.put(url, res); })
+      ))
+    )
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
-// Event Fetch: cache-first untuk file app-shell sendiri (same-origin GET).
-// Request lain (API Firebase, CDN, dsb.) langsung diteruskan ke jaringan
-// apa adanya supaya tidak mengganggu data live / auth.
-self.addEventListener('fetch', event => {
-  const req = event.request;
+function isHtmlRequest(request) {
+  if (request.mode === 'navigate') return true;
+  const accept = request.headers.get('accept') || '';
+  if (accept.includes('text/html')) return true;
+  const path = new URL(request.url).pathname;
+  return path.endsWith('/') || path.endsWith('.html');
+}
 
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) {
-    return; // biarkan browser menangani request ini secara normal
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return; // Firebase / CDN tidak diganggu
+  if (url.pathname.endsWith('/sw.js')) return;
+
+  if (isHtmlRequest(request)) {
+    // NETWORK-FIRST (bypass cache HTTP hosting), fallback ke cache saat offline
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .then(res => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put('./index.html', copy)).catch(() => {});
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(request).then(r => r || caches.match('./index.html'))
+        )
+    );
+    return;
   }
 
+  // Aset statis (ikon, manifest): STALE-WHILE-REVALIDATE
   event.respondWith(
-    caches.match(req).then(cached => {
-      return cached || fetch(req).catch(() => cached);
-    })
-  );
-});
-
-// Event Activate: Membersihkan cache lama jika ada pembaruan aplikasi,
-// dan langsung ambil alih semua tab yang sedang terbuka.
-self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
+    caches.match(request).then(cached => {
+      const network = fetch(request)
+        .then(res => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(request, copy)).catch(() => {});
           }
+          return res;
         })
-      );
-    }).then(() => self.clients.claim())
+        .catch(() => cached);
+      return cached || network;
+    })
   );
 });
