@@ -1,8 +1,8 @@
-// Notula Service Worker — v4
+// Notula Service Worker — v5
 // Perubahan utama v4: halaman HTML (index.html) memakai strategi NETWORK-FIRST,
 // sehingga HP / PWA terinstal selalu mendapat versi terbaru saat online,
 // dan baru memakai salinan cache jika sedang offline.
-const CACHE_NAME = 'notula-cache-v4';
+const CACHE_NAME = 'notula-cache-v5';
 
 const urlsToCache = [
   './',

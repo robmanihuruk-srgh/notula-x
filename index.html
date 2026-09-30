@@ -7,6 +7,7 @@
   <title>Notula · Workspace + Grup + Role + Template Otomatis + Deadline + Tooltip + Notifikasi</title>
   
   <meta name="theme-color" content="#1a2b4c">
+  <meta name="notula-build" content="2026-09-30.2">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1307,6 +1308,7 @@
         <div class="user-info" id="userInfo" style="display: none;">
           <span id="userEmail"></span>
           <span id="userRole" style="background:var(--color-primary); color:white; padding:2px 10px; border-radius:12px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">admin</span>
+          <span id="appBuildLabel" title="Versi aplikasi" style="font-size:0.62rem; color:var(--color-text-light); opacity:0.85; white-space:nowrap;"></span>
           <button class="logout-btn" id="logoutBtn" title="Keluar"><i class="fas fa-sign-out-alt"></i></button>
         </div>
       </div>
@@ -1671,6 +1673,17 @@
         const items = meeting.incomeItems || [];
         const totalIncome = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
+        // [FIX] Keterangan akses untuk user yang tidak punya hak Pemasukan pada rapat ini,
+        // supaya jelas MENGAPA tombol edit tidak muncul (hak akses diberikan PER RAPAT).
+        let incomeAccessNote = '';
+        if (!canEdit && currentUser) {
+          const _myDlg = getMyDelegation(meeting);
+          const _msg = _myDlg
+            ? 'Anda Pengelola rapat ini, tetapi hak <b>Pemasukan</b> belum dicentang oleh pembuat rapat.'
+            : `Mode lihat saja: akun <b>${escapeHtml(currentUser.email || '')}</b> belum diberi hak <b>Pemasukan</b> pada rapat ini. Hak akses diberikan per rapat oleh pembuat rapat.`;
+          incomeAccessNote = `<div class="income-access-note" style="font-size:0.78rem; color:#64748b; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:6px; padding:6px 10px; margin-bottom:12px;"><i class="fas fa-lock" style="margin-right:6px;"></i>${_msg}</div>`;
+        }
+
         let html = `
           <div class="income-card">
             <div class="income-header">
@@ -1679,6 +1692,7 @@
                 Total: ${formatRupiah(totalIncome)}
               </div>
             </div>
+            ${incomeAccessNote}
         `;
 
         if (items.length === 0) {
@@ -5061,6 +5075,7 @@
         let sections = [];
         let incomeItems = []; // Menyalin data pemasukan juga
         let relatedToId = null;
+        let inheritedDelegates = null; // [FIX] Pengelola ikut disalin ke rapat lanjutan
 
         if (!editId) {
           // Baca pilihan sumber data: 'scratch' (kosong) atau 'related' (salin dari rapat terpilih)
@@ -5100,6 +5115,20 @@
               }));
             }
             
+            // [FIX] Menyalin daftar Pengelola (beserta hak aksesnya) dari rapat sebelumnya,
+            // supaya user yang sudah diberi hak (mis. Pemasukan) tetap bisa mengedit di rapat lanjutan.
+            if (Array.isArray(lastMeeting.delegates) && lastMeeting.delegates.length > 0) {
+              inheritedDelegates = lastMeeting.delegates
+                .filter(d => d && d.email)
+                .map(d => ({
+                  email: (d.email || '').toLowerCase(),
+                  uid: d.uid || null,
+                  perms: Object.assign({}, d.perms || {}),
+                  grantedBy: d.grantedBy || (currentUser?.email || ''),
+                  grantedAt: d.grantedAt || new Date().toISOString()
+                }));
+            }
+
             // Menyalin Pemasukan dari rapat sebelumnya
             if (lastMeeting.incomeItems && lastMeeting.incomeItems.length > 0) {
               incomeItems = lastMeeting.incomeItems.map(item => ({
@@ -5125,6 +5154,11 @@
           }] : []
         };
         
+        if (!editId && inheritedDelegates && inheritedDelegates.length > 0) {
+          meetingData.delegates = inheritedDelegates;
+          meetingData.delegateEmails = inheritedDelegates.map(d => d.email);
+        }
+
         if (editId) {
           meetingData.id = editId;
           const existing = meetings.find(m => m.id === editId);
@@ -8274,6 +8308,52 @@
       const btnInstallPWA = document.getElementById('btnInstallPWA');
       const headerInstallBtn = document.getElementById('headerInstallBtn');
 
+      // [FIX] Label versi + pengecekan versi terbaru (tidak bergantung Service Worker / cache hosting)
+      const __notulaBuild = (document.querySelector('meta[name="notula-build"]') || {}).content || '';
+      window.NOTULA_BUILD = __notulaBuild;
+      (function () {
+        const lbl = document.getElementById('appBuildLabel');
+        if (lbl && __notulaBuild) lbl.textContent = 'v' + __notulaBuild;
+      })();
+      const __isUserBusyGlobal = () => {
+        if (document.querySelector('.modal.active')) return true;
+        const ae = document.activeElement;
+        return !!(ae && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)));
+      };
+      const __showUpdateBannerGlobal = () => {
+        if (document.getElementById('sw-update-banner')) return;
+        const b = document.createElement('div');
+        b.id = 'sw-update-banner';
+        b.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:100000;background:#1a2b4c;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-family:var(--font-body,sans-serif);font-size:0.85rem;display:flex;gap:10px;align-items:center;max-width:92vw;';
+        b.innerHTML = '<span><i class="fas fa-sync-alt"></i> Versi baru aplikasi tersedia.</span><button type="button" style="background:#b8860b;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer;">Muat Ulang</button>';
+        b.querySelector('button').addEventListener('click', () => window.location.reload());
+        document.body.appendChild(b);
+      };
+      let __lastBuildCheck = 0;
+      async function __checkLatestBuild() {
+        if (!__notulaBuild || Date.now() - __lastBuildCheck < 60000) return;
+        __lastBuildCheck = Date.now();
+        try {
+          const res = await fetch('./index.html?_v=' + Date.now(), { cache: 'no-store' });
+          if (!res.ok) return;
+          const txt = await res.text();
+          const m = txt.match(/<meta name="notula-build" content="([^"]+)">/);
+          if (!m || m[1] === __notulaBuild) return;
+          const key = 'notula_build_reload_' + m[1];
+          try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch (e) {}
+          if ('caches' in window) {
+            const ks = await caches.keys();
+            await Promise.all(ks.map(k => caches.delete(k)));
+          }
+          if (__isUserBusyGlobal()) { __showUpdateBannerGlobal(); return; }
+          window.location.reload();
+        } catch (e) { /* offline: abaikan */ }
+      }
+      window.addEventListener('load', () => setTimeout(__checkLatestBuild, 3000));
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') __checkLatestBuild();
+      });
+
       if ('serviceWorker' in navigator) {
         // [FIX v4] Pastikan perangkat (terutama HP / PWA terinstal) selalu memakai versi index.html TERBARU.
         // - updateViaCache:'none' -> browser tidak memakai cache HTTP saat mengecek sw.js baru
@@ -8281,20 +8361,8 @@
         // - controllerchange -> muat ulang otomatis sekali saat SW baru aktif (aman: ditunda jika ada modal/input aktif)
         const __hadSwController = !!navigator.serviceWorker.controller;
         let __swReloading = false;
-        const __isUserBusy = () => {
-          if (document.querySelector('.modal.active')) return true;
-          const ae = document.activeElement;
-          return !!(ae && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)));
-        };
-        const __showUpdateBanner = () => {
-          if (document.getElementById('sw-update-banner')) return;
-          const b = document.createElement('div');
-          b.id = 'sw-update-banner';
-          b.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:100000;background:#1a2b4c;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-family:var(--font-body,sans-serif);font-size:0.85rem;display:flex;gap:10px;align-items:center;max-width:92vw;';
-          b.innerHTML = '<span><i class="fas fa-sync-alt"></i> Versi baru aplikasi tersedia.</span><button type="button" style="background:#b8860b;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer;">Muat Ulang</button>';
-          b.querySelector('button').addEventListener('click', () => window.location.reload());
-          document.body.appendChild(b);
-        };
+        const __isUserBusy = __isUserBusyGlobal;
+        const __showUpdateBanner = __showUpdateBannerGlobal;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           if (!__hadSwController || __swReloading) return; // instal pertama: tidak perlu reload
           if (__isUserBusy()) { __showUpdateBanner(); return; }
@@ -11473,7 +11541,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .btn-delete-meeting, .theme-switcher, #fontSwitcher, .user-info, .log-card,
     .log-actions, .notification-wrapper, #install-pwa-container, .mobile-menu-toggle,
     .stat-tooltip, #btn-trigger-calendar, #notula-calendar-overlay, #notula-event-modal,
-    #notula-history-modal, .btn-ecosystem-wrapper, #waModalOverlay, .income-actions,
+    #notula-history-modal, .btn-ecosystem-wrapper, #waModalOverlay, .income-actions, .income-access-note, #appBuildLabel, #sw-update-banner,
     .btn-add-income, .team-actions-sidebar, .btn-new-team, #landscapeSidebarToggle,
     .rich-toolbar {
       display: none !important;
