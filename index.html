@@ -8759,7 +8759,19 @@
 
     console.log('[Kalender] Memproses', dataMeetings.length, 'rapat...');
 
+    // ===== ANTI-DUPLIKAT KALENDER =====
+    // Fitur "Rapat terkait" menyalin semua tugas (isi + deadline sama persis) ke rapat baru,
+    // sehingga satu tugas muncul berkali-kali di kalender. Event kembar digabung:
+    //  - Tugas  : seksi + deskripsi + deadline (tanggal & jam) sama
+    //  - Rapat  : judul + tanggal sama
+    // Versi yang ditampilkan = dari rapat terbaru (status paling mutakhir).
+    function calNorm(x){ return String(x == null ? '' : x).toLowerCase().replace(/\s+/g, ' ').trim(); }
+    function calTaskKey(section, task){
+      return 'T|' + calNorm(section && section.name) + '|' + calNorm(task.desc) + '|' + String(task.deadline || '').trim().slice(0, 16);
+    }
+
     dataMeetings.forEach(function(meeting) {
+      if (!meeting || meeting.deletedAt) return; // rapat yang diarsipkan (soft delete) tidak ditampilkan
       // 1. Tambahkan Jadwal Rapat
       if (meeting.date) {
         // Pastikan format tanggal valid (YYYY-MM-DD)
@@ -8775,7 +8787,10 @@
               type: 'meeting',
               description: meeting.info || meeting.agenda || '',
               pic: meeting.createdByEmail || '-',
-              status: 'Rapat'
+              status: 'Rapat',
+              dupKey: 'M|' + calNorm(meeting.title) + '|' + dateStr,
+              meetingDate: meeting.date || '',
+              meetingTitle: meeting.title || ''
             }
           });
         }
@@ -8806,7 +8821,9 @@
                       pic: task.pic || '-',
                       status: task.status || 'rencana',
                       section: section.name || '',
-                      meetingTitle: meeting.title || ''
+                      meetingTitle: meeting.title || '',
+                      dupKey: calTaskKey(section, task),
+                      meetingDate: meeting.date || ''
                     }
                   });
                 } else if (/^\d{4}-\d{2}-\d{2}$/.test(deadlineStr)) {
@@ -8824,7 +8841,9 @@
                       pic: task.pic || '-',
                       status: task.status || 'rencana',
                       section: section.name || '',
-                      meetingTitle: meeting.title || ''
+                      meetingTitle: meeting.title || '',
+                      dupKey: calTaskKey(section, task),
+                      meetingDate: meeting.date || ''
                     }
                   });
                 }
@@ -8835,8 +8854,38 @@
       }
     });
 
-    console.log('[Kalender] Total events yang dihasilkan:', events.length);
-    return events;
+    // Gabungkan event kembar
+    const byKey = {};
+    const unique = [];
+    events.forEach(function(ev) {
+      const p = ev.extendedProps || {};
+      const k = p.dupKey;
+      if (!k) { unique.push(ev); return; }
+      if (byKey[k] === undefined) {
+        p.dupCount = 1;
+        p.meetingList = p.meetingTitle ? [p.meetingTitle] : [];
+        byKey[k] = unique.length;
+        unique.push(ev);
+        return;
+      }
+      const prev = unique[byKey[k]];
+      const pp = prev.extendedProps;
+      const list = pp.meetingList.slice();
+      if (p.meetingTitle && list.indexOf(p.meetingTitle) === -1) list.push(p.meetingTitle);
+      const count = pp.dupCount + 1;
+      // Pakai versi dari rapat yang lebih baru (format tanggal YYYY-MM-DD bisa dibandingkan sebagai teks)
+      if (String(p.meetingDate || '') > String(pp.meetingDate || '')) {
+        p.dupCount = count; p.meetingList = list;
+        unique[byKey[k]] = ev;
+      } else {
+        pp.dupCount = count; pp.meetingList = list;
+      }
+    });
+    if (unique.length !== events.length) {
+      console.log('[Kalender] ' + (events.length - unique.length) + ' event kembar digabung.');
+    }
+    console.log('[Kalender] Total events yang dihasilkan:', unique.length);
+    return unique;
   }
 
   // Fungsi untuk membuka kalender
@@ -8895,6 +8944,12 @@
           if (props.section) {
             document.getElementById('ne-date').innerHTML += '<br><strong>Seksi:</strong> ' + props.section;
           }
+          if (props.dupCount > 1) {
+            const esc = function(x){ return String(x).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+            statusEl.innerHTML += '<br><span style="font-size:0.85em;color:#64748b;"><i class="fas fa-clone"></i> Tugas yang sama tercatat di ' +
+              props.dupCount + ' rapat' + (props.meetingList && props.meetingList.length ? ': ' + esc(props.meetingList.join(', ')) : '') +
+              '. Ditampilkan 1 kali (status dari rapat terbaru).</span>';
+          }
         } else {
           typeEl.innerHTML = '<strong>Tipe:</strong> Jadwal Rapat';
           picEl.style.display = 'none';
@@ -8946,7 +9001,7 @@
 <!-- ========================================================= -->
 
 <!-- ========================================================= -->
-<!-- FITUR TIMELINE GANTT NOTULA v1.0                          -->
+<!-- FITUR TIMELINE GANTT NOTULA v2.0 (MS Project style)        -->
 <!-- Otomatis dari data tugas (seksi + deadline). Single-file. -->
 <!-- Tidak mengubah fitur kalender / lainnya.                  -->
 <!-- ========================================================= -->
@@ -9062,9 +9117,113 @@
     border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25); cursor: grab;
   }
   #gantt-hscroll::-moz-range-track { height: 8px; border-radius: 6px; background: #e2e8f0; }
+
+  /* ===== TIMELINE v2: gaya MS Project (durasi, % tercapai, sisa hari) ===== */
+  #gantt-view-select, #gantt-zoom-select, #gantt-filter-select {
+    padding: 8px 12px; border-radius: 8px; border: 1px solid var(--color-border, #e2e8f0);
+    font-family: var(--font-body,'Poppins',sans-serif); font-size: 0.9rem; background: #fff; color: var(--color-text,#334155); cursor: pointer;
+  }
+  .gp-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .gp-kpi { background: var(--color-card-bg,#fff); border: 1px solid var(--color-border,#e2e8f0); border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03); min-width: 0; }
+  .gp-kpi .k-lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-light,#64748b); font-weight: 600; }
+  .gp-kpi .k-val { font-size: 1.35rem; font-weight: 700; color: var(--color-secondary,#1a2b4c); margin-top: 2px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .gp-kpi .k-sub { font-size: 0.76rem; color: var(--color-text-light,#64748b); margin-top: 3px; }
+  .gp-kpi.warn { border-left: 4px solid #f59e0b; }
+  .gp-kpi.bad { border-left: 4px solid #dc3545; }
+  .gp-kpi.good { border-left: 4px solid #16a34a; }
+  .gp-kpi .k-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .gp-chip { font-size: 0.7rem; background: #f1f5f9; color: #334155; border-radius: 20px; padding: 2px 8px; cursor: pointer; border: 1px solid #e2e8f0; }
+  .gp-chip:hover { border-color: var(--color-primary,#b8860b); }
+  .gp-dualbar { position: relative; height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 8px; overflow: visible; }
+  .gp-dualbar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--color-primary,#b8860b); }
+  .gp-dualbar .plan { position: absolute; top: -3px; bottom: -3px; width: 0; border-left: 2px solid #1a2b4c; }
+
+  .gp-sec-title { font-weight: 700; color: var(--color-secondary,#1a2b4c); font-size: 0.92rem; margin: 6px 0 8px; display: flex; align-items: center; gap: 8px; }
+  .gp-secs { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .gp-sec { background: var(--color-card-bg,#fff); border: 1px solid var(--color-border,#e2e8f0); border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: .15s; min-width: 0; }
+  .gp-sec:hover { border-color: var(--color-primary,#b8860b); transform: translateY(-1px); }
+  .gp-sec .s-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .gp-sec .s-name { font-weight: 700; font-size: 0.85rem; color: var(--color-secondary,#1a2b4c); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gp-sec .s-meta { font-size: 0.72rem; color: var(--color-text-light,#64748b); margin-top: 6px; display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+  .gp-sec .s-meta b { color: #334155; font-variant-numeric: tabular-nums; }
+
+  .gp-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.66rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .gp-h-selesai { background: #dcfce7; color: #166534; }
+  .gp-h-terlambat { background: #fee2e2; color: #991b1b; }
+  .gp-h-kendala { background: #ffedd5; color: #9a3412; }
+  .gp-h-tertinggal { background: #fef3c7; color: #92400e; }
+  .gp-h-sesuai { background: #dbeafe; color: #1e40af; }
+  .gp-h-belum { background: #f1f5f9; color: #475569; }
+  .gp-h-belum-telat { background: #fde68a; color: #78350f; }
+  .gp-h-kosong { background: #f8fafc; color: #94a3b8; border: 1px dashed #cbd5e1; }
+  .gp-h-tanpa-tanggal { background: #f8fafc; color: #64748b; border: 1px dashed #cbd5e1; }
+
+  .gp-wrap { min-width: 0 !important; }
+  .gp-inner { position: relative; }
+  .gp-row { display: flex; border-bottom: 1px solid #eef2f7; min-height: 34px; }
+  .gp-row.gp-summary-row { background: #f8fafc; }
+  .gp-row.gp-flash .gp-left { background: #fff7e0 !important; }
+  .gp-left { position: sticky; left: 0; z-index: 4; display: flex; background: #fff; border-right: 2px solid #cbd5e1; flex-shrink: 0; }
+  .gp-summary-row .gp-left { background: #f8fafc; }
+  .gp-c { padding: 6px 6px; font-size: 0.76rem; color: #334155; display: flex; align-items: center; border-right: 1px solid #f1f5f9;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .gp-c.num { justify-content: flex-end; }
+  .gp-c.ctr { justify-content: center; }
+  .gp-c-no { width: 38px; color: #94a3b8; font-size: 0.7rem; }
+  .gp-c-name { width: 220px; display: block; line-height: 1.25; padding-top: 5px; padding-bottom: 5px; }
+  .gp-c-name .nm { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gp-c-name .pc { display: block; font-size: 0.66rem; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gp-summary-row .gp-c-name .nm { font-weight: 700; color: var(--color-secondary,#1a2b4c); }
+  .gp-c-start, .gp-c-end { width: 66px; }
+  .gp-c-dur { width: 64px; }
+  .gp-c-pct { width: 78px; gap: 5px; }
+  .gp-c-pct .mini { flex: 1; height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+  .gp-c-pct .mini i { display: block; height: 100%; background: var(--color-primary,#b8860b); }
+  .gp-c-sisa { width: 92px; }
+  .gp-c-stat { width: 128px; }
+  .gp-toggle { background: none; border: none; cursor: pointer; color: var(--color-secondary,#1a2b4c); padding: 0 4px 0 0; font-size: 0.7rem; }
+  .gp-indent { padding-left: 16px !important; }
+  .gp-late { color: #dc2626; font-weight: 700; }
+  .gp-soon { color: #d97706; font-weight: 600; }
+
+  .gp-head .gp-left { background: var(--color-bg-light,#f4f7fb); }
+  .gp-head .gp-c { font-weight: 700; color: var(--color-secondary,#1a2b4c); font-size: 0.7rem; white-space: normal; line-height: 1.15; }
+  .gp-head { background: var(--color-bg-light,#f4f7fb); border-bottom: 2px solid #cbd5e1; }
+  .gp-timehead { position: relative; flex-shrink: 0; }
+  .gp-th-row { position: relative; height: 22px; border-bottom: 1px solid #e2e8f0; }
+  .gp-th-row:last-child { border-bottom: none; }
+  .gp-th { position: absolute; top: 0; bottom: 0; border-left: 1px solid #dde3ec; font-size: 0.66rem; color: #475569; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; }
+  .gp-th.we { background: rgba(148,163,184,0.12); color: #94a3b8; }
+  .gp-track { position: relative; flex-shrink: 0; }
+  .gp-gridline { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px solid #f1f5f9; }
+  .gp-weekend { position: absolute; top: 0; bottom: 0; background: rgba(148,163,184,0.07); }
+  .gp-bar { position: absolute; top: 9px; height: 16px; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.12); min-width: 4px; }
+  .gp-bar .pf { position: absolute; left: 0; top: 0; bottom: 0; }
+  .gp-bar.late { outline: 2px solid #dc2626; outline-offset: 1px; }
+  .gp-bar-selesai { background: rgba(22,163,74,0.30); } .gp-bar-selesai .pf { background: #16a34a; }
+  .gp-bar-berlangsung { background: rgba(52,152,219,0.30); } .gp-bar-berlangsung .pf { background: #2563eb; }
+  .gp-bar-rencana { background: rgba(245,166,35,0.35); } .gp-bar-rencana .pf { background: #d97706; }
+  .gp-bar-kendala { background: rgba(220,53,69,0.30); } .gp-bar-kendala .pf { background: #dc3545; }
+  .gp-sbar { position: absolute; top: 13px; height: 8px; background: #475569; border-radius: 1px; }
+  .gp-sbar .pf { position: absolute; left: 0; top: 0; bottom: 0; background: var(--color-primary,#b8860b); }
+  .gp-sbar::before, .gp-sbar::after { content: ''; position: absolute; bottom: -5px; border-top: 6px solid #475569; border-left: 4px solid transparent; border-right: 4px solid transparent; }
+  .gp-sbar::before { left: -1px; } .gp-sbar::after { right: -1px; }
+  .gp-diamond { position: absolute; top: 10px; width: 13px; height: 13px; transform: translateX(-50%) rotate(45deg); border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+  .gp-blabel { position: absolute; top: 9px; height: 16px; display: flex; align-items: center; font-size: 0.68rem; color: #475569; white-space: nowrap; pointer-events: none; }
+  .gp-blabel b { color: #1e293b; margin-right: 4px; }
+  .gp-nodate { position: absolute; left: 10px; top: 9px; font-size: 0.68rem; color: #94a3b8; font-style: italic; white-space: nowrap; }
+  .gp-todayline { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed #dc3545; z-index: 3; pointer-events: none; }
+  .gp-todaytag { position: absolute; top: 2px; transform: translateX(-50%); background: #dc3545; color: #fff; font-size: 0.6rem; font-weight: 700; padding: 1px 6px; border-radius: 8px; z-index: 3; white-space: nowrap; }
+  .gp-note { font-size: 0.74rem; color: var(--color-text-light,#64748b); margin: 10px 2px 0; line-height: 1.5; }
+
   @media (max-width: 768px) {
     #notula-gantt-header h2 { font-size: 1.05rem; }
     #notula-gantt-body { padding: 12px; }
+    .gp-c-start, .gp-c-end, .gp-c-stat { display: none !important; }
+    .gp-c-name { width: 150px; }
+    .gp-kpi .k-val { font-size: 1.1rem; }
   }
 </style>
 
@@ -9080,6 +9239,23 @@
         <option value="active">Rapat Aktif</option>
         <option value="all">Semua Rapat</option>
       </select>
+      <select id="gantt-view-select" title="Pilih tampilan timeline">
+        <option value="detail">Detail Tugas (gaya MS Project)</option>
+        <option value="seksi">Ringkas per Seksi</option>
+      </select>
+      <select id="gantt-zoom-select" title="Skala waktu (tampilan Detail)">
+        <option value="auto">Skala: Otomatis</option>
+        <option value="day">Skala: Harian</option>
+        <option value="week">Skala: Mingguan</option>
+        <option value="month">Skala: Bulanan</option>
+      </select>
+      <select id="gantt-filter-select" title="Saring seksi berdasarkan kondisi">
+        <option value="all">Semua Seksi</option>
+        <option value="belum">Belum Berjalan</option>
+        <option value="perhatian">Terlambat / Tertinggal / Kendala</option>
+        <option value="jalan">Sedang Berjalan</option>
+        <option value="selesai">Selesai</option>
+      </select>
       <button id="btn-export-gantt"><i class="fas fa-file-pdf"></i> Export PDF</button>
       <button id="btn-close-gantt">Kembali ke Workspace</button>
     </div>
@@ -9090,7 +9266,11 @@
       <span class="lg"><span class="sw gantt-sw-berlangsung"></span> Berlangsung</span>
       <span class="lg"><span class="sw gantt-sw-rencana"></span> Rencana</span>
       <span class="lg"><span class="sw gantt-sw-kendala"></span> Kendala</span>
-      <span class="lg"><span class="gantt-sw-ms">&#9733;</span> Milestone (deadline)</span>
+      <span class="lg gp-lg-seksi"><span class="gantt-sw-ms">&#9733;</span> Milestone (deadline)</span>
+      <span class="lg gp-lg-detail"><span class="sw" style="background:linear-gradient(90deg,#2563eb 55%,rgba(52,152,219,0.3) 55%);"></span> Isian gelap = % tercapai</span>
+      <span class="lg gp-lg-detail"><span style="display:inline-block;width:10px;height:10px;background:#d97706;transform:rotate(45deg);border-radius:2px;"></span> Milestone (tanpa tgl mulai)</span>
+      <span class="lg gp-lg-detail"><span class="sw" style="background:#475569;height:6px;"></span> Ringkasan seksi</span>
+      <span class="lg gp-lg-detail"><span style="display:inline-block;width:0;height:14px;border-left:2px dashed #dc3545;"></span> Hari ini</span>
     </div>
     <div id="gantt-render-target"></div>
     <!-- Slider geser horizontal: muncul hanya bila timeline lebih lebar dari layar,
@@ -9134,6 +9314,31 @@
   }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 
+  // ===== ANTI-DUPLIKAT =====
+  // Tugas dianggap kembar bila berada di seksi yang sama, isi/deskripsinya sama
+  // (abaikan huruf besar/kecil & spasi berlebih) DAN tanggal mulai + deadline-nya sama.
+  // Umumnya terjadi karena tugas yang sama terbawa ke beberapa rapat (lingkup "Semua Rapat")
+  // atau tersimpan dua kali. Yang dipertahankan: versi dari rapat TERBARU; bila sama, progres tertinggi.
+  function normTxt(s){ return String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').trim(); }
+  function dayKey(str){ var d = parseDate(str); return d ? (d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate()) : ''; }
+  function taskDupKey(secName, task){
+    return normTxt(secName) + '|' + normTxt(task.desc) + '|' +
+           dayKey(task.startDate || task.start || task.mulai) + '|' + dayKey(task.deadline);
+  }
+  function meetingTime(m){ var d = parseDate(m && m.date); return d ? d.getTime() : 0; }
+  // true bila kandidat (dari rapat cTime) lebih layak dipakai daripada yang sudah ada
+  function preferNewer(cTime, cProg, oTime, oProg){
+    if (cTime !== oTime) return cTime > oTime;
+    return (Number(cProg) || 0) > (Number(oProg) || 0);
+  }
+  function mergePic(a, b){
+    var list = [];
+    String(a || '').split(/\s*,\s*/).concat(String(b || '').split(/\s*,\s*/)).forEach(function(p){
+      if (p && p !== '-' && list.map(normTxt).indexOf(normTxt(p)) === -1) list.push(p);
+    });
+    return list.length ? list.join(', ') : '-';
+  }
+
   // Kumpulkan baris (seksi) + item tugas dari data meeting
   function collectData() {
     var meetings = window.meetings || [];
@@ -9164,14 +9369,29 @@
           if (!start) start = end;
           if (start > end) { var t = start; start = end; end = t; }
 
-          if (!rowsMap[secName]) { rowsMap[secName] = { name: secName, items: [] }; order.push(secName); }
-          rowsMap[secName].items.push({
+          if (!rowsMap[secName]) { rowsMap[secName] = { name: secName, items: [], seen: {} }; order.push(secName); }
+          var newItem = {
             desc: task.desc || 'Tugas',
             pic: task.pic || '-',
             status: STATUS_CLASS[task.status] ? task.status : 'rencana',
             start: start, end: end,
-            hasStart: !!parseDate(task.startDate || task.start || task.mulai)
-          });
+            hasStart: !!parseDate(task.startDate || task.start || task.mulai),
+            progress: (task.status === 'selesai') ? 100 : Math.max(0, Math.min(100, Math.round(Number(task.progress) || 0))),
+            _mt: meetingTime(meeting), dupCount: 1
+          };
+          // Gabungkan tugas kembar (isi + tanggal sama dalam seksi yang sama)
+          var dk = taskDupKey(secName, task);
+          var prevIdx = rowsMap[secName].seen[dk];
+          if (prevIdx !== undefined) {
+            var prev = rowsMap[secName].items[prevIdx];
+            newItem.pic = mergePic(prev.pic, newItem.pic);
+            newItem.dupCount = prev.dupCount + 1;
+            if (preferNewer(newItem._mt, newItem.progress, prev._mt, prev.progress)) rowsMap[secName].items[prevIdx] = newItem;
+            else { prev.pic = newItem.pic; prev.dupCount = newItem.dupCount; }
+            return; // jangan tambahkan baris kembar; rentang min/max tetap sama
+          }
+          rowsMap[secName].seen[dk] = rowsMap[secName].items.length;
+          rowsMap[secName].items.push(newItem);
           if (!minD || start < minD) minD = start;
           if (!maxD || end > maxD) maxD = end;
         });
@@ -9197,10 +9417,576 @@
     return cols;
   }
 
+  // =====================================================================
+  // TIMELINE v2 — ANALITIK GAYA MS PROJECT
+  // Durasi (hari), % tercapai, hari berlalu, sisa hari, % rencana (seharusnya),
+  // status kesehatan per tugas & per seksi, serta perkiraan tanggal selesai.
+  // Semua dihitung dari data yang SUDAH ada (startDate, deadline, progress, status);
+  // tidak ada perubahan struktur data Firestore.
+  // =====================================================================
+  var viewSel = document.getElementById('gantt-view-select');
+  var zoomSel = document.getElementById('gantt-zoom-select');
+  var filterSel = document.getElementById('gantt-filter-select');
+  var gpCollapsed = {};   // nama seksi -> true bila dilipat (in-memory)
+  var LAG_TOL = 10;       // toleransi (poin %) sebelum dianggap "tertinggal"
+
+  var HEALTH_LABEL = {
+    'selesai': 'Selesai', 'terlambat': 'Terlambat', 'kendala': 'Kendala',
+    'tertinggal': 'Tertinggal', 'sesuai': 'Sesuai jadwal', 'belum': 'Belum mulai',
+    'belum-telat': 'Telat mulai', 'kosong': 'Belum ada tugas', 'tanpa-tanggal': 'Tanpa tanggal'
+  };
+  var SEC_HEALTH_LABEL = {
+    'selesai': 'Selesai', 'terlambat': 'Ada terlambat', 'kendala': 'Ada kendala',
+    'tertinggal': 'Tertinggal', 'sesuai': 'Sesuai jadwal', 'belum': 'Belum berjalan',
+    'belum-telat': 'Belum jalan, telat', 'kosong': 'Belum ada tugas', 'tanpa-tanggal': 'Belum dijadwalkan'
+  };
+  var STATUS_LABEL = { selesai:'Selesai', berlangsung:'Berlangsung', rencana:'Rencana', kendala:'Kendala' };
+
+  function clampPct(v){ v = Number(v); if (!isFinite(v)) v = 0; return Math.max(0, Math.min(100, Math.round(v))); }
+  function clampN(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+  function fmtDMY(d){
+    if (!d) return '-';
+    var mo=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    return d.getDate()+' '+mo[d.getMonth()]+' '+String(d.getFullYear()).slice(-2);
+  }
+  function hr(n){ return n + ' hari'; }
+
+  // Teks "sisa hari" ala MS Project (positif = sisa, negatif = lewat).
+  function sisaText(rem, done){
+    if (done) return { txt: '—', cls: '' };
+    if (rem === null || rem === undefined) return { txt: '-', cls: '' };
+    if (rem < 0) return { txt: 'Lewat ' + hr(-rem), cls: 'gp-late' };
+    if (rem === 0) return { txt: 'Hari ini', cls: 'gp-soon' };
+    return { txt: hr(rem), cls: rem <= 3 ? 'gp-soon' : '' };
+  }
+
+  function chooseMeetings() {
+    var meetings = window.meetings || [];
+    var scope = scopeSel ? scopeSel.value : 'active';
+    var chosen = meetings;
+    if (scope === 'active' && window.currentMeetingId) {
+      chosen = meetings.filter(function(m){ return m.id === window.currentMeetingId; });
+      if (!chosen.length) chosen = meetings;
+    }
+    return chosen;
+  }
+
+  function buildTask(task, today) {
+    var end = parseDate(task.deadline);
+    var startRaw = parseDate(task.startDate || task.start || task.mulai);
+    var start = startRaw || end;
+    if (!end) end = start;
+    var dated = !!(start && end);
+    if (dated && start > end) { var tmp = start; start = end; end = tmp; }
+    var status = STATUS_CLASS[task.status] ? task.status : 'rencana';
+    var progress = clampPct(task.progress);
+    if (status === 'selesai') progress = 100;
+    var t = {
+      desc: task.desc || 'Tugas', pic: task.pic || '-', status: status, progress: progress,
+      start: start, end: end, hasStart: !!startRaw, dated: dated, done: progress >= 100,
+      duration: null, elapsed: null, planned: null, remaining: null
+    };
+    if (dated) {
+      t.duration = diffDays(start, end) + 1;                         // hari kalender, inklusif
+      t.elapsed = clampN(diffDays(start, today) + 1, 0, t.duration);  // hari yang sudah berlalu
+      t.planned = Math.round(t.elapsed / t.duration * 100);          // % yang seharusnya tercapai
+      t.remaining = diffDays(today, end);                           // hari menuju deadline
+    }
+    // Kesehatan tugas
+    var notStarted = (progress === 0 && status !== 'berlangsung');
+    if (t.done) t.health = 'selesai';
+    else if (!dated) t.health = notStarted ? 'tanpa-tanggal' : (status === 'kendala' ? 'kendala' : 'tanpa-tanggal');
+    else if (today > end) t.health = 'terlambat';
+    else if (status === 'kendala') t.health = 'kendala';
+    else if (notStarted) t.health = (start > today) ? 'belum' : 'belum-telat';
+    else if (progress + LAG_TOL < t.planned) t.health = 'tertinggal';
+    else t.health = 'sesuai';
+    return t;
+  }
+
+  // Perkiraan selesai berdasarkan laju progres saat ini (progress / hari berlalu).
+  function forecastEnd(start, elapsed, progress, done) {
+    if (done || !start || !elapsed || progress <= 0) return null;
+    var totalNeeded = Math.ceil(elapsed * 100 / progress);
+    return addDays(start, totalNeeded - 1);
+  }
+
+  function summarizeSection(sec, today) {
+    var tasks = sec.tasks;
+    var s = { name: sec.name, tasks: tasks, count: tasks.length, doneCount: 0, overdue: 0, kendala: 0,
+              start: null, end: null, duration: null, elapsed: null, remaining: null,
+              progress: 0, planned: 0, started: false, forecast: null, forecastSlip: null };
+    var wSum = 0, pSum = 0, plSum = 0, plW = 0;
+    tasks.forEach(function(t){
+      if (t.done) s.doneCount++;
+      if (t.health === 'terlambat') s.overdue++;
+      if (t.status === 'kendala' && !t.done) s.kendala++;
+      if (t.progress > 0 || t.status === 'berlangsung' || t.status === 'selesai') s.started = true;
+      var w = t.dated ? t.duration : 1;                  // bobot = durasi (seperti MS Project)
+      wSum += w; pSum += w * t.progress;
+      if (t.dated) {
+        plW += w; plSum += w * t.planned;
+        if (!s.start || t.start < s.start) s.start = t.start;
+        if (!s.end || t.end > s.end) s.end = t.end;
+      }
+    });
+    s.progress = wSum ? Math.round(pSum / wSum) : 0;
+    s.planned = plW ? Math.round(plSum / plW) : 0;
+    if (s.start) {
+      s.duration = diffDays(s.start, s.end) + 1;
+      s.elapsed = clampN(diffDays(s.start, today) + 1, 0, s.duration);
+      s.remaining = diffDays(today, s.end);
+    }
+    s.done = s.count > 0 && s.doneCount === s.count;
+    if (s.count === 0) s.health = 'kosong';
+    else if (s.done) s.health = 'selesai';
+    else if (!s.started) s.health = (s.start && s.start <= today) ? 'belum-telat' : (s.start ? 'belum' : 'tanpa-tanggal');
+    else if (s.overdue > 0) s.health = 'terlambat';
+    else if (s.kendala > 0) s.health = 'kendala';
+    else if (s.start && s.progress + LAG_TOL < s.planned) s.health = 'tertinggal';
+    else s.health = 'sesuai';
+    if (s.start && s.started && !s.done) {
+      s.forecast = forecastEnd(s.start, s.elapsed, s.progress, s.done);
+      if (s.forecast) s.forecastSlip = diffDays(s.end, s.forecast);  // >0 = diperkirakan molor
+    }
+    return s;
+  }
+
+  function collectDetail() {
+    var today = stripTime(new Date());
+    var secMap = {}, order = [], dupMerged = 0;
+    chooseMeetings().forEach(function(meeting){
+      if (!meeting || meeting.deletedAt) return;
+      var secs = Array.isArray(meeting.sections) ? meeting.sections : [];
+      secs.forEach(function(section){
+        if (!section) return;
+        var name = section.name || 'Tanpa Seksi';
+        if (!secMap[name]) { secMap[name] = { name: name, tasks: [], seen: {} }; order.push(name); }
+        var mt = meetingTime(meeting);
+        (Array.isArray(section.tasks) ? section.tasks : []).forEach(function(task){
+          if (!task) return;
+          var t = buildTask(task, today);
+          t._mt = mt; t.dupCount = 1;
+          // Gabungkan tugas kembar (isi + tanggal sama dalam seksi yang sama)
+          var dk = taskDupKey(name, task);
+          var idx = secMap[name].seen[dk];
+          if (idx !== undefined) {
+            var prev = secMap[name].tasks[idx];
+            t.pic = mergePic(prev.pic, t.pic);
+            t.dupCount = prev.dupCount + 1;
+            dupMerged++;
+            if (preferNewer(t._mt, t.progress, prev._mt, prev.progress)) secMap[name].tasks[idx] = t;
+            else { prev.pic = t.pic; prev.dupCount = t.dupCount; }
+            return;
+          }
+          secMap[name].seen[dk] = secMap[name].tasks.length;
+          secMap[name].tasks.push(t);
+        });
+      });
+    });
+    var sections = order.map(function(k){ return summarizeSection(secMap[k], today); });
+
+    // Ringkasan proyek
+    var p = { start: null, end: null, duration: null, elapsed: null, remaining: null, progress: 0, planned: 0,
+              taskCount: 0, doneCount: 0, overdue: [], notRunning: [], lagging: [], forecast: null, forecastSlip: null };
+    var wSum = 0, pSum = 0, plSum = 0, plW = 0, anyStarted = false;
+    sections.forEach(function(s){
+      p.taskCount += s.count; p.doneCount += s.doneCount;
+      if (s.health === 'belum' || s.health === 'belum-telat' || s.health === 'kosong' || s.health === 'tanpa-tanggal') p.notRunning.push(s);
+      if (s.health === 'tertinggal' || s.health === 'kendala') p.lagging.push(s);
+      if (s.started) anyStarted = true;
+      s.tasks.forEach(function(t){
+        if (t.health === 'terlambat') p.overdue.push({ sec: s.name, t: t });
+        var w = t.dated ? t.duration : 1;
+        wSum += w; pSum += w * t.progress;
+        if (t.dated) { plW += w; plSum += w * t.planned; }
+      });
+      if (s.start && (!p.start || s.start < p.start)) p.start = s.start;
+      if (s.end && (!p.end || s.end > p.end)) p.end = s.end;
+    });
+    p.progress = wSum ? Math.round(pSum / wSum) : 0;
+    p.planned = plW ? Math.round(plSum / plW) : 0;
+    if (p.start) {
+      p.duration = diffDays(p.start, p.end) + 1;
+      p.elapsed = clampN(diffDays(p.start, today) + 1, 0, p.duration);
+      p.remaining = diffDays(today, p.end);
+      if (anyStarted && p.progress < 100) {
+        p.forecast = forecastEnd(p.start, p.elapsed, p.progress, false);
+        if (p.forecast) p.forecastSlip = diffDays(p.end, p.forecast);
+      }
+    }
+    return { sections: sections, project: p, today: today, dupMerged: dupMerged };
+  }
+
+  function passFilter(s) {
+    var f = filterSel ? filterSel.value : 'all';
+    if (f === 'all') return true;
+    if (f === 'belum') return s.health === 'belum' || s.health === 'belum-telat' || s.health === 'kosong' || s.health === 'tanpa-tanggal';
+    if (f === 'perhatian') return s.health === 'terlambat' || s.health === 'tertinggal' || s.health === 'kendala' || s.health === 'belum-telat';
+    if (f === 'jalan') return s.started && !s.done;
+    if (f === 'selesai') return s.health === 'selesai';
+    return true;
+  }
+
+  function badge(code, labels) {
+    var tipMap = { 'belum-telat': 'Tanggal mulai sudah lewat, tetapi belum ada progres', 'tertinggal': 'Progres di bawah rencana (lebih dari ' + LAG_TOL + ' poin)' };
+    return '<span class="gp-badge gp-h-' + code + '"' + (tipMap[code] ? ' title="' + esc(tipMap[code]) + '"' : '') + '>' + esc((labels || HEALTH_LABEL)[code] || code) + '</span>';
+  }
+
+  // ---------- Panel ringkasan (KPI + kartu status seksi) ----------
+  function buildSummaryHtml(d) {
+    if (!d || !d.sections.length) return '';
+    var p = d.project, h = '';
+    h += '<div class="gp-kpis">';
+    // 1. Rentang & durasi
+    h += '<div class="gp-kpi"><div class="k-lbl">Durasi Proyek</div><div class="k-val">' + (p.duration ? hr(p.duration) : '-') + '</div>' +
+         '<div class="k-sub">' + (p.start ? esc(fmtDMY(p.start)) + ' → ' + esc(fmtDMY(p.end)) : 'Belum ada tugas bertanggal') + '</div></div>';
+    // 2. Waktu berlalu
+    var timePct = p.duration ? Math.round(p.elapsed / p.duration * 100) : 0;
+    h += '<div class="gp-kpi"><div class="k-lbl">Waktu Berlalu</div><div class="k-val">' + (p.duration ? hr(p.elapsed) : '-') + '</div>' +
+         '<div class="k-sub">' + (p.duration ? timePct + '% dari jadwal' : '-') + '</div></div>';
+    // 3. Sisa waktu
+    var remCls = (p.remaining !== null && p.remaining < 0 && p.progress < 100) ? 'bad' : ((p.remaining !== null && p.remaining <= 7 && p.progress < 100) ? 'warn' : '');
+    var remVal = '-', remSub = '';
+    if (p.remaining !== null) {
+      if (p.progress >= 100) { remVal = 'Selesai'; remSub = 'Semua tugas tuntas'; }
+      else if (p.remaining < 0) { remVal = 'Lewat ' + hr(-p.remaining); remSub = 'Deadline akhir ' + fmtDMY(p.end); }
+      else { remVal = hr(p.remaining); remSub = 'menuju deadline akhir ' + fmtDMY(p.end); }
+    }
+    h += '<div class="gp-kpi ' + remCls + '"><div class="k-lbl">Sisa Waktu</div><div class="k-val">' + esc(remVal) + '</div><div class="k-sub">' + esc(remSub) + '</div></div>';
+    // 4. Progress vs rencana
+    var gap = p.progress - p.planned;
+    var progCls = p.progress >= 100 ? 'good' : (gap < -LAG_TOL ? 'bad' : (gap < 0 ? 'warn' : 'good'));
+    h += '<div class="gp-kpi ' + progCls + '"><div class="k-lbl">Pencapaian</div><div class="k-val">' + p.progress + '%</div>' +
+         '<div class="k-sub">Rencana s/d hari ini: ' + p.planned + '% (' + (gap >= 0 ? '+' : '') + gap + ' poin)</div>' +
+         '<div class="gp-dualbar" title="Isian = tercapai, garis = seharusnya"><div class="fill" style="width:' + p.progress + '%"></div><div class="plan" style="left:' + p.planned + '%"></div></div></div>';
+    // 5. Perkiraan selesai
+    var fcVal = '-', fcSub = 'Belum bisa diperkirakan (belum ada progres)', fcCls = '';
+    if (p.progress >= 100) { fcVal = 'Tuntas'; fcSub = ''; fcCls = 'good'; }
+    else if (p.forecast) {
+      fcVal = fmtDMY(p.forecast);
+      if (p.forecastSlip > 0) { fcSub = 'Molor ± ' + hr(p.forecastSlip) + ' dari deadline'; fcCls = 'bad'; }
+      else { fcSub = 'Lebih cepat/tepat ' + hr(-p.forecastSlip) + ' dari deadline'; fcCls = 'good'; }
+    }
+    h += '<div class="gp-kpi ' + fcCls + '"><div class="k-lbl">Perkiraan Selesai</div><div class="k-val">' + esc(fcVal) + '</div><div class="k-sub">' + esc(fcSub) + '</div></div>';
+    // 6. Tim belum berjalan
+    h += '<div class="gp-kpi ' + (p.notRunning.length ? 'warn' : 'good') + '"><div class="k-lbl">Seksi Belum Berjalan</div><div class="k-val">' + p.notRunning.length +
+         ' <span style="font-size:0.8rem;font-weight:500;color:#64748b;">/ ' + d.sections.length + ' seksi</span></div>';
+    if (p.notRunning.length) {
+      h += '<div class="k-chips">';
+      p.notRunning.forEach(function(s){ h += '<span class="gp-chip" data-goto="' + esc(s.name) + '" title="' + esc(SEC_HEALTH_LABEL[s.health]) + '">' + esc(s.name) + '</span>'; });
+      h += '</div>';
+    } else h += '<div class="k-sub">Semua seksi sudah bergerak</div>';
+    h += '</div>';
+    // 7. Tugas terlambat
+    h += '<div class="gp-kpi ' + (p.overdue.length ? 'bad' : 'good') + '"><div class="k-lbl">Tugas Terlambat</div><div class="k-val">' + p.overdue.length +
+         ' <span style="font-size:0.8rem;font-weight:500;color:#64748b;">/ ' + p.taskCount + ' tugas</span></div>' +
+         '<div class="k-sub">' + p.doneCount + ' tugas selesai</div></div>';
+    h += '</div>';
+
+    // Kartu status per seksi
+    var shown = d.sections.filter(passFilter);
+    h += '<div class="gp-sec-title"><i class="fas fa-users"></i> Status per Seksi / Tim <span style="font-weight:500;color:#64748b;font-size:0.78rem;">(klik kartu untuk melompat ke barisnya)</span></div>';
+    if (!shown.length) {
+      h += '<div class="gp-note">Tidak ada seksi yang cocok dengan filter.</div>';
+    } else {
+      h += '<div class="gp-secs">';
+      shown.forEach(function(s){
+        var sis = sisaText(s.remaining, s.done);
+        var fc = '';
+        if (s.forecast) fc = (s.forecastSlip > 0 ? '<span class="gp-late">Perkiraan ' + esc(fmtDMY(s.forecast)) + ' (molor ' + s.forecastSlip + ' hari)</span>'
+                                                  : 'Perkiraan selesai <b>' + esc(fmtDMY(s.forecast)) + '</b>');
+        h += '<div class="gp-sec" data-goto="' + esc(s.name) + '">' +
+             '<div class="s-head"><span class="s-name" title="' + esc(s.name) + '">' + esc(s.name) + '</span>' + badge(s.health, SEC_HEALTH_LABEL) + '</div>' +
+             '<div class="gp-dualbar" title="Tercapai ' + s.progress + '% | Seharusnya ' + s.planned + '%"><div class="fill" style="width:' + s.progress + '%"></div>' +
+             (s.start ? '<div class="plan" style="left:' + s.planned + '%"></div>' : '') + '</div>' +
+             '<div class="s-meta"><span>Tercapai <b>' + s.progress + '%</b>' + (s.start ? ' / rencana ' + s.planned + '%' : '') + '</span>' +
+             '<span><b>' + s.doneCount + '/' + s.count + '</b> tugas selesai</span></div>' +
+             '<div class="s-meta"><span>Durasi <b>' + (s.duration ? hr(s.duration) : '-') + '</b></span><span>Sisa <b class="' + sis.cls + '">' + esc(sis.txt) + '</b></span></div>' +
+             (fc ? '<div class="s-meta"><span>' + fc + '</span></div>' : '') +
+             '</div>';
+      });
+      h += '</div>';
+    }
+    return h;
+  }
+
+  // ---------- Skala waktu ----------
+  function computeScale(d) {
+    var p = d.project, today = d.today;
+    var min = p.start, max = p.end;
+    // Sertakan "hari ini" bila dekat dengan rentang agar sisa waktu terlihat
+    if (today < min && diffDays(today, min) <= 21) min = today;
+    if (today > max && diffDays(max, today) <= 21) max = today;
+    var span = diffDays(min, max) + 1;
+    var mode = zoomSel ? zoomSel.value : 'auto';
+    if (mode === 'auto') mode = span <= 45 ? 'day' : (span <= 150 ? 'week' : 'month');
+    var ppd = mode === 'day' ? 30 : (mode === 'week' ? 13 : 4);
+    var rs, re;
+    if (mode === 'month') {
+      rs = new Date(min.getFullYear(), min.getMonth(), 1);
+      re = new Date(max.getFullYear(), max.getMonth() + 1, 0);
+    } else {
+      rs = addDays(min, -((min.getDay() + 6) % 7));            // Senin
+      re = addDays(max, 6 - ((max.getDay() + 6) % 7));          // Minggu
+      if (mode === 'day') { rs = addDays(rs, 0); re = addDays(re, 0); }
+    }
+    var days = diffDays(rs, re) + 1;
+    return { mode: mode, ppd: ppd, start: rs, end: re, days: days, width: days * ppd };
+  }
+
+  function xOf(sc, date) { return diffDays(sc.start, date) * sc.ppd; }
+
+  function buildTimeHeader(sc) {
+    var mo = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    var top = '', bot = '', i, d;
+    // Baris atas: bulan (atau tahun pada mode bulanan)
+    if (sc.mode === 'month') {
+      for (var y = sc.start.getFullYear(); y <= sc.end.getFullYear(); y++) {
+        var ys = new Date(Math.max(new Date(y,0,1), sc.start)), ye = new Date(Math.min(new Date(y,11,31), sc.end));
+        var x1 = xOf(sc, ys), w1 = (diffDays(ys, ye) + 1) * sc.ppd;
+        top += '<div class="gp-th" style="left:' + x1 + 'px;width:' + w1 + 'px;">' + y + '</div>';
+      }
+      d = new Date(sc.start);
+      while (d <= sc.end) {
+        var me = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        if (me > sc.end) me = sc.end;
+        var w2 = (diffDays(d, me) + 1) * sc.ppd;
+        bot += '<div class="gp-th" style="left:' + xOf(sc, d) + 'px;width:' + w2 + 'px;">' + (w2 >= 30 ? mo[d.getMonth()] : '') + '</div>';
+        d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      }
+    } else {
+      d = new Date(sc.start);
+      while (d <= sc.end) {
+        var mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        if (mEnd > sc.end) mEnd = sc.end;
+        var w = (diffDays(d, mEnd) + 1) * sc.ppd;
+        top += '<div class="gp-th" style="left:' + xOf(sc, d) + 'px;width:' + w + 'px;">' + (w >= 50 ? mo[d.getMonth()] + ' ' + d.getFullYear() : (w >= 26 ? mo[d.getMonth()] : '')) + '</div>';
+        d = addDays(mEnd, 1);
+      }
+      if (sc.mode === 'day') {
+        var dn = ['M','S','S','R','K','J','S']; // Minggu..Sabtu
+        for (i = 0; i < sc.days; i++) {
+          d = addDays(sc.start, i);
+          var we = (d.getDay() === 0 || d.getDay() === 6);
+          bot += '<div class="gp-th' + (we ? ' we' : '') + '" style="left:' + (i * sc.ppd) + 'px;width:' + sc.ppd + 'px;flex-direction:column;line-height:1;">' +
+                 '<span>' + d.getDate() + '</span><span style="font-size:0.55rem;font-weight:500;">' + dn[d.getDay()] + '</span></div>';
+        }
+      } else {
+        for (i = 0; i < sc.days; i += 7) {
+          d = addDays(sc.start, i);
+          bot += '<div class="gp-th" style="left:' + (i * sc.ppd) + 'px;width:' + (7 * sc.ppd) + 'px;">' + d.getDate() + ' ' + mo[d.getMonth()] + '</div>';
+        }
+      }
+    }
+    return '<div class="gp-th-row">' + top + '</div><div class="gp-th-row">' + bot + '</div>';
+  }
+
+  // Garis grid & arsiran akhir pekan pada setiap track
+  function buildTrackBg(sc) {
+    var h = '', i, d;
+    if (sc.mode === 'day') {
+      for (i = 0; i < sc.days; i++) {
+        d = addDays(sc.start, i);
+        if (d.getDay() === 6) h += '<div class="gp-weekend" style="left:' + (i * sc.ppd) + 'px;width:' + (2 * sc.ppd) + 'px;"></div>';
+        h += '<div class="gp-gridline" style="left:' + (i * sc.ppd) + 'px;"></div>';
+      }
+    } else if (sc.mode === 'week') {
+      for (i = 0; i < sc.days; i += 7) h += '<div class="gp-gridline" style="left:' + (i * sc.ppd) + 'px;"></div>';
+    } else {
+      d = new Date(sc.start);
+      while (d <= sc.end) { h += '<div class="gp-gridline" style="left:' + xOf(sc, d) + 'px;"></div>'; d = new Date(d.getFullYear(), d.getMonth() + 1, 1); }
+    }
+    return h;
+  }
+
+  function leftCells(o) {
+    // o: { no, name, pic, start, end, dur, pct, sisa, stat, summary, indent, toggle }
+    return '<div class="gp-left">' +
+      '<div class="gp-c gp-c-no">' + o.no + '</div>' +
+      '<div class="gp-c gp-c-name' + (o.indent ? ' gp-indent' : '') + '" title="' + esc(o.name + (o.pic ? ' — PIC: ' + o.pic : '')) + '">' +
+        '<span class="nm">' + (o.toggle || '') + esc(o.name) + '</span>' + (o.pic ? '<span class="pc"><i class="fas fa-user" style="font-size:0.6rem;"></i> ' + esc(o.pic) + '</span>' : '') + '</div>' +
+      '<div class="gp-c gp-c-start">' + esc(o.start) + '</div>' +
+      '<div class="gp-c gp-c-end">' + esc(o.end) + '</div>' +
+      '<div class="gp-c gp-c-dur num">' + esc(o.dur) + '</div>' +
+      '<div class="gp-c gp-c-pct"><span class="mini"><i style="width:' + o.pct + '%"></i></span><span style="min-width:30px;text-align:right;">' + o.pct + '%</span></div>' +
+      '<div class="gp-c gp-c-sisa num"><span class="' + (o.sisaCls || '') + '">' + esc(o.sisa) + '</span></div>' +
+      '<div class="gp-c gp-c-stat">' + o.stat + '</div>' +
+    '</div>';
+  }
+
+  function renderDetail() {
+    var d = collectDetail();
+    if (!d.sections.length) {
+      target.innerHTML = '<div class="gantt-empty"><i class="fas fa-stream"></i>' +
+        '<div><strong>Belum ada seksi / tugas untuk ditampilkan.</strong></div>' +
+        '<div style="margin-top:6px;font-size:0.85rem;">Tambahkan tugas (beserta tanggal mulai & deadline) pada seksi rapat, lalu buka Timeline lagi.</div></div>';
+      if (hbar) hbar.style.display = 'none';
+      return;
+    }
+    var html = buildSummaryHtml(d);
+    var shown = d.sections.filter(passFilter);
+    var sc = d.project.start ? computeScale(d) : null;
+    var trackW = sc ? sc.width : 300;
+
+    html += '<div class="gp-sec-title"><i class="fas fa-stream"></i> Jadwal Tugas (Gantt)</div>';
+    if (d.dupMerged > 0) {
+      html += '<div class="gp-note" style="margin:-4px 2px 10px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:8px;padding:8px 12px;">' +
+              '<i class="fas fa-clone"></i> ' + d.dupMerged + ' tugas kembar (seksi, isi tugas, dan tanggal sama) digabung menjadi satu baris. ' +
+              'Data yang dipakai adalah versi dari rapat terbaru.</div>';
+    }
+    html += '<div class="gantt-wrap gp-wrap"><div class="gp-inner" style="width:max-content;">';
+    // Header
+    html += '<div class="gp-row gp-head">' +
+      '<div class="gp-left">' +
+        '<div class="gp-c gp-c-no">No</div><div class="gp-c gp-c-name">Seksi / Tugas</div>' +
+        '<div class="gp-c gp-c-start">Mulai</div><div class="gp-c gp-c-end">Selesai</div>' +
+        '<div class="gp-c gp-c-dur num">Durasi</div><div class="gp-c gp-c-pct">% Tercapai</div>' +
+        '<div class="gp-c gp-c-sisa num">Sisa Hari</div><div class="gp-c gp-c-stat">Kondisi</div>' +
+      '</div>' +
+      '<div class="gp-timehead" style="width:' + trackW + 'px;">' + (sc ? buildTimeHeader(sc) : '<div class="gp-th-row"></div><div class="gp-th-row"></div>') + '</div>' +
+    '</div>';
+
+    var bg = sc ? buildTrackBg(sc) : '';
+    var bodyRows = '';
+    shown.forEach(function(s, si){
+      var collapsed = !!gpCollapsed[s.name];
+      var sis = sisaText(s.remaining, s.done);
+      var toggle = '<button type="button" class="gp-toggle" data-toggle="' + esc(s.name) + '" title="Lipat/buka">' +
+                   '<i class="fas fa-caret-' + (collapsed ? 'right' : 'down') + '"></i></button>';
+      // Bar ringkasan seksi
+      var track = bg;
+      if (sc && s.start) {
+        var sx = xOf(sc, s.start), sw = (diffDays(s.start, s.end) + 1) * sc.ppd;
+        track += '<div class="gp-sbar" style="left:' + sx + 'px;width:' + sw + 'px;" title="' + esc(s.name + ': ' + fmtDMY(s.start) + ' – ' + fmtDMY(s.end) + ' | ' + s.duration + ' hari | ' + s.progress + '% tercapai') + '">' +
+                 '<div class="pf" style="width:' + s.progress + '%"></div></div>';
+        track += '<div class="gp-blabel" style="left:' + (sx + sw + 8) + 'px;"><b>' + s.progress + '%</b> ' + esc(s.name) + '</div>';
+      } else if (sc) {
+        track += '<div class="gp-nodate">' + (s.count ? 'Belum ada tugas bertanggal' : 'Belum ada tugas') + '</div>';
+      }
+      bodyRows += '<div class="gp-row gp-summary-row" data-sec="' + esc(s.name) + '">' +
+        leftCells({ no: (si + 1), name: s.name, pic: s.count + ' tugas · ' + s.doneCount + ' selesai', toggle: toggle,
+                    start: s.start ? fmtDMY(s.start) : '-', end: s.end ? fmtDMY(s.end) : '-',
+                    dur: s.duration ? hr(s.duration) : '-', pct: s.progress, sisa: sis.txt, sisaCls: sis.cls,
+                    stat: badge(s.health, SEC_HEALTH_LABEL) }) +
+        '<div class="gp-track" style="width:' + trackW + 'px;">' + track + '</div></div>';
+
+      if (collapsed) return;
+      var items = s.tasks.slice().sort(function(a, b){
+        if (a.dated !== b.dated) return a.dated ? -1 : 1;
+        return a.dated ? (a.start - b.start) : 0;
+      });
+      items.forEach(function(t, ti){
+        var ts = sisaText(t.remaining, t.done);
+        var tr = bg;
+        if (sc && t.dated) {
+          var x = xOf(sc, t.start), w = t.duration * sc.ppd;
+          var tip = t.desc + ' | PIC: ' + t.pic + ' | ' + fmtDMY(t.start) + ' – ' + fmtDMY(t.end) +
+                    ' | Durasi ' + t.duration + ' hari | Tercapai ' + t.progress + '% (rencana ' + t.planned + '%)' +
+                    ' | Status: ' + (STATUS_LABEL[t.status] || t.status) + ' | ' + HEALTH_LABEL[t.health];
+          if (!t.hasStart) {
+            // Milestone (hanya deadline) → belah ketupat seperti MS Project
+            var col = { selesai:'#16a34a', berlangsung:'#2563eb', rencana:'#d97706', kendala:'#dc3545' }[t.status];
+            var cx = x + sc.ppd / 2;
+            tr += '<div class="gp-diamond" style="left:' + cx + 'px;background:' + col + ';' + (t.health === 'terlambat' ? 'outline:2px solid #dc2626;outline-offset:1px;' : '') + '" title="' + esc('Milestone — ' + tip) + '"></div>';
+            tr += '<div class="gp-blabel" style="left:' + (cx + 12) + 'px;"><b>' + t.progress + '%</b> ' + esc(fmtDMY(t.end)) + (t.pic !== '-' ? ' · ' + esc(t.pic) : '') + '</div>';
+          } else {
+            tr += '<div class="gp-bar gp-bar-' + t.status + (t.health === 'terlambat' ? ' late' : '') + '" style="left:' + x + 'px;width:' + w + 'px;" title="' + esc(tip) + '">' +
+                  '<div class="pf" style="width:' + t.progress + '%"></div></div>';
+            tr += '<div class="gp-blabel" style="left:' + (x + w + 6) + 'px;"><b>' + t.progress + '%</b>' + (t.pic !== '-' ? esc(t.pic) : '') + '</div>';
+          }
+        } else if (sc) {
+          tr += '<div class="gp-nodate">Tanpa tanggal — isi tanggal mulai & deadline agar tampil di timeline</div>';
+        }
+        bodyRows += '<div class="gp-row" data-sec-child="' + esc(s.name) + '">' +
+          leftCells({ no: (si + 1) + '.' + (ti + 1), name: t.desc, indent: true,
+                      pic: (t.pic !== '-' ? t.pic : '') + (t.dupCount > 1 ? (t.pic !== '-' ? ' · ' : '') + 'gabungan ' + t.dupCount + ' data kembar' : ''),
+                      start: t.dated ? fmtDMY(t.start) : '-', end: t.dated ? fmtDMY(t.end) : '-',
+                      dur: t.dated ? hr(t.duration) : '-', pct: t.progress, sisa: ts.txt, sisaCls: ts.cls,
+                      stat: badge(t.health) }) +
+          '<div class="gp-track" style="width:' + trackW + 'px;">' + tr + '</div></div>';
+      });
+    });
+    if (!shown.length) bodyRows += '<div class="gp-note" style="padding:14px;">Tidak ada seksi yang cocok dengan filter.</div>';
+
+    // Body + garis hari ini (satu garis menembus semua baris)
+    html += '<div class="gp-body" style="position:relative;">' + bodyRows;
+    if (sc && d.today >= sc.start && d.today <= sc.end) {
+      var tx = xOf(sc, d.today) + sc.ppd / 2;
+      html += '<div class="gp-todayline" style="left:calc(var(--gp-leftw, 0px) + ' + tx + 'px);"></div>';
+    }
+    html += '</div>';
+    html += '</div></div>';
+    html += '<div class="gp-note"><b>Cara membaca:</b> Durasi = hari kalender dari tanggal mulai s/d deadline (inklusif). ' +
+            '<b>% Tercapai</b> diambil dari isian Progress tugas (status Selesai = 100%); untuk seksi & proyek dibobot berdasarkan durasi tugas, seperti MS Project. ' +
+            '<b>Rencana</b> = persentase waktu yang sudah berlalu — bila % tercapai lebih rendah ' + LAG_TOL + ' poin atau lebih, tugas ditandai <i>Tertinggal</i>. ' +
+            '<b>Perkiraan selesai</b> dihitung dari laju progres saat ini. Tugas tanpa tanggal mulai ditampilkan sebagai milestone (◆) 1 hari.</div>';
+
+    target.innerHTML = html;
+
+    // Posisikan garis hari ini setelah lebar kolom kiri diketahui
+    var inner = target.querySelector('.gp-inner');
+    var leftEl = target.querySelector('.gp-head .gp-left');
+    if (inner && leftEl) inner.style.setProperty('--gp-leftw', leftEl.offsetWidth + 'px');
+    // Tanpa garis hari ini di dalam area kolom kiri (sticky menutupinya, z-index lebih tinggi)
+
+    // Gulir otomatis agar "hari ini" terlihat
+    var wrap = target.querySelector('.gp-wrap');
+    if (wrap && sc && leftEl && d.today >= sc.start && d.today <= sc.end) {
+      var want = xOf(sc, d.today) - (wrap.clientWidth - leftEl.offsetWidth) * 0.35;
+      wrap.scrollLeft = Math.max(0, want);
+    }
+
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(function(){ refreshGanttSlider(); });
+    else refreshGanttSlider();
+  }
+
+  // Interaksi: lipat/buka seksi, lompat ke seksi dari kartu/chip
+  target.addEventListener('click', function(e){
+    var tg = e.target.closest ? e.target.closest('[data-toggle]') : null;
+    if (tg) {
+      var nm = tg.getAttribute('data-toggle');
+      gpCollapsed[nm] = !gpCollapsed[nm];
+      render();
+      return;
+    }
+    var go = e.target.closest ? e.target.closest('[data-goto]') : null;
+    if (go) {
+      var name = go.getAttribute('data-goto');
+      var rows = target.querySelectorAll('.gp-summary-row');
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].getAttribute('data-sec') === name) {
+          var row = rows[i];
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          row.classList.add('gp-flash');
+          setTimeout(function(){ row.classList.remove('gp-flash'); }, 1600);
+          break;
+        }
+      }
+    }
+  });
+
+  function syncLegend() {
+    var isDetail = !viewSel || viewSel.value === 'detail';
+    var a = document.querySelectorAll('#notula-gantt-overlay .gp-lg-detail');
+    var b = document.querySelectorAll('#notula-gantt-overlay .gp-lg-seksi');
+    for (var i = 0; i < a.length; i++) a[i].style.display = isDetail ? '' : 'none';
+    for (var j = 0; j < b.length; j++) b[j].style.display = isDetail ? 'none' : '';
+    if (zoomSel) zoomSel.style.display = isDetail ? '' : 'none';
+  }
+
+  // Dispatcher tampilan
   function render() {
+    syncLegend();
+    if (!viewSel || viewSel.value === 'detail') renderDetail();
+    else renderSeksi();
+  }
+
+  // Tampilan lama "Ringkas per Seksi" (tetap dipertahankan, kini dengan panel ringkasan)
+  function renderSeksi() {
     var data = collectData();
     if (!data) {
-      target.innerHTML = '<div class="gantt-empty"><i class="fas fa-stream"></i>' +
+      target.innerHTML = buildSummaryHtml(collectDetail()) + '<div class="gantt-empty"><i class="fas fa-stream"></i>' +
         '<div><strong>Belum ada tugas ber-deadline untuk ditampilkan.</strong></div>' +
         '<div style="margin-top:6px;font-size:0.85rem;">Tambahkan deadline pada tugas di seksi rapat, lalu buka Timeline lagi.</div></div>';
       if (hbar) hbar.style.display = 'none';
@@ -9256,7 +10042,7 @@
     });
 
     html += '</div></div>';
-    target.innerHTML = html;
+    target.innerHTML = buildSummaryHtml(collectDetail()) + html;
     // Setelah grid ter-render, perbarui slider geser (muncul bila timeline melebihi layar).
     if (typeof requestAnimationFrame === 'function') {
       requestAnimationFrame(function(){ refreshGanttSlider(); });
@@ -9352,6 +10138,9 @@
   if (btnOpen) btnOpen.addEventListener('click', openGantt);
   if (btnClose) btnClose.addEventListener('click', closeGantt);
   if (scopeSel) scopeSel.addEventListener('change', render);
+  if (viewSel) viewSel.addEventListener('change', render);
+  if (zoomSel) zoomSel.addEventListener('change', render);
+  if (filterSel) filterSel.addEventListener('change', render);
   document.addEventListener('keydown', function(e){
     if (e.key === 'Escape' && overlay.style.display === 'flex') closeGantt();
   });
@@ -9531,9 +10320,15 @@
         doc.setFillColor(col[0], col[1], col[2]);
         if (doc.roundedRect) { doc.roundedRect(bx, by, bw, barH, 3, 3, 'F'); }
         else { doc.rect(bx, by, bw, barH, 'F'); }
+        // Garis progres (% tercapai) di bagian bawah batang — gaya MS Project
+        var pPct = (typeof it.progress === 'number') ? it.progress : 0;
+        if (pPct > 0) {
+          doc.setFillColor(30, 41, 59);
+          doc.rect(bx, by + barH - 3.5, Math.max(bw * pPct / 100, 1.5), 3.5, 'F');
+        }
 
         // Label tugas
-        var labelTxt = it.desc + (it.pic && it.pic !== '-' ? ' (' + it.pic + ')' : '');
+        var labelTxt = (typeof it.progress === 'number' ? it.progress + '% ' : '') + it.desc + (it.pic && it.pic !== '-' ? ' (' + it.pic + ')' : '');
         doc.setFontSize(6);
         // Potong label menjadi SATU baris agar tidak membungkus & terpotong ke bawah.
         function fitOneLine(txt, maxW) {
@@ -9634,7 +10429,7 @@
       doc.text('Dibuat: ' + new Date().toLocaleDateString('id-ID', {day:'numeric',month:'long',year:'numeric'}), margin, 56);
       // Penanda versi kecil (kanan atas) agar mudah memastikan versi kode yang menghasilkan PDF.
       doc.setFontSize(7); doc.setTextColor(160);
-      doc.text('chart v2 (adaptif: minggu/bulan/tahun)', pw - margin, 40, { align: 'right' });
+      doc.text('chart v3 (durasi, % tercapai, sisa hari)', pw - margin, 40, { align: 'right' });
       doc.setTextColor(100);
 
       // 1) Legenda + CHART GANTT (grafik batang) — inilah tampilan grafis yang diminta.
@@ -9646,31 +10441,81 @@
         // Bila chart gagal, tetap lanjut ke tabel agar export tidak batal total.
       }
 
-      // 2) TABEL rincian di halaman baru.
+      // 2) RINGKASAN PROGRES + TABEL rincian (gaya MS Project) di halaman baru.
       if (doc.autoTable) {
+        var det = collectDetail();
+        var pj = det.project;
+        doc.addPage();
+        doc.setFontSize(13); doc.setTextColor(26,43,76);
+        doc.text('Ringkasan Progres Proyek', margin, 40);
+        doc.setFontSize(8.5); doc.setTextColor(60,72,100);
+        var remTxt = pj.remaining === null ? '-' : (pj.progress >= 100 ? 'Selesai' : (pj.remaining < 0 ? 'Lewat ' + (-pj.remaining) + ' hari' : pj.remaining + ' hari'));
+        var fcTxt = pj.progress >= 100 ? 'Tuntas' : (pj.forecast ? fmtDMY(pj.forecast) + (pj.forecastSlip > 0 ? ' (molor ' + pj.forecastSlip + ' hari)' : ' (sesuai/lebih cepat)') : '-');
+        var lines = [
+          'Rentang: ' + (pj.start ? fmtDMY(pj.start) + ' s/d ' + fmtDMY(pj.end) + '  |  Durasi: ' + pj.duration + ' hari  |  Berlalu: ' + pj.elapsed + ' hari  |  Sisa: ' + remTxt : '-'),
+          'Pencapaian: ' + pj.progress + '%  (rencana s/d hari ini ' + pj.planned + '%)  |  Perkiraan selesai: ' + fcTxt,
+          'Tugas: ' + pj.taskCount + '  |  Selesai: ' + pj.doneCount + '  |  Terlambat: ' + pj.overdue.length +
+            '  |  Seksi belum berjalan: ' + (pj.notRunning.length ? pj.notRunning.map(function(s){ return s.name; }).join(', ') : 'tidak ada')
+        ];
+        var ly = 56;
+        lines.forEach(function(l){ var wrapped = doc.splitTextToSize(l, pw - margin * 2); doc.text(wrapped, margin, ly); ly += wrapped.length * 11 + 2; });
+
+        var secBody = det.sections.map(function(s){
+          var st = sisaText(s.remaining, s.done);
+          return [s.name, s.count + ' (' + s.doneCount + ' selesai)', s.start ? fmtDMY(s.start) : '-', s.end ? fmtDMY(s.end) : '-',
+                  s.duration ? s.duration + ' hari' : '-', s.progress + '%', s.start ? s.planned + '%' : '-', st.txt,
+                  s.forecast ? fmtDMY(s.forecast) : '-', SEC_HEALTH_LABEL[s.health] || s.health];
+        });
+        doc.autoTable({
+          startY: ly + 4, margin: { left: margin, right: margin },
+          head: [['Seksi','Tugas','Mulai','Selesai','Durasi','% Tercapai','% Rencana','Sisa Hari','Perkiraan Selesai','Kondisi']],
+          body: secBody,
+          styles: { fontSize: 7.5, cellPadding: 3.5 },
+          headStyles: { fillColor: [26,43,76] },
+          alternateRowStyles: { fillColor: [244,247,251] },
+          didParseCell: function(c){
+            if (c.section !== 'body' || c.column.index !== 9) return;
+            var v = String(c.cell.raw || '');
+            if (/terlambat|kendala|telat/i.test(v)) c.cell.styles.textColor = [185,28,28];
+            else if (/Belum|Tertinggal/i.test(v)) c.cell.styles.textColor = [180,83,9];
+            else if (/Selesai|Sesuai/i.test(v)) c.cell.styles.textColor = [21,128,61];
+            c.cell.styles.fontStyle = 'bold';
+          }
+        });
+
         doc.addPage();
         doc.setFontSize(13); doc.setTextColor(26,43,76);
         doc.text('Rincian Tugas', margin, 40);
         var body = [];
-        data.rows.forEach(function(row){
-          row.items.forEach(function(it){
+        det.sections.forEach(function(s){
+          s.tasks.forEach(function(t){
+            var st = sisaText(t.remaining, t.done);
             body.push([
-              row.name,
-              it.desc,
-              it.pic,
-              ({selesai:'Selesai',berlangsung:'Berlangsung',rencana:'Rencana',kendala:'Kendala'})[it.status] || it.status,
-              fmtShort(it.start) + (it.hasStart ? ' - ' + fmtShort(it.end) : ''),
-              fmtShort(it.end)
+              s.name, t.desc, t.pic,
+              STATUS_LABEL[t.status] || t.status,
+              t.dated ? (t.hasStart ? fmtDMY(t.start) : '-') : '-',
+              t.dated ? fmtDMY(t.end) : '-',
+              t.dated ? t.duration + ' hari' : '-',
+              t.progress + '%',
+              t.dated ? t.planned + '%' : '-',
+              st.txt,
+              HEALTH_LABEL[t.health] || t.health
             ]);
           });
         });
         doc.autoTable({
           startY: 52, margin: { left: margin, right: margin },
-          head: [['Seksi','Tugas','PIC','Status','Periode','Milestone/Deadline']],
+          head: [['Seksi','Tugas','PIC','Status','Mulai','Deadline','Durasi','% Tercapai','% Rencana','Sisa Hari','Kondisi']],
           body: body,
-          styles: { fontSize: 8, cellPadding: 4 },
+          styles: { fontSize: 7.5, cellPadding: 3.5 },
           headStyles: { fillColor: [26,43,76] },
-          alternateRowStyles: { fillColor: [244,247,251] }
+          alternateRowStyles: { fillColor: [244,247,251] },
+          didParseCell: function(c){
+            if (c.section !== 'body' || (c.column.index !== 10 && c.column.index !== 9)) return;
+            var v = String(c.cell.raw || '');
+            if (/Terlambat|Lewat|Kendala/i.test(v)) c.cell.styles.textColor = [185,28,28];
+            else if (/Tertinggal|Telat mulai/i.test(v)) c.cell.styles.textColor = [180,83,9];
+          }
         });
       }
       doc.save('Timeline_Proyek_' + new Date().toISOString().slice(0,10) + '.pdf');
