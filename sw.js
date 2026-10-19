@@ -2,7 +2,7 @@
 // Perubahan utama v4: halaman HTML (index.html) memakai strategi NETWORK-FIRST,
 // sehingga HP / PWA terinstal selalu mendapat versi terbaru saat online,
 // dan baru memakai salinan cache jika sedang offline.
-const CACHE_NAME = 'notula-cache-v6';
+const CACHE_NAME = 'notula-cache-v5';
 
 const urlsToCache = [
   './',
